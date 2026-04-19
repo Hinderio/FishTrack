@@ -1021,3 +1021,22 @@ renderCharts = function(){
   document.addEventListener('DOMContentLoaded', injectParticipantEditButtons);
   window.addEventListener('load', injectParticipantEditButtons);
 })();
+
+
+// Fix: persist edited catches correctly
+(function(){
+  const catchForm = document.getElementById('catchForm');
+  if(!catchForm || catchForm.dataset.persistFixBound === '1') return;
+  catchForm.dataset.persistFixBound = '1';
+
+  catchForm.addEventListener('submit', () => {
+    setTimeout(() => {
+      try{
+        if(typeof persist === 'function') persist();
+        if(typeof rerender === 'function') rerender();
+      }catch(e){
+        console.warn('Catch edit persist fix failed', e);
+      }
+    }, 0);
+  }, true);
+})();
