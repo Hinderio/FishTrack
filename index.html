@@ -81,7 +81,12 @@
 
         <div class="grid two-columns">
           <section class="panel glass species-distribution-card" id="speciesDistributionCard">
-            <div class="panel-head"><h3>Artenverteilung</h3></div>
+            <div class="panel-head">
+              <h3>Artenverteilung</h3>
+              <select id="analyticsTournamentSelect" class="dashboard-select">
+                <option value="overview">Overview</option>
+              </select>
+            </div>
             <div class="timeline-chart-wrap">
               
               <div id="speciesTimelineLegend" class="species-icon-legend"></div><canvas id="speciesTimelineChart"></canvas>
