@@ -61,6 +61,11 @@ if (typeof window.renderSpeciesTimeline === 'function') {
 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 rerender();
 
+  } catch (err) {
+    console.error('Fehler beim Laden aus Supabase:', err);
+  }
+}
+
 async function saveCatchToSupabase(entry) {
   if (!db) return;
 
