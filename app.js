@@ -4,9 +4,13 @@ let state = loadState();
 window.state = state;
 
 const db = window.supabaseClient;
+let hasLoadedFromSupabase = false;
 
 async function loadFromSupabase() {
-  if (!db) return;
+  if (!db) {
+    hasLoadedFromSupabase = true;
+    return;
+  }
 
   try {
     const { data: participants, error: participantsError } = await db
@@ -58,11 +62,13 @@ if (typeof window.renderSpeciesTimeline === 'function') {
   window.renderSpeciesTimeline();
 }
 
+hasLoadedFromSupabase = true;
 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 rerender();
 
   } catch (err) {
     console.error('Fehler beim Laden aus Supabase:', err);
+    hasLoadedFromSupabase = true;
   }
 }
 
@@ -143,6 +149,8 @@ let map;let markersLayer;let beforeInstallPromptEvent=null;let activeTournamentI
 let isSyncing = false;
 
 async function persist() {
+  if (!hasLoadedFromSupabase) return;
+  
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 
   if (!db || isSyncing) return;
