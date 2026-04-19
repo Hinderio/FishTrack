@@ -1135,3 +1135,77 @@ renderCharts = function(){
   document.addEventListener('DOMContentLoaded', ensure7DayForecast);
   window.addEventListener('load', () => setTimeout(ensure7DayForecast, 100));
 })();
+
+
+// Reliable 7-day forecast injection
+(function(){
+  function render7DayCard(){
+    const forecastBox = document.getElementById('forecastBox');
+    if(!forecastBox) return;
+
+    // wait until the existing 30-day card is present
+    const cards = forecastBox.querySelectorAll('.insight-card');
+    if(!cards.length) return;
+
+    let sevenCard = forecastBox.querySelector('[data-forecast="7day"]');
+
+    if(!sevenCard){
+      sevenCard = document.createElement('article');
+      sevenCard.className = 'insight-card';
+      sevenCard.setAttribute('data-forecast', '7day');
+      forecastBox.insertBefore(sevenCard, forecastBox.firstChild);
+    }
+
+    const catches = Array.isArray(state?.catches) ? state.catches : [];
+
+    let message = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
+
+    if(catches.length > 0){
+      const timestamps = catches.map(c => {
+        const d = new Date(c.timestamp);
+        d.setHours(0,0,0,0);
+        return d.getTime();
+      });
+
+      const totalDays = Math.max(
+        1,
+        Math.round((Math.max(...timestamps) - Math.min(...timestamps)) / 86400000) + 1
+      );
+
+      const avgPerDay = catches.length / totalDays;
+      const forecastCount = Math.round(avgPerDay * 7);
+
+      const avgWeight = catches.reduce((sum, c) => sum + Number(c.weightKg || 0), 0) / catches.length;
+
+      message = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${forecastCount} Fängen. Das entspricht rund ${fmtKg(forecastCount * avgWeight)} Gesamtgewicht.`;
+    }
+
+    sevenCard.innerHTML = `
+      <strong>7-Tage-Prognose</strong>
+      <span>${message}</span>
+    `;
+  }
+
+  const observer = new MutationObserver(() => {
+    render7DayCard();
+  });
+
+  function startForecastObserver(){
+    const forecastBox = document.getElementById('forecastBox');
+    if(!forecastBox) return;
+
+    observer.disconnect();
+    observer.observe(forecastBox, { childList: true, subtree: true });
+    render7DayCard();
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(startForecastObserver, 300);
+  });
+
+  window.addEventListener('load', () => {
+    setTimeout(startForecastObserver, 500);
+  });
+
+  setTimeout(startForecastObserver, 1000);
+})();
