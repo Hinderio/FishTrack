@@ -18,13 +18,14 @@ async function loadFromSupabase() {
       .select('*');
 
     const { data: catches, error: catchesError } = await db
-      .from('catches')
-      .select('*')
-      .order('timestamp', { ascending: true });
+  .from('catches')
+  .select('*')
+  .order('caught_at', { ascending: true });
 
     if (participantsError) throw participantsError;
     if (tournamentsError) throw tournamentsError;
     if (catchesError) throw catchesError;
+    console.log('geladene catches aus supabase', catches);
 
     state.participants = participants || [];
     state.tournaments = tournaments || [];
