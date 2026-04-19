@@ -61,21 +61,21 @@ async function saveCatchToSupabase(entry) {
   if (!db) return;
 
   const payload = {
-    id: entry.id,
-    species: entry.species || 'Andere',
-    customSpecies: entry.customSpecies || '',
-    participantId: entry.participantId,
-    tournament_id: entry.tournamentId || null,
-    lengthCm: Number(entry.lengthCm || 0),
-    weightKg: Number(entry.weightKg || 0),
-    timestamp: entry.timestamp,
-    bait: entry.bait || '',
-    spotLabel: entry.spotLabel || '',
-    note: entry.note || '',
-    lat: entry.location?.lat != null ? Number(entry.location.lat) : null,
-    lng: entry.location?.lng != null ? Number(entry.location.lng) : null,
-    createdAt: entry.createdAt || new Date().toISOString()
-  };
+  id: entry.id,
+  tournament_id: entry.tournamentId || null,
+  angler: entry.participantId || '',
+  species: entry.species || 'Andere',
+  weight_kg: Number(entry.weightKg || 0),
+  length_cm: Number(entry.lengthCm || 0),
+  country: 'Norway',
+  latitude: entry.location?.lat != null
+    ? Number(entry.location.lat)
+    : null,
+  longitude: entry.location?.lng != null
+    ? Number(entry.location.lng)
+    : null,
+  caught_at: entry.timestamp
+};
 
   const { error } = await db
     .from('catches')
