@@ -1209,3 +1209,39 @@ renderCharts = function(){
 
   setTimeout(startForecastObserver, 1000);
 })();
+
+
+// Final direct 7-day forecast render
+setInterval(() => {
+  const box = document.getElementById('forecastBox');
+  if (!box) return;
+
+  const has30Day = box.innerText.includes('30-Tage-Prognose');
+  if (!has30Day) return;
+
+  let seven = box.querySelector('.forecast-seven-day');
+  if (!seven) {
+    seven = document.createElement('article');
+    seven.className = 'insight-card forecast-seven-day';
+    box.insertBefore(seven, box.firstChild);
+  }
+
+  const catches = state && Array.isArray(state.catches) ? state.catches : [];
+
+  let message = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
+
+  if (catches.length) {
+    const days = Math.max(1, Math.round(
+      (Math.max(...catches.map(c => new Date(c.timestamp).getTime())) -
+       Math.min(...catches.map(c => new Date(c.timestamp).getTime()))) / 86400000
+    ) + 1);
+
+    const avgPerDay = catches.length / days;
+    const forecast = Math.round(avgPerDay * 7);
+    const avgWeight = catches.reduce((s, c) => s + Number(c.weightKg || 0), 0) / catches.length;
+
+    message = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${forecast} Fängen. Das entspricht rund ${fmtKg(forecast * avgWeight)} Gesamtgewicht.`;
+  }
+
+  seven.innerHTML = '<strong>7-Tage-Prognose</strong><span>' + message + '</span>';
+}, 100);
