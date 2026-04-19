@@ -504,6 +504,7 @@ setInterval(() => {
       data: arr,
       borderColor: color,
       backgroundColor: color,
+      pointStyle: 'rect',
       fill: false,
       borderWidth: 2,
       tension: 0.45,
@@ -526,8 +527,6 @@ setInterval(() => {
           labels: {
   color: '#d8e0e8',
   usePointStyle: true,
-  pointStyle: 'rect',
-  pointStyleWidth: 10,
   padding: 18,
   font: { size: 14, weight: '600' }
 }
