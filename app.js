@@ -1042,206 +1042,38 @@ renderCharts = function(){
 })();
 
 
-// Add 7-day forecast while preserving existing 30-day forecast
+// Extend existing forecast card with a random fishing proverb
 (function(){
+  const fishQuotes = [
+    'Wenn die Möwen landeinwärts fliegen, ziehen die Räuberfische flach.',
+    'Wenn der Wind dreht, dreht oft auch das Glück am Wasser.',
+    'Trübes Wasser bringt oft den schwersten Fisch.',
+    'Morgennebel auf dem Fjord – ein guter Tag für kapitale Fänge.',
+    'Steigt der Druck am Morgen, beissen die Grossen bis zum Abend.'
+  ];
+
   const originalRenderForecast = window.renderForecast || renderForecast;
 
   window.renderForecast = function(){
     originalRenderForecast.apply(this, arguments);
 
-    const box = document.getElementById('forecastBox');
-    if(!box || box.querySelector('.forecast-7-day')) return;
+    const forecastBox = document.getElementById('forecastBox');
+    if(!forecastBox) return;
 
-    const catches = state.catches || [];
-    let forecastText = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
-
-    if(catches.length){
-      const dates = catches.map(c => {
-        const d = new Date(c.timestamp);
-        d.setHours(0,0,0,0);
-        return d.getTime();
-      });
-
-      const min = Math.min(...dates);
-      const max = Math.max(...dates);
-      const days = Math.max(1, Math.round((max - min) / 86400000) + 1);
-      const avgPerDay = catches.length / days;
-
-      const projected7 = Math.round(avgPerDay * 7);
-
-      const avgWeight = catches.reduce((sum, c) => sum + Number(c.weightKg || 0), 0) / catches.length;
-
-      forecastText = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${projected7} Fängen. Das entspricht rund ${fmtKg(projected7 * avgWeight)} Gesamtgewicht.`;
-    }
+    // remove old quote card if rerendered
+    const oldCard = forecastBox.querySelector('.fish-quote-card');
+    if(oldCard) oldCard.remove();
 
     const card = document.createElement('article');
-    card.className = 'insight-card forecast-7-day';
+    card.className = 'insight-card fish-quote-card';
+
+    const quote = fishQuotes[Math.floor(Math.random() * fishQuotes.length)];
+
     card.innerHTML = `
-      <strong>7-Tage-Prognose</strong>
-      <span>${forecastText}</span>
+      <strong>Fischerregel des Tages</strong>
+      <span>${quote}</span>
     `;
 
-    box.prepend(card);
+    forecastBox.appendChild(card);
   };
-
-  setTimeout(() => {
-    if(typeof window.renderForecast === 'function'){
-      window.renderForecast();
-    }
-  }, 100);
 })();
-
-
-// Force visible 7-day forecast even after later rerenders
-(function(){
-  function ensure7DayForecast(){
-    const box = document.getElementById('forecastBox');
-    if(!box) return;
-
-    const existing30 = box.querySelector('article');
-    if(!existing30) return;
-
-    let card = box.querySelector('.forecast-7-day');
-
-    if(!card){
-      card = document.createElement('article');
-      card.className = 'insight-card forecast-7-day';
-      box.insertBefore(card, box.firstChild);
-    }
-
-    const catches = state.catches || [];
-    let text = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
-
-    if(catches.length){
-      const days = Math.max(
-        1,
-        Math.round(
-          (Math.max(...catches.map(c => new Date(c.timestamp).setHours(0,0,0,0))) -
-           Math.min(...catches.map(c => new Date(c.timestamp).setHours(0,0,0,0)))) / 86400000
-        ) + 1
-      );
-
-      const avgPerDay = catches.length / days;
-      const projected = Math.round(avgPerDay * 7);
-      const avgWeight = catches.reduce((s,c)=>s+Number(c.weightKg||0),0) / catches.length;
-
-      text = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${projected} Fängen. Das entspricht rund ${fmtKg(projected * avgWeight)} Gesamtgewicht.`;
-    }
-
-    card.innerHTML = `<strong>7-Tage-Prognose</strong><span>${text}</span>`;
-  }
-
-  setInterval(ensure7DayForecast, 300);
-  document.addEventListener('DOMContentLoaded', ensure7DayForecast);
-  window.addEventListener('load', () => setTimeout(ensure7DayForecast, 100));
-})();
-
-
-// Reliable 7-day forecast injection
-(function(){
-  function render7DayCard(){
-    const forecastBox = document.getElementById('forecastBox');
-    if(!forecastBox) return;
-
-    // wait until the existing 30-day card is present
-    const cards = forecastBox.querySelectorAll('.insight-card');
-    if(!cards.length) return;
-
-    let sevenCard = forecastBox.querySelector('[data-forecast="7day"]');
-
-    if(!sevenCard){
-      sevenCard = document.createElement('article');
-      sevenCard.className = 'insight-card';
-      sevenCard.setAttribute('data-forecast', '7day');
-      forecastBox.insertBefore(sevenCard, forecastBox.firstChild);
-    }
-
-    const catches = Array.isArray(state?.catches) ? state.catches : [];
-
-    let message = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
-
-    if(catches.length > 0){
-      const timestamps = catches.map(c => {
-        const d = new Date(c.timestamp);
-        d.setHours(0,0,0,0);
-        return d.getTime();
-      });
-
-      const totalDays = Math.max(
-        1,
-        Math.round((Math.max(...timestamps) - Math.min(...timestamps)) / 86400000) + 1
-      );
-
-      const avgPerDay = catches.length / totalDays;
-      const forecastCount = Math.round(avgPerDay * 7);
-
-      const avgWeight = catches.reduce((sum, c) => sum + Number(c.weightKg || 0), 0) / catches.length;
-
-      message = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${forecastCount} Fängen. Das entspricht rund ${fmtKg(forecastCount * avgWeight)} Gesamtgewicht.`;
-    }
-
-    sevenCard.innerHTML = `
-      <strong>7-Tage-Prognose</strong>
-      <span>${message}</span>
-    `;
-  }
-
-  const observer = new MutationObserver(() => {
-    render7DayCard();
-  });
-
-  function startForecastObserver(){
-    const forecastBox = document.getElementById('forecastBox');
-    if(!forecastBox) return;
-
-    observer.disconnect();
-    observer.observe(forecastBox, { childList: true, subtree: true });
-    render7DayCard();
-  }
-
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(startForecastObserver, 300);
-  });
-
-  window.addEventListener('load', () => {
-    setTimeout(startForecastObserver, 500);
-  });
-
-  setTimeout(startForecastObserver, 1000);
-})();
-
-
-// Final direct 7-day forecast render
-setInterval(() => {
-  const box = document.getElementById('forecastBox');
-  if (!box) return;
-
-  const has30Day = box.innerText.includes('30-Tage-Prognose');
-  if (!has30Day) return;
-
-  let seven = box.querySelector('.forecast-seven-day');
-  if (!seven) {
-    seven = document.createElement('article');
-    seven.className = 'insight-card forecast-seven-day';
-    box.insertBefore(seven, box.firstChild);
-  }
-
-  const catches = state && Array.isArray(state.catches) ? state.catches : [];
-
-  let message = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
-
-  if (catches.length) {
-    const days = Math.max(1, Math.round(
-      (Math.max(...catches.map(c => new Date(c.timestamp).getTime())) -
-       Math.min(...catches.map(c => new Date(c.timestamp).getTime()))) / 86400000
-    ) + 1);
-
-    const avgPerDay = catches.length / days;
-    const forecast = Math.round(avgPerDay * 7);
-    const avgWeight = catches.reduce((s, c) => s + Number(c.weightKg || 0), 0) / catches.length;
-
-    message = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${forecast} Fängen. Das entspricht rund ${fmtKg(forecast * avgWeight)} Gesamtgewicht.`;
-  }
-
-  seven.innerHTML = '<strong>7-Tage-Prognose</strong><span>' + message + '</span>';
-}, 100);
