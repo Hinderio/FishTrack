@@ -775,18 +775,67 @@ document.addEventListener('click', (e) => {
 });
 
 
-const select2 = document.getElementById('analyticsTournamentSelect2');
-if (select2) {
-  select2.innerHTML = select.innerHTML;
-  select2.value = window.analyticsTournamentFilter || 'overview';
+window.analyticsTournamentFilter = window.analyticsTournamentFilter || 'overview';
 
-  if (select2.dataset.bound !== '1') {
-    select2.dataset.bound = '1';
-    select2.addEventListener('change', () => {
-      window.analyticsTournamentFilter = select2.value;
-      const s1 = document.getElementById('analyticsTournamentSelect');
-      if (s1) s1.value = select2.value;
-      rerenderAnalyticsCharts();
-    });
+function getAnalyticsCatches(){
+  if(!window.analyticsTournamentFilter || window.analyticsTournamentFilter === 'overview'){
+    return state.catches;
+  }
+
+  return state.catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
+}
+
+function rerenderAnalyticsCharts(){
+  const originalCatches = state.catches;
+  state.catches = getAnalyticsCatches();
+
+  try{
+    if(typeof renderCharts === 'function'){
+      renderCharts();
+    }
+  } finally {
+    state.catches = originalCatches;
+  }
+}
+
+function refreshAnalyticsTournamentSelect(){
+  const select = document.getElementById('analyticsTournamentSelect2');
+  if(!select) return;
+
+  select.innerHTML =
+    '<option value="overview">Overview</option>' +
+    (state.tournaments || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
+  if(!(state.tournaments || []).some(t => t.id === window.analyticsTournamentFilter)){
+    window.analyticsTournamentFilter = 'overview';
+  }
+
+  select.value = window.analyticsTournamentFilter;
+
+  if(select.dataset.bound === '1') return;
+  select.dataset.bound = '1';
+
+  select.addEventListener('change', () => {
+    window.analyticsTournamentFilter = select.value;
+    rerenderAnalyticsCharts();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', refreshAnalyticsTournamentSelect);
+window.addEventListener('load', () => setTimeout(refreshAnalyticsTournamentSelect, 50));
+
+const originalRenderChartsForAnalyticsFilter = renderCharts;
+renderCharts = function(){
+  const originalCatches = state.catches;
+
+  if(document.getElementById('screen-analytics')?.classList.contains('active')){
+    state.catches = getAnalyticsCatches();
+  }
+
+  try{
+    return originalRenderChartsForAnalyticsFilter.apply(this, arguments);
+  } finally {
+    state.catches = originalCatches;
+    refreshAnalyticsTournamentSelect();
   }
 }
