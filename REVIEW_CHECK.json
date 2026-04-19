@@ -1,0 +1,10 @@
+{
+  "weight_optional_in_html": true,
+  "map_button_present": true,
+  "preview_map_present": true,
+  "modal_present": true,
+  "weight_optional_in_js": true,
+  "init_location_picker_called": true,
+  "style_preview_present": true,
+  "style_modal_present": true
+}

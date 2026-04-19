@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "tripName": "Aarnes / Norwegen",
+    "tripSubtitle": "Fänge, Fangorte und Teilnehmer-Leaderboard"
+  },
+  "participants": [
+    {
+      "id": "demo-1",
+      "name": "Nico",
+      "color": "#4ad7d1",
+      "avatar": "🎣"
+    },
+    {
+      "id": "demo-2",
+      "name": "Dad",
+      "color": "#ffb84d",
+      "avatar": "🧢"
+    }
+  ],
+  "catches": [],
+  "tournaments": []
+}

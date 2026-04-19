@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FishTrack Norway</title>
+  <meta name="theme-color" content="#08111b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FishTrack" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://unpkg.com" />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+<defs>
+<symbol id="fish-minimal" viewBox="0 0 100 60">
+<path d="M18 30 Q38 12 58 30 Q38 48 18 30" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M58 30 Q72 14 70 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+<path d="M58 30 Q72 46 70 52" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+</symbol>
+</defs></svg>
+  <div class="app-shell">
+    <header class="topbar glass">
+      <div>
+        <p class="eyebrow">Norway Fishing Analytics</p>
+        <h1>FishTrack</h1>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeToggle" class="icon-btn" title="Theme wechseln">◐</button>
+        <button id="installPromptBtn" class="pill secondary hidden">App installieren</button>
+      </div>
+    </header>
+
+
+    <main class="content">
+      <section id="screen-dashboard" class="screen active">
+        <div class="hero-card glass">
+          <div>
+            <p class="eyebrow">Trip Overview</p>
+            <h2 id="tripTitle">Aarnes / Norwegen</h2>
+            <p id="tripSubtitle">Analysen, Fangorte, Leaderboard und Fanghistorie.</p>
+            <div class="dashboard-tournament-inline">
+              <select id="dashboardTournamentSelect" class="dashboard-select">
+                <option value="overview">Overview</option>
+              </select>
+            </div>
+          </div>
+          <div class="hero-stats">
+            <div class="mini-stat"><span id="totalCatches">0</span><label>Fänge</label></div>
+            <div class="mini-stat"><span id="totalWeight">0 kg</span><label>Gesamtgewicht</label></div>
+            <div class="mini-stat"><span id="biggestCatch">–</span><label>Top Catch</label></div>
+          </div>
+        </div>
+
+        <!-- Species KPI grid: minimal icons and counts -->
+        <div class="species-kpi-grid">
+          <div class="species-card glass"><span class="kpi-icon"><svg class="fish-icon barsch" viewBox="0 0 100 60"><use href="#fish-minimal"/></svg><strong id="kpi_Barsch">0</strong><small>Barsch</small></div>
+          <div class="species-card glass"><span class="kpi-icon"><svg class="fish-icon hecht" viewBox="0 0 100 60"><use href="#fish-minimal"/></svg><strong id="kpi_Hecht">0</strong><small>Hecht</small></div>
+          <div class="species-card glass"><span class="kpi-icon"><svg class="fish-icon zander" viewBox="0 0 100 60"><use href="#fish-minimal"/></svg><strong id="kpi_Zander">0</strong><small>Zander</small></div>
+          <div class="species-card glass"><span class="kpi-icon"><svg class="fish-icon forelle" viewBox="0 0 100 60"><use href="#fish-minimal"/></svg><strong id="kpi_Forelle">0</strong><small>Forelle</small></div>
+          <div class="species-card glass"><span class="kpi-icon"><svg class="fish-icon dorsch" viewBox="0 0 100 60"><use href="#fish-minimal"/></svg><strong id="kpi_Dorsch">0</strong><small>Dorsch</small></div>
+          <div class="species-card glass"><span class="kpi-icon"><svg class="fish-icon andere" viewBox="0 0 100 60"><use href="#fish-minimal"/></svg><strong id="kpi_Andere">0</strong><small>Andere</small></div>
+        </div>
+
+        <div class="grid cards-4">
+          <article class="metric-card glass"><span class="metric-label">Heute</span><strong id="todayCatches">0</strong><small>Fänge heute</small></article>
+          <article class="metric-card glass"><span class="metric-label">Leader</span><strong id="currentLeader">–</strong><small>nach Punkten</small></article>
+          <article class="metric-card glass"><span class="metric-label">Ø Gewicht</span><strong id="avgWeight">0 kg</strong><small>pro Fang</small></article>
+          <article class="metric-card glass"><span class="metric-label">Hot Time</span><strong id="bestTimeSlot">–</strong><small>beste Uhrzeit</small></article>
+        </div>
+
+        <div class="grid two-columns">
+          <section class="panel glass"><div class="panel-head"><h3>Leaderboard</h3><span class="subtle">Punkte, Fänge, kg</span></div><div id="leaderboardList" class="stack-list"></div></section>
+          <section class="panel glass"><div class="panel-head"><h3>Letzte Fänge</h3><span class="subtle">mit Länge, Gewicht, Spot</span></div><div id="recentCatches" class="stack-list"></div></section>
+        </div>
+
+        <div class="grid two-columns">
+          <section class="panel glass species-distribution-card" id="speciesDistributionCard">
+            <div class="panel-head"><h3>Artenverteilung</h3></div>
+            <div class="timeline-chart-wrap">
+              
+              <div id="speciesTimelineLegend" class="species-icon-legend"></div><canvas id="speciesTimelineChart"></canvas>
+            </div>
+          </section>
+          <section class="panel glass"><div class="panel-head"><h3>Fänge pro Tag</h3></div><canvas id="dailyChart" height="210"></canvas></section>
+        </div>
+
+        <section class="panel glass">
+          <div class="panel-head"><h3>Insights</h3><span class="subtle">automatisch berechnet</span></div>
+          <div id="insightsList" class="insights-grid"></div>
+        </section>
+      </section>
+
+      <section id="screen-catches" class="screen">
+        <div class="grid two-columns">
+          <section class="panel glass">
+            <div class="panel-head"><h3>Neuen Fang eintragen</h3><span class="subtle">schnell optimiert für iPhone</span></div>
+            <form id="catchForm" class="form-grid">
+              <label><span>Fischart</span><select name="species" id="speciesSelect" required><option value="Barsch">Barsch</option><option value="Hecht">Hecht</option><option value="Zander">Zander</option><option value="Forelle">Forelle</option><option value="Dorsch">Dorsch</option><option value="Andere">Andere</option></select></label>
+              <label id="customSpeciesWrap" class="hidden"><span>Andere Fischart</span><input type="text" name="customSpecies" placeholder="z. B. Saibling" /></label>
+              <label><span>Teilnehmer</span><select name="participantId" id="participantSelect" required></select></label>
+              <label><span>Turnier <small class="subtle-inline">(optional)</small></span><select name="tournamentId" id="tournamentSelect"><option value="">Kein Turnier</option></select></label>
+              <label><span>Länge (cm)</span><input type="number" name="lengthCm" min="1" step="1" required /></label>
+              <label><span>Gewicht (kg) <small class="subtle-inline">(optional)</small></span><input type="number" name="weightKg" min="0" step="0.01" placeholder="optional" /></label>
+              <label><span>Zeitpunkt</span><input type="datetime-local" name="timestamp" id="timestampInput" required /></label>
+              <label><span>Köder</span><input type="text" name="bait" placeholder="z. B. Gummifisch" /></label>
+              <label><span>Spot / Bereich</span><input type="text" name="spotLabel" placeholder="z. B. Nordufer Schilfkante" /></label>
+              <label class="full"><span>Notiz</span><textarea name="note" rows="3" placeholder="Wetter, Strömung, Besonderheiten ..."></textarea></label>
+              <div class="location-box full">
+                <div class="location-head">
+                  <strong>Standort</strong>
+                  <div class="action-row">
+                    <button type="button" id="useCurrentLocation" class="pill secondary">Aktuellen Standort verwenden</button>
+                    <button type="button" id="pickOnMap" class="pill secondary">Auf Karte wählen</button>
+                  </div>
+                </div>
+                <div class="grid two-equal">
+                  <label><span>Breitengrad</span><input type="number" name="lat" step="0.000001" placeholder="60.123456" /></label>
+                  <label><span>Längengrad</span><input type="number" name="lng" step="0.000001" placeholder="11.654321" /></label>
+                </div>
+                <div id="locationPreviewMap" aria-label="Standortvorschau"></div>
+              </div>
+
+              <div id="mapPickerModal" class="map-modal hidden" aria-hidden="true">
+                <div class="map-modal-card glass">
+                  <div class="panel-head">
+                    <h3>Fangort auf Karte wählen</h3>
+                    <button type="button" id="closeMapPicker" class="pill secondary">Schließen</button>
+                  </div>
+                  <div id="mapPicker"></div>
+                  <div class="form-actions full">
+                    <button type="button" id="confirmMapLocation" class="pill primary">Standort übernehmen</button>
+                  </div>
+                </div>
+              </div>
+              <div class="form-actions full"><button type="submit" class="pill primary">Fang speichern</button><button type="reset" class="pill secondary">Zurücksetzen</button></div>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head"><h3>Fanghistorie</h3><span class="subtle">bearbeiten oder löschen</span></div>
+            <div class="filter-row">
+              <select id="speciesFilter"><option value="all">Alle Fischarten</option></select>
+              <select id="participantFilter"><option value="all">Alle Teilnehmer</option></select>
+              <input id="searchCatch" type="search" placeholder="Suchen nach Spot, Köder, Notiz ..." />
+            </div>
+            <div id="catchHistoryList" class="stack-list tall"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="screen-map" class="screen">
+        <div class="grid two-columns">
+          <section class="panel glass">
+            <div class="panel-head"><h3>Fangkarte</h3><span class="subtle">Marker, Konzentration, Filter</span></div>
+            <!-- Map action buttons -->
+            <div class="map-actions">
+              <button id="show-all-catches-btn" class="map-action-btn">Alle Fänge zeigen</button>
+              <button id="toggle-grid-btn" class="map-action-btn">Raster an/aus</button>
+            </div>
+            <div id="map"></div>
+          </section>
+          <section class="panel glass"><div class="panel-head"><h3>Heatmap / Spots</h3></div><div id="mapLegend" class="legend-box"></div><div id="heatmapGrid" class="heatmap-grid"></div></section>
+        </div>
+      </section>
+
+      <section id="screen-analytics" class="screen">
+        <div class="grid two-columns">
+          <section class="panel glass"><div class="panel-head"><h3>Teilnehmervergleich</h3></div><canvas id="participantChart" height="220"></canvas></section>
+          <section class="panel glass"><div class="panel-head"><h3>Uhrzeit-Hitmap</h3></div><div id="timeHeatmap" class="time-grid"></div></section>
+        </div>
+        <div class="grid two-columns">
+          <section class="panel glass"><div class="panel-head"><h3>Rekorde</h3></div><div id="recordsList" class="stack-list"></div></section>
+          <section class="panel glass"><div class="panel-head"><h3>Prognose</h3></div><div id="forecastBox" class="forecast-box"></div></section>
+        </div>
+      </section>
+
+      
+      <section id="screen-tournaments" class="screen">
+        <div class="grid two-columns">
+          <section class="panel glass">
+            <div class="panel-head"><h3>Turnier erstellen</h3><span class="subtle">bestehende App bleibt unverändert – Turniermodus kommt zusätzlich dazu</span></div>
+            <form id="tournamentForm" class="form-grid">
+              <label><span>Name</span><input type="text" name="name" placeholder="z. B. Norway Masters" required /></label>
+              <label><span>Regelwerk</span>
+                <select name="rulesetId" id="rulesetSelect">
+                  <option value="all_fish">Classic Cup</option>
+                  <option value="first_fish">Erster Fisch gewinnt</option>
+                  <option value="species_hunter">Artenjäger</option>
+                  <option value="trophy_hunter">Trophy Hunter</option>
+                  <option value="explorer">Entschneidern / Spot Explorer</option>
+                  <option value="custom">Eigenes Regelwerk</option>
+                </select>
+              </label>
+
+              <label><span>Start</span><input type="date" name="start" required /></label>
+              <label><span>Ende</span><input type="date" name="end" required /></label>
+
+              <section class="panel glass full scoring-panel scoring-panel-wide">
+                <div class="panel-head">
+                  <div>
+                    <p class="eyebrow">Scoring</p>
+                    <h3>Regeln anpassen</h3>
+                  </div>
+                  <label class="pick-chip compact">
+                    <input type="checkbox" id="enableCustomRules" />
+                    <span>Eigenes Regelwerk</span>
+                  </label>
+                </div>
+                <div class="grid two-columns scoring-grid">
+                  <label><span>Punkte je Fisch</span><input type="number" id="rule_pointsPerFish" value="1" min="0"></label>
+                  <label><span>Bonus erster Fisch</span><input type="number" id="rule_bonusFirstFish" value="0" min="0"></label>
+                  <label><span>Bonus grösster Fisch</span><input type="number" id="rule_bonusLargestFish" value="5" min="0"></label>
+                  <label><span>Bonus grösster Fisch pro Art</span><input type="number" id="rule_bonusLargestPerSpecies" value="3" min="0"></label>
+                  <label><span>Bonus Entschneidern</span><input type="number" id="rule_bonusNewArea" value="0" min="0"></label>
+                  <label><span>Bonus > 80 cm</span><input type="number" id="rule_bonusOver80cm" value="0" min="0"></label>
+                  <label><span>Bonus > 100 cm</span><input type="number" id="rule_bonusOver100cm" value="0" min="0"></label>
+                </div>
+              </section>
+              <label class="full"><span>Teilnehmer</span><div id="tournamentParticipants" class="participant-picks"></div></label>
+              <div class="form-actions full">
+                <button type="submit" class="pill primary">Turnier speichern</button>
+                <button type="reset" class="pill secondary">Zurücksetzen</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head"><h3>Turniere</h3><span class="subtle">öffnen, auswerten, löschen</span></div>
+            <div id="tournamentList" class="stack-list"></div>
+          </section>
+        </div>
+
+        <section class="panel glass">
+          <div class="panel-head">
+            <h3 id="activeTournamentTitle">Turnierauswertung</h3>
+            <span id="activeTournamentMeta" class="subtle">Noch kein Turnier ausgewählt</span>
+          </div>
+          <div class="grid two-columns">
+            <div>
+              <div id="tournamentLeaderboard" class="stack-list"></div>
+            </div>
+            <div>
+              <div id="tournamentHighlights" class="stack-list"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+
+<section id="screen-participants" class="screen">
+        <div class="grid two-columns">
+          <section class="panel glass">
+            <div class="panel-head"><h3>Teilnehmer verwalten</h3></div>
+            <form id="participantForm" class="form-grid">
+              <label><span>Name</span><input type="text" name="name" placeholder="z. B. Nico" required /></label>
+              <label><span>Farbe</span><input type="color" name="color" value="#4ad7d1" /></label>
+              <label><span>Emoji</span><input type="text" name="avatar" value="🎣" maxlength="2" /></label>
+              <div class="form-actions full"><button type="submit" class="pill primary">Teilnehmer hinzufügen</button></div>
+            </form>
+          </section>
+          <section class="panel glass"><div class="panel-head"><h3>Teilnehmer</h3></div><div id="participantsList" class="stack-list"></div></section>
+        </div>
+        <section class="panel glass">
+          <div class="panel-head"><h3>Daten</h3><span class="subtle">Backup und Restore</span></div>
+          <div class="action-row">
+            <button id="exportBtn" class="pill secondary">JSON exportieren</button>
+            <label class="pill secondary file-input-pill">JSON importieren<input id="importInput" type="file" accept=".json,application/json" /></label>
+            <button id="resetDemoBtn" class="pill danger">Demo-Daten zurücksetzen</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav glass">
+      <button data-screen="dashboard" class="nav-btn active">Dashboard</button>
+      <button data-screen="catches" class="nav-btn">Fänge</button>
+      <button data-screen="map" class="nav-btn">Karte</button>
+      <button data-screen="analytics" class="nav-btn">Analytics</button>
+      <button data-screen="tournaments" class="nav-btn">Turniere</button>
+      <button data-screen="participants" class="nav-btn">Team</button>
+    </nav>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>

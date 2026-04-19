@@ -1,0 +1,9 @@
+{
+  "tournaments_screen": true,
+  "tournament_select": true,
+  "nav_turniere": true,
+  "state_tournaments": true,
+  "render_tournaments": true,
+  "compute_tournament_scores": true,
+  "rerender_calls_tournaments": true
+}
