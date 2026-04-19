@@ -898,3 +898,50 @@ setTimeout(() => {
     window.renderForecast();
   }
 }, 100);
+
+
+// Fischerregel ohne Seiteneffekte auf andere Features
+(function(){
+  if(window.__fishQuoteObserverInstalled) return;
+  window.__fishQuoteObserverInstalled = true;
+
+  const quotes = [
+    'Wenn die Möwen landeinwärts fliegen, ziehen die Räuberfische flach.',
+    'Wenn der Wind dreht, dreht oft auch das Glück am Wasser.',
+    'Trübes Wasser bringt oft den schwersten Fisch.',
+    'Morgennebel auf dem Fjord – ein guter Tag für kapitale Fänge.',
+    'Steigt der Druck am Morgen, beissen die Grossen bis zum Abend.',
+    'Springt der Köderfisch, ist der Räuber nicht weit.'
+  ];
+
+  function injectFishQuote(){
+    const box = document.getElementById('forecastBox');
+    if(!box || !box.querySelector('.insight-card')) return;
+
+    let card = box.querySelector('[data-fish-quote="1"]');
+    if(!card){
+      card = document.createElement('article');
+      card.className = 'insight-card';
+      card.setAttribute('data-fish-quote', '1');
+      box.appendChild(card);
+    }
+
+    if(card.dataset.initialized === '1') return;
+
+    card.dataset.initialized = '1';
+    card.innerHTML = `
+      <strong>Fischerregel des Tages</strong>
+      <span>${quotes[Math.floor(Math.random() * quotes.length)]}</span>
+    `;
+  }
+
+  const observer = new MutationObserver(() => injectFishQuote());
+
+  window.addEventListener('load', () => {
+    const box = document.getElementById('forecastBox');
+    if(box){
+      observer.observe(box, { childList: true });
+      injectFishQuote();
+    }
+  });
+})();
