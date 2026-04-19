@@ -840,3 +840,184 @@ renderCharts = function(){
     refreshAnalyticsTournamentSelect();
   }
 }
+
+
+// Add 7-day forecast while keeping existing 30-day forecast
+(function(){
+  const originalRenderForecast = window.renderForecast || renderForecast;
+
+  window.renderForecast = function(){
+    const original = state.catches;
+
+    try{
+      originalRenderForecast.apply(this, arguments);
+
+      const box = document.getElementById('forecastBox');
+      if(!box) return;
+
+      const existing = box.querySelector('article');
+      if(!existing) return;
+
+      if(box.querySelector('.forecast-7-day')) return;
+
+      const catches = state.catches || [];
+      const card = document.createElement('article');
+      card.className = 'insight-card forecast-7-day';
+
+      let text = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
+
+      if(catches.length){
+        const dates = catches.map(c => {
+          const d = new Date(c.timestamp);
+          d.setHours(0,0,0,0);
+          return d.getTime();
+        });
+
+        const min = Math.min(...dates);
+        const max = Math.max(...dates);
+        const days = Math.max(1, Math.round((max - min) / 86400000) + 1);
+        const avgPerDay = catches.length / days;
+        const projected7 = Math.round(avgPerDay * 7);
+
+        const totalWeight = catches.reduce((s,c)=>s+Number(c.weightKg||0),0);
+        const avgWeight = catches.length ? totalWeight / catches.length : 0;
+
+        text = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${projected7} Fängen. Das entspricht rund ${fmtKg(projected7 * avgWeight)} Gesamtgewicht.`;
+      }
+
+      card.innerHTML = `
+        <strong>7-Tage-Prognose</strong>
+        <span>${text}</span>
+      `;
+
+      box.prepend(card);
+    } catch(e){
+      console.warn('7-day forecast could not be rendered', e);
+    }
+  };
+
+  setTimeout(() => {
+    if(typeof window.renderForecast === 'function'){
+      window.renderForecast();
+    }
+  }, 100);
+})();
+
+
+// Stable participant edit buttons after rerender / refresh
+(function(){
+  const originalRenderParticipantsStable = window.renderParticipants || renderParticipants;
+
+  window.renderParticipants = function(){
+    originalRenderParticipantsStable.apply(this, arguments);
+
+    const container = document.getElementById('participantsList');
+    if(!container) return;
+
+    const cards = container.querySelectorAll('.list-card');
+
+    cards.forEach(card => {
+      const actions = card.querySelector('.list-actions');
+      if(!actions || actions.querySelector('.edit-btn')) return;
+
+      const deleteBtn = actions.querySelector('.delete-btn');
+      const nameText = card.querySelector('strong')?.textContent || '';
+
+      const participant = (state.participants || []).find(p => nameText.includes(p.name));
+      if(!participant) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn edit-btn';
+      btn.textContent = '✎';
+
+      btn.addEventListener('click', () => {
+        const form = document.getElementById('participantForm');
+        if(!form) return;
+
+        form.dataset.editingId = participant.id;
+        form.querySelector('[name="name"]').value = participant.name || '';
+        form.querySelector('[name="color"]').value = participant.color || '#4ad7d1';
+        form.querySelector('[name="avatar"]').value = participant.avatar || '🎣';
+
+        showScreen('participants');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      if(deleteBtn){
+        actions.insertBefore(btn, deleteBtn);
+      } else {
+        actions.appendChild(btn);
+      }
+    });
+  };
+
+  const oldRerender = window.rerender || rerender;
+  window.rerender = function(){
+    const result = oldRerender.apply(this, arguments);
+
+    try{
+      if(typeof window.renderParticipants === 'function'){
+        window.renderParticipants();
+      }
+    }catch(e){
+      console.warn('Participant edit refresh failed', e);
+    }
+
+    return result;
+  };
+})();
+
+
+// Final stable participant edit button fix
+(function(){
+  function injectParticipantEditButtons(){
+    const cards = document.querySelectorAll('#participantsList .list-card');
+
+    cards.forEach(card => {
+      const actions = card.querySelector('.list-actions');
+      if(!actions) return;
+
+      // remove duplicate / stale buttons
+      actions.querySelectorAll('.edit-btn.participant-edit').forEach(btn => btn.remove());
+
+      const strong = card.querySelector('strong');
+      if(!strong) return;
+
+      const text = strong.textContent || '';
+      const participant = (state.participants || []).find(p => text.includes(p.name));
+      if(!participant) return;
+
+      const deleteBtn = actions.querySelector('.delete-btn');
+
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn edit-btn participant-edit';
+      btn.type = 'button';
+      btn.textContent = '✎';
+
+      btn.onclick = () => {
+        const form = document.getElementById('participantForm');
+        if(!form) return;
+
+        form.dataset.editingId = participant.id;
+        form.querySelector('[name="name"]').value = participant.name || '';
+        form.querySelector('[name="color"]').value = participant.color || '#4ad7d1';
+        form.querySelector('[name="avatar"]').value = participant.avatar || '🎣';
+
+        showScreen('participants');
+        requestAnimationFrame(() => window.scrollTo({top:0, behavior:'smooth'}));
+      };
+
+      if(deleteBtn){
+        actions.insertBefore(btn, deleteBtn);
+      }else{
+        actions.appendChild(btn);
+      }
+    });
+  }
+
+  // continuously keep buttons alive after rerender/refresh/navigation
+  setInterval(injectParticipantEditButtons, 300);
+
+  document.addEventListener('DOMContentLoaded', injectParticipantEditButtons);
+  window.addEventListener('load', injectParticipantEditButtons);
+})();
