@@ -842,59 +842,72 @@ renderCharts = function(){
 }
 
 
-// Override forecast to include 7-day and 30-day cards
-window.getForecast = function(){
-  const catches = state.catches || [];
-  if(!catches.length){
-    return {
-      text7: 'Noch zu wenig Daten für eine sinnvolle Prognose.',
-      text30: 'Noch zu wenig Daten für eine sinnvolle Prognose.'
-    };
+// Global analytics filter for complete analytics screen
+window.analyticsTournamentFilter = window.analyticsTournamentFilter || 'overview';
+
+function getAnalyticsFilteredCatchesGlobal(){
+  if(!window.analyticsTournamentFilter || window.analyticsTournamentFilter === 'overview'){
+    return state.catches;
   }
 
-  const dates = catches.map(c => {
-    const d = new Date(c.timestamp);
-    d.setHours(0,0,0,0);
-    return d.getTime();
-  });
+  return state.catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
+}
 
-  const min = Math.min(...dates);
-  const max = Math.max(...dates);
-  const days = Math.max(1, Math.round((max - min) / 86400000) + 1);
+(function(){
+  const originalRenderCharts = window.renderCharts;
+  const originalRenderForecast = window.renderForecast;
+  const originalRenderRecords = window.renderRecords;
+  const originalRenderTimeHeatmap = window.renderTimeHeatmap;
 
-  const avgPerDay = catches.length / days;
-  const projected7 = Math.round(avgPerDay * 7);
-  const projected30 = Math.round(avgPerDay * 30);
+  function withAnalyticsFilter(fn){
+    if(typeof fn !== 'function') return fn;
 
-  const totalWeight = catches.reduce((s,c) => s + Number(c.weightKg || 0), 0);
-  const avgWeight = catches.length ? totalWeight / catches.length : 0;
+    return function(){
+      const analyticsVisible = document.getElementById('screen-analytics')?.classList.contains('active');
+      const original = state.catches;
 
-  return {
-    text7: `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${projected7} Fängen. Das entspricht rund ${fmtKg(projected7 * avgWeight)} Gesamtgewicht.`,
-    text30: `Wenn ihr dieses Tempo haltet, landet ihr in 30 Tagen bei etwa ${projected30} Fängen. Das entspricht rund ${fmtKg(projected30 * avgWeight)} Gesamtgewicht.`
+      if(analyticsVisible){
+        state.catches = getAnalyticsFilteredCatchesGlobal();
+      }
+
+      try{
+        return fn.apply(this, arguments);
+      } finally {
+        state.catches = original;
+      }
+    }
+  }
+
+  window.renderCharts = withAnalyticsFilter(originalRenderCharts);
+  window.renderForecast = withAnalyticsFilter(originalRenderForecast);
+  window.renderRecords = withAnalyticsFilter(originalRenderRecords);
+  window.renderTimeHeatmap = withAnalyticsFilter(originalRenderTimeHeatmap);
+
+  const originalRefreshAnalyticsTournamentSelect = window.refreshAnalyticsTournamentSelect;
+
+  window.refreshAnalyticsTournamentSelect = function(){
+    if(typeof originalRefreshAnalyticsTournamentSelect === 'function'){
+      originalRefreshAnalyticsTournamentSelect();
+    }
+
+    const select = document.getElementById('analyticsTournamentSelect2');
+    if(!select || select.dataset.globalBound === '1') return;
+
+    select.dataset.globalBound = '1';
+
+    select.addEventListener('change', () => {
+      window.analyticsTournamentFilter = select.value;
+
+      if(typeof renderCharts === 'function') renderCharts();
+      if(typeof renderForecast === 'function') renderForecast();
+      if(typeof renderRecords === 'function') renderRecords();
+      if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
+    });
   };
-};
 
-window.renderForecast = function(){
-  const forecast = window.getForecast();
-
-  const el = document.getElementById('forecastBox');
-  if(!el) return;
-
-  el.innerHTML = `
-    <article class="insight-card">
-      <strong>7-Tage-Prognose</strong>
-      <span>${forecast.text7}</span>
-    </article>
-    <article class="insight-card">
-      <strong>30-Tage-Prognose</strong>
-      <span>${forecast.text30}</span>
-    </article>
-  `;
-};
-
-setTimeout(() => {
-  if(typeof window.renderForecast === 'function'){
-    window.renderForecast();
-  }
-}, 100);
+  setTimeout(() => {
+    if(typeof refreshAnalyticsTournamentSelect === 'function'){
+      refreshAnalyticsTournamentSelect();
+    }
+  }, 50);
+})();
