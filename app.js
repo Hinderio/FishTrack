@@ -107,8 +107,14 @@ async function saveTournamentToSupabase(tournament) {
   if (!db) return;
 
   const payload = {
-    ...tournament,
-    participantIds: tournament.participantIds || []
+    id: tournament.id,
+    name: tournament.name,
+    country: 'Norway',
+    start_date: tournament.start || null,
+    end_date: tournament.end || null,
+    ruleset_id: tournament.rulesetId || 'all_fish',
+    custom_rules: tournament.customRules || null,
+    participant_ids: tournament.participantIds || []
   };
 
   const { error } = await db
@@ -117,6 +123,8 @@ async function saveTournamentToSupabase(tournament) {
 
   if (error) {
     console.error('Tournament speichern fehlgeschlagen:', error, payload);
+  } else {
+    console.log('Tournament gespeichert');
   }
 }
 
