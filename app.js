@@ -1040,3 +1040,53 @@ renderCharts = function(){
     }, 0);
   }, true);
 })();
+
+
+// Add 7-day forecast while preserving existing 30-day forecast
+(function(){
+  const originalRenderForecast = window.renderForecast || renderForecast;
+
+  window.renderForecast = function(){
+    originalRenderForecast.apply(this, arguments);
+
+    const box = document.getElementById('forecastBox');
+    if(!box || box.querySelector('.forecast-7-day')) return;
+
+    const catches = state.catches || [];
+    let forecastText = 'Noch zu wenig Daten für eine sinnvolle Prognose.';
+
+    if(catches.length){
+      const dates = catches.map(c => {
+        const d = new Date(c.timestamp);
+        d.setHours(0,0,0,0);
+        return d.getTime();
+      });
+
+      const min = Math.min(...dates);
+      const max = Math.max(...dates);
+      const days = Math.max(1, Math.round((max - min) / 86400000) + 1);
+      const avgPerDay = catches.length / days;
+
+      const projected7 = Math.round(avgPerDay * 7);
+
+      const avgWeight = catches.reduce((sum, c) => sum + Number(c.weightKg || 0), 0) / catches.length;
+
+      forecastText = `Wenn ihr dieses Tempo haltet, landet ihr in 7 Tagen bei etwa ${projected7} Fängen. Das entspricht rund ${fmtKg(projected7 * avgWeight)} Gesamtgewicht.`;
+    }
+
+    const card = document.createElement('article');
+    card.className = 'insight-card forecast-7-day';
+    card.innerHTML = `
+      <strong>7-Tage-Prognose</strong>
+      <span>${forecastText}</span>
+    `;
+
+    box.prepend(card);
+  };
+
+  setTimeout(() => {
+    if(typeof window.renderForecast === 'function'){
+      window.renderForecast();
+    }
+  }, 100);
+})();
