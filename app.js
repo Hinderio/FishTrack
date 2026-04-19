@@ -89,6 +89,8 @@ const { error, data } = await db
   }
 }
 
+window.saveCatchToSupabase = saveCatchToSupabase;
+
 async function saveParticipantToSupabase(participant) {
   if (!db) return;
 
