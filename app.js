@@ -966,3 +966,58 @@ renderCharts = function(){
     return result;
   };
 })();
+
+
+// Final stable participant edit button fix
+(function(){
+  function injectParticipantEditButtons(){
+    const cards = document.querySelectorAll('#participantsList .list-card');
+
+    cards.forEach(card => {
+      const actions = card.querySelector('.list-actions');
+      if(!actions) return;
+
+      // remove duplicate / stale buttons
+      actions.querySelectorAll('.edit-btn.participant-edit').forEach(btn => btn.remove());
+
+      const strong = card.querySelector('strong');
+      if(!strong) return;
+
+      const text = strong.textContent || '';
+      const participant = (state.participants || []).find(p => text.includes(p.name));
+      if(!participant) return;
+
+      const deleteBtn = actions.querySelector('.delete-btn');
+
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn edit-btn participant-edit';
+      btn.type = 'button';
+      btn.textContent = '✎';
+
+      btn.onclick = () => {
+        const form = document.getElementById('participantForm');
+        if(!form) return;
+
+        form.dataset.editingId = participant.id;
+        form.querySelector('[name="name"]').value = participant.name || '';
+        form.querySelector('[name="color"]').value = participant.color || '#4ad7d1';
+        form.querySelector('[name="avatar"]').value = participant.avatar || '🎣';
+
+        showScreen('participants');
+        requestAnimationFrame(() => window.scrollTo({top:0, behavior:'smooth'}));
+      };
+
+      if(deleteBtn){
+        actions.insertBefore(btn, deleteBtn);
+      }else{
+        actions.appendChild(btn);
+      }
+    });
+  }
+
+  // continuously keep buttons alive after rerender/refresh/navigation
+  setInterval(injectParticipantEditButtons, 300);
+
+  document.addEventListener('DOMContentLoaded', injectParticipantEditButtons);
+  window.addEventListener('load', injectParticipantEditButtons);
+})();
