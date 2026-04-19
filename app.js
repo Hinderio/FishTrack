@@ -30,24 +30,24 @@ async function loadFromSupabase() {
     state.tournaments = tournaments || [];
 
     state.catches = (catches || []).map(c => ({
-      id: c.id,
-      species: c.species || 'Andere',
-      customSpecies: c.customSpecies || '',
-      participantId: c.participantId,
-      tournamentId: c.tournament_id || '',
-      lengthCm: Number(c.lengthCm || 0),
-      weightKg: Number(c.weightKg || 0),
-      timestamp: c.timestamp,
-      bait: c.bait || '',
-      spotLabel: c.spotLabel || '',
-      note: c.note || '',
-      createdAt: c.createdAt || c.timestamp || new Date().toISOString(),
-      location: {
-        lat: c.lat != null ? Number(c.lat) : null,
-        lng: c.lng != null ? Number(c.lng) : null,
-        label: c.spotLabel || ''
-      }
-    }));
+  id: c.id,
+  species: c.species || 'Andere',
+  customSpecies: '',
+  participantId: c.angler || '',
+  tournamentId: c.tournament_id || '',
+  lengthCm: Number(c.length_cm || 0),
+  weightKg: Number(c.weight_kg || 0),
+  timestamp: c.caught_at,
+  bait: '',
+  spotLabel: '',
+  note: '',
+  createdAt: c.created_at || c.caught_at || new Date().toISOString(),
+  location: {
+    lat: c.latitude != null ? Number(c.latitude) : null,
+    lng: c.longitude != null ? Number(c.longitude) : null,
+    label: ''
+  }
+}));
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     rerender();
@@ -61,25 +61,22 @@ async function saveCatchToSupabase(entry) {
   if (!db) return;
 
   const payload = {
-    tournament_id: entry.tournamentId || null,
-    angler: entry.participantId || '',
-    species: entry.species || 'Andere',
-    weight_kg: entry.weightKg ? Number(entry.weightKg) : null,
-    length_cm: entry.lengthCm ? Number(entry.lengthCm) : null,
-    country: 'Norway',
-    latitude: entry.location?.lat != null
-      ? Number(entry.location.lat)
-      : null,
-    longitude: entry.location?.lng != null
-      ? Number(entry.location.lng)
-      : null,
-    caught_at: entry.timestamp
-  };
+  id: entry.id,
+  tournament_id: entry.tournamentId || null,
+  angler: entry.participantId || '',
+  species: entry.species || 'Andere',
+  weight_kg: entry.weightKg ? Number(entry.weightKg) : null,
+  length_cm: entry.lengthCm ? Number(entry.lengthCm) : null,
+  country: 'Norway',
+  latitude: entry.location?.lat != null ? Number(entry.location.lat) : null,
+  longitude: entry.location?.lng != null ? Number(entry.location.lng) : null,
+  caught_at: entry.timestamp
+};
 
-  const { error, data } = await db
-    .from('catches')
-    .insert([payload])
-    .select();
+const { error, data } = await db
+  .from('catches')
+  .upsert(payload, { onConflict: 'id' })
+  .select();
 
   console.log('payload:', payload);
   console.log('result:', data);
@@ -313,140 +310,6 @@ window.addEventListener('load', () => {
   }, 150);
 });
 
-window.addEventListener('load', function () {
-  function renderSpeciesTimeline() {
-    const canvas = document.getElementById('speciesTimelineChart');
-    const legendEl = null;
-    if (!canvas || typeof Chart === 'undefined') return;
-
-    if (window.__speciesTimelineChart) {
-      window.__speciesTimelineChart.destroy();
-    }
-
-    const colors = {
-      Barsch: '#8BE39A',
-      Hecht: '#F6B84C',
-      Forelle: '#F48AB5',
-      Zander: '#66D9F3',
-      Dorsch: '#A997FF',
-      Andere: '#D9DEE5'
-    };
-
-    const labels = Array.from({ length: 25 }, (_, i) => i);
-
-    const datasets = Object.entries(colors).map(([species, color]) => {
-      const values = new Array(25).fill(0);
-
-      (window.state?.catches || []).forEach(c => {
-        const catchSpecies = c.species || 'Andere';
-        const dateValue = c.timestamp || c.createdAt || c.date;
-        const hour = dateValue ? new Date(dateValue).getHours() : 0;
-
-        if (catchSpecies === species || (species === 'Andere' && !colors[catchSpecies])) {
-          values[hour] += 1;
-        }
-      });
-
-      return {
-        label: species,
-        data: values,
-        borderColor: color,
-        backgroundColor: color + '26',
-        fill: true,
-        tension: 0.55,
-        pointRadius: 0,
-        borderWidth: 3,
-        cubicInterpolationMode: 'monotone'
-      };
-    });
-window.__speciesTimelineChart = new Chart(canvas.getContext('2d'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: datasets.map(ds => ({
-          ...ds,
-          backgroundColor: ds.borderColor + '55',
-          fill: true,
-          borderWidth: 4,
-          pointRadius: 0,
-          tension: 0.55,
-          cubicInterpolationMode: 'monotone'
-        }))
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-      aspectRatio: 1.9,
-        animation: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        elements: {
-          line: { capBezierPoints: true }
-        },
-        layout: {
-          padding: { top: 6, left: 6, right: 10, bottom: 0 }
-        },
-        scales: {
-          x: {
-            min: 0,
-            max: 24,
-            border: { display: false },
-            ticks: {
-              color: 'rgba(220,227,236,0.78)',
-              stepSize: 2,
-              font: { size: 11 },
-              padding: 10
-            },
-            title: {
-              display: true,
-              text: 'Zeit (0–24 Uhr)',
-              color: 'rgba(220,227,236,0.78)',
-              font: { size: 12, weight: '400' },
-              padding: { top: 16 }
-            },
-            grid: {
-              display: false,
-              drawTicks: false
-            }
-          },
-          y: {
-            beginAtZero: true,
-            border: { display: false },
-            ticks: {
-              stepSize: 1,
-              color: 'rgba(220,227,236,0.78)',
-              precision: 0,
-              font: { size: 11 },
-              padding: 10
-            },
-            title: {
-              display: true,
-              text: 'Anzahl Fische',
-              color: 'rgba(220,227,236,0.78)',
-              font: { size: 12, weight: '400' },
-              padding: { bottom: 10 }
-            },
-            grid: {
-              display: false,
-              drawTicks: false
-            }
-          }
-        }
-      }
-    });
-  }
-
-  setTimeout(renderSpeciesTimeline, 300);
-
-  if (typeof window.renderDashboard === 'function') {
-    const oldRenderDashboard = window.renderDashboard;
-    window.renderDashboard = function () {
-      const result = oldRenderDashboard.apply(this, arguments);
-      setTimeout(renderSpeciesTimeline, 100);
-      return result;
-    };
-  }
-});
 
 
 // Safe dashboard overrides
@@ -463,146 +326,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-const __originalRenderSpeciesTimeline = window.renderSpeciesTimeline;
-window.renderSpeciesTimeline = function () {
-  if (typeof __originalRenderSpeciesTimeline === 'function') {
-    __originalRenderSpeciesTimeline();
-  }
-
-  const legend = document.getElementById('speciesTimelineLegend');
-  if (legend) legend.style.display = 'none';
-
-  if (window.__speciesTimelineChart) {
-    const chart = window.__speciesTimelineChart;
-    chart.options.plugins.legend.display = false;
-
-    chart.data.datasets.forEach(ds => {
-      ds.fill = true;
-      ds.backgroundColor = (ds.borderColor || '#4ad7d1') + '80';
-      ds.borderWidth = 1;
-      ds.tension = 0.3;
-      ds.pointRadius = 0;
-    });
-
-    if (chart.options.scales?.x?.grid) chart.options.scales.x.grid.display = false;
-    if (chart.options.scales?.y?.grid) chart.options.scales.y.grid.display = false;
-
-    chart.update();
-  }
-};
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  const fishIcons = {
-    'Barsch':'#8BE39A',
-    'Hecht':'#F6B84C',
-    'Forelle':'#F48AB5',
-    'Zander':'#66D9F3',
-    'Dorsch':'#A997FF',
-    'Andere':'#D9DEE5'
-  };
-
-  const original = window.renderSpeciesTimeline;
-  window.renderSpeciesTimeline = function(){
-    if(original) original();
-
-    const chart = window.__speciesTimelineChart;
-    const legend = document.getElementById('speciesTimelineLegend');
-    if(!chart || !legend) return;
-
-    chart.options.plugins.legend.display = false;
-
-    // nicer chart style
-    chart.data.datasets.forEach(ds=>{
-      ds.fill = true;
-      ds.backgroundColor = (ds.borderColor || '#4ad7d1') + '80';
-      ds.borderWidth = 1;
-      ds.tension = 0.3;
-      ds.pointRadius = 0;
-      ds.hidden = false;
-    });
-
-    let active = null;
-
-    legend.innerHTML = chart.data.datasets.map((ds, idx) => `
-      <button class="species-icon-pill" data-index="${idx}">
-        <span class="fish-icon" style="color:${ds.borderColor}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12c3-4 7-6 11-6 2 0 4 1 6 3-2 2-4 3-6 3-4 0-8-2-11-6Z"/>
-            <path d="M14 12c0 4 2 8 6 10"/>
-            <path d="M14 12c0-4 2-8 6-10"/>
-          </svg>
-        </span>
-        <span>${ds.label}</span>
-      </button>
-    `).join('');
-
-    [...legend.querySelectorAll('.species-icon-pill')].forEach(btn=>{
-      btn.onclick = () => {
-        const idx = Number(btn.dataset.index);
-
-        if(active === idx){
-          active = null;
-          chart.data.datasets.forEach(ds => ds.hidden = false);
-          legend.querySelectorAll('.species-icon-pill').forEach(b=>b.classList.remove('active','inactive'));
-        } else {
-          active = idx;
-          chart.data.datasets.forEach((ds,i)=> ds.hidden = i !== idx);
-          legend.querySelectorAll('.species-icon-pill').forEach((b,i)=>{
-            b.classList.toggle('active', i===idx);
-            b.classList.toggle('inactive', i!==idx);
-          });
-        }
-        chart.update();
-      };
-    });
-
-    chart.update();
-  };
-});
-
-
-document.addEventListener('DOMContentLoaded', () => {
-  const originalLegendFix = window.renderSpeciesTimeline;
-  window.renderSpeciesTimeline = function() {
-    if (originalLegendFix) originalLegendFix();
-
-    if (window.__speciesTimelineChart) {
-      const chart = window.__speciesTimelineChart;
-      if (!chart.options.plugins) chart.options.plugins = {};
-      chart.options.plugins.legend = { display: false };
-      chart.update();
-    }
-
-    const builtInLegend = document.querySelector('.timeline-chart-wrap ul');
-    if (builtInLegend) builtInLegend.remove();
-  };
-});
-
-
-// Force identical chart layout padding and day-click filtering
-(function(){
-  const originalTimeline = window.renderSpeciesTimeline;
-  window.renderSpeciesTimeline = function() {
-    if (originalTimeline) originalTimeline();
-
-    const chart = window.__speciesTimelineChart;
-    if (chart) {
-      chart.options.layout = {
-        padding: {
-          left: 34,
-          right: 18,
-          top: 0,
-          bottom: 0
-        }
-      };
-
-      chart.options.scales.x = chart.options.scales.x || {};
-      chart.options.scales.x.offset = false;
-
-      chart.update();
-    }
-  };
 
   const originalCharts = window.renderCharts;
   window.renderCharts = function() {
