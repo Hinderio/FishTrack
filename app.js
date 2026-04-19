@@ -527,8 +527,7 @@ setInterval(() => {
   color: '#d8e0e8',
   usePointStyle: true,
   pointStyle: 'rect',
-  boxWidth: 10,
-  boxHeight: 10,
+  pointStyleWidth: 10,
   padding: 18,
   font: { size: 14, weight: '600' }
 }
