@@ -1077,3 +1077,43 @@ renderCharts = function(){
     forecastBox.appendChild(card);
   };
 })();
+
+
+// Force visible fishing proverb card inside forecast box
+(function(){
+  const fishQuotes = [
+    'Wenn die Möwen landeinwärts fliegen, ziehen die Räuberfische flach.',
+    'Wenn der Wind dreht, dreht oft auch das Glück am Wasser.',
+    'Trübes Wasser bringt oft den schwersten Fisch.',
+    'Morgennebel auf dem Fjord – ein guter Tag für kapitale Fänge.',
+    'Steigt der Druck am Morgen, beissen die Grossen bis zum Abend.',
+    'Springt der Köderfisch, ist der Räuber nicht weit.'
+  ];
+
+  function ensureFishingQuote(){
+    const forecastBox = document.getElementById('forecastBox');
+    if(!forecastBox) return;
+
+    // only after forecast exists
+    if(!forecastBox.innerHTML.trim()) return;
+
+    let card = forecastBox.querySelector('.fish-quote-card');
+    if(!card){
+      card = document.createElement('article');
+      card.className = 'insight-card fish-quote-card';
+      forecastBox.appendChild(card);
+    }
+
+    if(card.dataset.quoteRendered === '1') return;
+
+    const quote = fishQuotes[Math.floor(Math.random() * fishQuotes.length)];
+
+    card.innerHTML = `
+      <strong>Fischerregel des Tages</strong>
+      <span>${quote}</span>
+    `;
+    card.dataset.quoteRendered = '1';
+  }
+
+  setInterval(ensureFishingQuote, 250);
+})();
