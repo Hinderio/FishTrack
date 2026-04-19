@@ -471,10 +471,6 @@ function refreshDashboardTournamentSelect(){
   window.addEventListener('load', () => setTimeout(refreshDashboardTournamentSelect, 50));
 })();
 
-window.renderSpeciesTimeline = function() {
-  window.__speciesSignature = null;
-};
-
 // Absolute override for Artenverteilung chart
 setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
