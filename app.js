@@ -902,3 +902,67 @@ renderCharts = function(){
     }
   }, 100);
 })();
+
+
+// Stable participant edit buttons after rerender / refresh
+(function(){
+  const originalRenderParticipantsStable = window.renderParticipants || renderParticipants;
+
+  window.renderParticipants = function(){
+    originalRenderParticipantsStable.apply(this, arguments);
+
+    const container = document.getElementById('participantsList');
+    if(!container) return;
+
+    const cards = container.querySelectorAll('.list-card');
+
+    cards.forEach(card => {
+      const actions = card.querySelector('.list-actions');
+      if(!actions || actions.querySelector('.edit-btn')) return;
+
+      const deleteBtn = actions.querySelector('.delete-btn');
+      const nameText = card.querySelector('strong')?.textContent || '';
+
+      const participant = (state.participants || []).find(p => nameText.includes(p.name));
+      if(!participant) return;
+
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn edit-btn';
+      btn.textContent = '✎';
+
+      btn.addEventListener('click', () => {
+        const form = document.getElementById('participantForm');
+        if(!form) return;
+
+        form.dataset.editingId = participant.id;
+        form.querySelector('[name="name"]').value = participant.name || '';
+        form.querySelector('[name="color"]').value = participant.color || '#4ad7d1';
+        form.querySelector('[name="avatar"]').value = participant.avatar || '🎣';
+
+        showScreen('participants');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      if(deleteBtn){
+        actions.insertBefore(btn, deleteBtn);
+      } else {
+        actions.appendChild(btn);
+      }
+    });
+  };
+
+  const oldRerender = window.rerender || rerender;
+  window.rerender = function(){
+    const result = oldRerender.apply(this, arguments);
+
+    try{
+      if(typeof window.renderParticipants === 'function'){
+        window.renderParticipants();
+      }
+    }catch(e){
+      console.warn('Participant edit refresh failed', e);
+    }
+
+    return result;
+  };
+})();
