@@ -1126,3 +1126,163 @@ renderCharts = function(){
 
   setInterval(ensureFishingQuote, 250);
 })();
+
+
+// Global analytics tournament filter for all analytics widgets
+(function(){
+  window.analyticsTournamentFilter = 'overview';
+
+  function getFilteredAnalyticsCatches(){
+    if(window.analyticsTournamentFilter === 'overview') return state.catches || [];
+    return (state.catches || []).filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
+  }
+
+  const originalSelectHandler = window.refreshAnalyticsTournamentSelect || function(){};
+
+  window.refreshAnalyticsTournamentSelect = function(){
+    originalSelectHandler();
+
+    const select = document.getElementById('analyticsTournamentSelect2');
+    if(!select) return;
+
+    select.value = window.analyticsTournamentFilter;
+
+    if(select.dataset.globalFilterBound === '1') return;
+    select.dataset.globalFilterBound = '1';
+
+    select.addEventListener('change', () => {
+      window.analyticsTournamentFilter = select.value;
+
+      const originalCatches = state.catches;
+      state.catches = getFilteredAnalyticsCatches();
+
+      try{
+        if(typeof renderCharts === 'function') renderCharts();
+        if(typeof renderRecords === 'function') renderRecords();
+        if(typeof renderForecast === 'function') renderForecast();
+        if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
+      } finally {
+        state.catches = originalCatches;
+      }
+    });
+  };
+
+  const originalRerender = window.rerender || rerender;
+  window.rerender = function(){
+    const result = originalRerender.apply(this, arguments);
+
+    const analyticsScreen = document.getElementById('screen-analytics');
+    if(analyticsScreen && analyticsScreen.classList.contains('active')){
+      const originalCatches = state.catches;
+      state.catches = getFilteredAnalyticsCatches();
+
+      try{
+        if(typeof renderCharts === 'function') renderCharts();
+        if(typeof renderRecords === 'function') renderRecords();
+        if(typeof renderForecast === 'function') renderForecast();
+        if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
+      } finally {
+        state.catches = originalCatches;
+      }
+    }
+
+    return result;
+  };
+
+  setTimeout(() => {
+    if(typeof refreshAnalyticsTournamentSelect === 'function'){
+      refreshAnalyticsTournamentSelect();
+    }
+  }, 300);
+})();
+
+
+/* Stable analytics filter + forecast quote after refresh */
+document.addEventListener('DOMContentLoaded', () => {
+  let selectedTournament = 'overview';
+
+  const originalRefresh = window.refreshAnalyticsTournamentSelect;
+  if (typeof originalRefresh === 'function') {
+    window.refreshAnalyticsTournamentSelect = function() {
+      originalRefresh.apply(this, arguments);
+
+      const select = document.getElementById('analyticsTournamentSelect2');
+      if (!select) return;
+
+      // restore selection after rerender
+      select.value = selectedTournament;
+
+      if (select.dataset.boundGlobalAnalytics === '1') return;
+      select.dataset.boundGlobalAnalytics = '1';
+
+      select.addEventListener('change', () => {
+        selectedTournament = select.value;
+        if (typeof rerender === 'function') rerender();
+      });
+    };
+  }
+
+  const wrap = (fn) => {
+    if (typeof fn !== 'function') return fn;
+    return function() {
+      const originalCatches = state.catches;
+
+      if (selectedTournament !== 'overview') {
+        state.catches = (state.catches || []).filter(
+          c => (c.tournamentId || '') === selectedTournament
+        );
+      }
+
+      try {
+        return fn.apply(this, arguments);
+      } finally {
+        state.catches = originalCatches;
+      }
+    };
+  };
+
+  if (!window.__analyticsWrapped) {
+    window.__analyticsWrapped = true;
+    if (typeof window.renderCharts === 'function') window.renderCharts = wrap(window.renderCharts);
+    if (typeof window.renderRecords === 'function') window.renderRecords = wrap(window.renderRecords);
+    if (typeof window.renderForecast === 'function') window.renderForecast = wrap(window.renderForecast);
+    if (typeof window.renderTimeHeatmap === 'function') window.renderTimeHeatmap = wrap(window.renderTimeHeatmap);
+  }
+
+  // keep forecast quote after hard refresh
+  const fishQuotes = [
+    'Wenn die Möwen landeinwärts fliegen, ziehen die Räuberfische flach.',
+    'Wenn der Wind dreht, dreht oft auch das Glück am Wasser.',
+    'Trübes Wasser bringt oft den schwersten Fisch.',
+    'Morgennebel auf dem Fjord – ein guter Tag für kapitale Fänge.',
+    'Steigt der Druck am Morgen, beissen die Grossen bis zum Abend.'
+  ];
+
+  const oldForecast = window.renderForecast;
+  if (typeof oldForecast === 'function' && !window.__forecastQuoteWrapped) {
+    window.__forecastQuoteWrapped = true;
+
+    window.renderForecast = function() {
+      oldForecast.apply(this, arguments);
+
+      const box = document.getElementById('forecastBox');
+      if (!box) return;
+
+      let quote = box.querySelector('.fish-quote-card');
+      if (!quote) {
+        quote = document.createElement('article');
+        quote.className = 'insight-card fish-quote-card';
+        box.appendChild(quote);
+      }
+
+      quote.innerHTML = `
+        <strong>Fischerregel des Tages</strong>
+        <span>${fishQuotes[Math.floor(Math.random()*fishQuotes.length)]}</span>
+      `;
+    };
+  }
+
+  setTimeout(() => {
+    if (typeof rerender === 'function') rerender();
+  }, 50);
+});
