@@ -355,7 +355,6 @@ document.addEventListener('DOMContentLoaded', () => {
       charts.daily.update();
     }
   };
-})();
 
 
 // Dashboard tournament select below Trip Overview + filter by catch.tournamentId
