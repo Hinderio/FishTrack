@@ -30,7 +30,7 @@ async function loadFromSupabase() {
     state.participants = participants || [];
     state.tournaments = tournaments || [];
 
-    state.catches = (catches || []).map(c => ({
+state.catches = (catches || []).map(c => ({
   id: c.id,
   species: c.species || 'Andere',
   customSpecies: '',
@@ -42,7 +42,7 @@ async function loadFromSupabase() {
   bait: '',
   spotLabel: '',
   note: '',
-  createdAt: c.created_at || c.caught_at || new Date().toISOString(),
+ createdAt: c.created_at || c.caught_at || new Date().toISOString(),
   location: {
     lat: c.latitude != null ? Number(c.latitude) : null,
     lng: c.longitude != null ? Number(c.longitude) : null,
@@ -50,13 +50,16 @@ async function loadFromSupabase() {
   }
 }));
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    rerender();
-
-  } catch (err) {
-    console.error('Supabase Fehler:', err);
-  }
+if (typeof renderCharts === 'function') {
+  renderCharts();
 }
+
+if (typeof window.renderSpeciesTimeline === 'function') {
+  window.renderSpeciesTimeline();
+}
+
+localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+rerender();
 
 async function saveCatchToSupabase(entry) {
   if (!db) return;
@@ -455,6 +458,9 @@ function refreshDashboardTournamentSelect(){
   window.addEventListener('load', () => setTimeout(refreshDashboardTournamentSelect, 50));
 })();
 
+window.renderSpeciesTimeline = function() {
+  window.__speciesSignature = null;
+};
 
 // Absolute override for Artenverteilung chart
 setInterval(() => {
