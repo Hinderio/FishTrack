@@ -882,7 +882,10 @@ window.renderForecast = function(){
   if(!el) return;
 
   el.innerHTML = `
-    
+    <article class="insight-card">
+      <strong>7-Tage-Prognose</strong>
+      <span>${forecast.text7}</span>
+    </article>
     <article class="insight-card">
       <strong>30-Tage-Prognose</strong>
       <span>${forecast.text30}</span>
@@ -897,9 +900,12 @@ setTimeout(() => {
 }, 100);
 
 
-// Safe forecast quote addition (no 7-day forecast, no participant changes)
+// Stable Fischerregel card in forecast area
 (function(){
-  const fishQuotes = [
+  if(window.__forecastQuoteOnlyApplied) return;
+  window.__forecastQuoteOnlyApplied = true;
+
+  const quotes = [
     'Wenn die Möwen landeinwärts fliegen, ziehen die Räuberfische flach.',
     'Wenn der Wind dreht, dreht oft auch das Glück am Wasser.',
     'Trübes Wasser bringt oft den schwersten Fisch.',
@@ -908,34 +914,38 @@ setTimeout(() => {
     'Springt der Köderfisch, ist der Räuber nicht weit.'
   ];
 
-  function randomFishQuote(){
-    return fishQuotes[Math.floor(Math.random() * fishQuotes.length)];
-  }
+  const originalRenderForecast = window.renderForecast || (typeof renderForecast === 'function' ? renderForecast : null);
+  if(typeof originalRenderForecast !== 'function') return;
 
-  const originalRenderForecast_safe = window.renderForecast || (typeof renderForecast === 'function' ? renderForecast : null);
+  window.renderForecast = function(){
+    const result = originalRenderForecast.apply(this, arguments);
 
-  if (typeof originalRenderForecast_safe === 'function' && !window.__fishQuoteWrapped_safe) {
-    window.__fishQuoteWrapped_safe = true;
+    const forecastBox = document.getElementById('forecastBox');
+    if(!forecastBox) return result;
 
-    window.renderForecast = function(){
-      const result = originalRenderForecast_safe.apply(this, arguments);
+    // remove only our own previous card after rerender
+    const existing = forecastBox.querySelector('[data-forecast-quote="1"]');
+    if(existing) existing.remove();
 
-      const forecastBox = document.getElementById('forecastBox');
-      if(!forecastBox) return result;
+    const card = document.createElement('article');
+    card.className = 'insight-card';
+    card.setAttribute('data-forecast-quote', '1');
 
-      const oldCard = forecastBox.querySelector('[data-fish-quote-card="1"]');
-      if(oldCard) oldCard.remove();
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
 
-      const card = document.createElement('article');
-      card.className = 'insight-card';
-      card.setAttribute('data-fish-quote-card', '1');
-      card.innerHTML = `
-        <strong>Fischerregel des Tages</strong>
-        <span>${randomFishQuote()}</span>
-      `;
+    card.innerHTML = `
+      <strong>Fischerregel des Tages</strong>
+      <span>${quote}</span>
+    `;
 
-      forecastBox.appendChild(card);
-      return result;
-    };
-  }
+    forecastBox.appendChild(card);
+    return result;
+  };
+
+  // ensure it also appears after the first normal refresh
+  setTimeout(() => {
+    if(typeof window.renderForecast === 'function'){
+      window.renderForecast();
+    }
+  }, 50);
 })();
