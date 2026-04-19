@@ -61,28 +61,33 @@ async function saveCatchToSupabase(entry) {
   if (!db) return;
 
   const payload = {
-  id: entry.id,
-  tournament_id: entry.tournamentId || null,
-  angler: entry.participantId || '',
-  species: entry.species || 'Andere',
-  weight_kg: Number(entry.weightKg || 0),
-  length_cm: Number(entry.lengthCm || 0),
-  country: 'Norway',
-  latitude: entry.location?.lat != null
-    ? Number(entry.location.lat)
-    : null,
-  longitude: entry.location?.lng != null
-    ? Number(entry.location.lng)
-    : null,
-  caught_at: entry.timestamp
-};
+    tournament_id: entry.tournamentId || null,
+    angler: entry.participantId || '',
+    species: entry.species || 'Andere',
+    weight_kg: entry.weightKg ? Number(entry.weightKg) : null,
+    length_cm: entry.lengthCm ? Number(entry.lengthCm) : null,
+    country: 'Norway',
+    latitude: entry.location?.lat != null
+      ? Number(entry.location.lat)
+      : null,
+    longitude: entry.location?.lng != null
+      ? Number(entry.location.lng)
+      : null,
+    caught_at: entry.timestamp
+  };
 
-  const { error } = await db
+  const { error, data } = await db
     .from('catches')
-    .upsert(payload, { onConflict: 'id' });
+    .insert([payload])
+    .select();
+
+  console.log('payload:', payload);
+  console.log('result:', data);
 
   if (error) {
-    console.error('Catch speichern fehlgeschlagen:', error, payload);
+    console.error('Catch speichern fehlgeschlagen:', error);
+  } else {
+    console.log('Catch gespeichert');
   }
 }
 
