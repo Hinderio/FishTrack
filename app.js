@@ -3,21 +3,21 @@ const STORAGE_KEY='fishtrack-norway-v2';const THEME_KEY='fishtrack-theme';const 
 let state = loadState();
 window.state = state;
 
-const supabase = window.supabaseClient;
+const db = window.supabaseClient;
 
 async function loadFromSupabase() {
-  if (!supabase) return;
+  if (!db) return;
 
   try {
-    const { data: participants } = await supabase
+    const { data: participants } = await db
       .from('participants')
       .select('*');
 
-    const { data: tournaments } = await supabase
+    const { data: tournaments } = await db
       .from('tournaments')
       .select('*');
 
-    const { data: catches } = await supabase
+    const { data: catches } = await db
       .from('catches')
       .select('*');
 
@@ -43,9 +43,9 @@ async function loadFromSupabase() {
 }
 
 async function saveCatchToSupabase(entry) {
-  if (!supabase) return;
+  if (!db) return;
 
-  await supabase.from('catches').upsert({
+  await db.from('catches').upsert({
     id: entry.id,
     species: entry.species,
     customSpecies: entry.customSpecies,
@@ -63,13 +63,13 @@ async function saveCatchToSupabase(entry) {
 }
 
 async function saveParticipantToSupabase(participant) {
-  if (!supabase) return;
-  await supabase.from('participants').upsert(participant);
+  if (!db) return;
+  await db.from('participants').upsert(participant);
 }
 
 async function saveTournamentToSupabase(tournament) {
-  if (!supabase) return;
-  await supabase.from('tournaments').upsert(tournament);
+  if (!db) return;
+  await db.from('tournaments').upsert(tournament);
 }
 
 loadFromSupabase();
