@@ -900,48 +900,46 @@ setTimeout(() => {
 }, 100);
 
 
-// Fischerregel ohne Seiteneffekte auf andere Features
-(function(){
-  if(window.__fishQuoteObserverInstalled) return;
-  window.__fishQuoteObserverInstalled = true;
-
+// Passive Fischerregel observer - no overrides, no 7-day forecast
+window.addEventListener('load', () => {
   const quotes = [
     'Wenn die Möwen landeinwärts fliegen, ziehen die Räuberfische flach.',
     'Wenn der Wind dreht, dreht oft auch das Glück am Wasser.',
     'Trübes Wasser bringt oft den schwersten Fisch.',
     'Morgennebel auf dem Fjord – ein guter Tag für kapitale Fänge.',
-    'Steigt der Druck am Morgen, beissen die Grossen bis zum Abend.',
-    'Springt der Köderfisch, ist der Räuber nicht weit.'
+    'Steigt der Druck am Morgen, beissen die Grossen bis zum Abend.'
   ];
 
-  function injectFishQuote(){
+  const addQuote = () => {
     const box = document.getElementById('forecastBox');
-    if(!box || !box.querySelector('.insight-card')) return;
+    if (!box) return;
 
-    let card = box.querySelector('[data-fish-quote="1"]');
-    if(!card){
-      card = document.createElement('article');
-      card.className = 'insight-card';
-      card.setAttribute('data-fish-quote', '1');
-      box.appendChild(card);
+    const cards = box.querySelectorAll('.insight-card');
+    if (!cards.length) return;
+
+    let quoteCard = box.querySelector('[data-fisher-quote="1"]');
+    if (!quoteCard) {
+      quoteCard = document.createElement('article');
+      quoteCard.className = 'insight-card';
+      quoteCard.setAttribute('data-fisher-quote', '1');
+      box.appendChild(quoteCard);
     }
 
-    if(card.dataset.initialized === '1') return;
-
-    card.dataset.initialized = '1';
-    card.innerHTML = `
+    quoteCard.innerHTML = `
       <strong>Fischerregel des Tages</strong>
       <span>${quotes[Math.floor(Math.random() * quotes.length)]}</span>
     `;
-  }
+  };
 
-  const observer = new MutationObserver(() => injectFishQuote());
+  const observer = new MutationObserver(addQuote);
 
-  window.addEventListener('load', () => {
+  const start = () => {
     const box = document.getElementById('forecastBox');
-    if(box){
-      observer.observe(box, { childList: true });
-      injectFishQuote();
-    }
-  });
-})();
+    if (!box) return;
+    observer.observe(box, { childList: true, subtree: false });
+    addQuote();
+  };
+
+  start();
+  setTimeout(start, 500);
+});
