@@ -353,8 +353,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-  const originalCharts = window.renderCharts;
-  window.renderCharts = function() {
+  const originalCharts = renderCharts;
+  renderCharts = function() {
     if (originalCharts) originalCharts();
 
     if (charts && charts.daily) {
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         window.__timelineSourceCatches = matching;
-        if (typeof window.renderSpeciesTimeline === 'function') {
+        if (typeof renderSpeciesTimeline === 'function') {
           window.renderSpeciesTimeline();
         }
       };
