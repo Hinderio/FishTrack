@@ -1275,3 +1275,22 @@ canvas + ul,
   gap:14px;
   flex-wrap:wrap;
 }
+
+
+/* FINAL FIX – Fänge pro Tag nach Fischarten */
+#dailyCatchesChart,
+#dailyChart{
+  width:100% !important;
+  height:320px !important;
+  max-height:320px !important;
+}
+
+.chart-card:has(#dailyCatchesChart),
+.chart-card:has(#dailyChart){
+  overflow:hidden;
+}
+
+.chart-card canvas{
+  max-width:100% !important;
+}
+
