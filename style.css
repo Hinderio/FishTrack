@@ -943,3 +943,21 @@ canvas + ul,
   overflow-x:auto;
   padding-bottom:4px;
 }
+
+
+.analytics-filter-head{align-items:center;gap:12px;flex-wrap:wrap}
+.analytics-filter-head .dashboard-select{min-width:180px}
+
+.matrix-header,.matrix-row{
+  grid-template-columns:minmax(120px,1.1fr) repeat(var(--matrix-cols,4), minmax(82px,1fr));
+  gap:6px;
+}
+
+.matrix-label,.matrix-cell{
+  padding:8px;
+  border-radius:12px;
+  font-size:.85rem;
+}
+
+.matrix-cell strong{font-size:.95rem}
+
