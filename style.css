@@ -957,11 +957,13 @@ canvas + ul,
 
 
 
-/* Spot × Köder Matrix – kompakt, ohne Überlappung, mit horizontalem Scroll */
+
+
+/* Spot × Köder Matrix – finale stabile Version */
 #spotBaitMatrix{
   overflow-x:auto;
   overflow-y:hidden;
-  padding-bottom:4px;
+  padding-bottom:6px;
   scrollbar-width:thin;
 }
 
@@ -981,7 +983,7 @@ canvas + ul,
 #spotBaitMatrix .matrix-header,
 #spotBaitMatrix .matrix-row{
   display:grid;
-  grid-template-columns:170px repeat(6, 110px);
+  grid-template-columns:180px repeat(6, 110px);
   gap:12px;
   width:max-content;
   margin-bottom:12px;
@@ -991,24 +993,36 @@ canvas + ul,
   display:flex;
   align-items:center;
   justify-content:center;
-  min-height:82px;
-  padding:0 10px;
+  height:96px;
+  padding:0 12px;
+  box-sizing:border-box;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
+  position:static !important;
+  min-width:0 !important;
+  max-width:none !important;
 }
 
 #spotBaitMatrix .matrix-cell{
   width:110px;
-  min-width:110px;
-  min-height:82px;
+  height:96px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
   white-space:nowrap;
   overflow:hidden;
-  text-overflow:ellipsis;
+  position:static !important;
+  min-width:0 !important;
+  max-width:none !important;
 }
 
-#spotBaitMatrix .matrix-row .matrix-label:first-child,
-#spotBaitMatrix .matrix-header .matrix-label:first-child{
-  width:170px;
-  min-width:170px;
+#spotBaitMatrix .matrix-label::before,
+#spotBaitMatrix .matrix-label::after,
+#spotBaitMatrix .matrix-cell::before,
+#spotBaitMatrix .matrix-cell::after{
+  display:none !important;
+  content:none !important;
 }
