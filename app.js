@@ -1080,8 +1080,10 @@ function renderSpotBaitMatrix(){
 
   const max=Math.max(1,...spots.flatMap(spot=>baits.map(bait=>catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length)));
 
+  container.style.setProperty('--matrix-cols', baits.length);
+
   container.innerHTML=
-    '<div class="matrix-header"><div class="matrix-label">Spot \/ Köder</div>'+baits.map(b=>`<div class="matrix-label">${b}</div>`).join('')+'</div>'+
+    '<div class="matrix-header"><div class="matrix-label">Spot / Köder</div>'+baits.map(b=>`<div class="matrix-label">${b}</div>`).join('')+'</div>'+
     spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+spot+'</div>'+baits.map(bait=>{
       const count=catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length;
       const opacity=.12+(count/max)*.88;
@@ -1112,7 +1114,17 @@ function renderParticipantTimeline(){
     type:'bubble',
     data:{datasets},
     options:{
-      plugins:{legend:{labels:{color:css('--text')}}},
+      plugins:{
+        legend:{
+          labels:{
+            color:css('--text'),
+            usePointStyle:true,
+            pointStyle:'circle',
+            boxWidth:10,
+            boxHeight:10
+          }
+        }
+      },
       scales:{
         x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
         y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
