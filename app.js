@@ -31,25 +31,32 @@ async function loadFromSupabase() {
     console.log('geladene catches aus supabase', catches);
 
     state.participants = participants || [];
-    state.tournaments = tournaments || [];
+    state.tournaments = (tournaments || []).map(t => ({
+      ...t,
+      start: t.start ?? t.start_date ?? '',
+      end: t.end ?? t.end_date ?? '',
+      rulesetId: t.rulesetId ?? t.ruleset_id ?? 'all_fish',
+      customRules: t.customRules ?? t.custom_rules ?? null,
+      participantIds: t.participantIds ?? t.participant_ids ?? []
+    }));
 
 state.catches = (catches || []).map(c => ({
   id: c.id,
   species: c.species || 'Andere',
-  customSpecies: '',
-  participantId: c.angler || '',
-  tournamentId: c.tournament_id || '',
-  lengthCm: Number(c.length_cm || 0),
-  weightKg: Number(c.weight_kg || 0),
-  timestamp: c.caught_at,
-  bait: '',
-  spotLabel: '',
-  note: '',
- createdAt: c.created_at || c.caught_at || new Date().toISOString(),
+  customSpecies: c.custom_species || '',
+  participantId: c.participantId || c.angler || '',
+  tournamentId: c.tournamentId || c.tournament_id || '',
+  lengthCm: Number(c.lengthCm ?? c.length_cm ?? 0),
+  weightKg: Number(c.weightKg ?? c.weight_kg ?? 0),
+  timestamp: c.timestamp || c.caught_at,
+  bait: c.bait || '',
+  spotLabel: c.spotLabel || c.spot_label || '',
+  note: c.note || '',
+  createdAt: c.createdAt || c.created_at || c.caught_at || new Date().toISOString(),
   location: {
-    lat: c.latitude != null ? Number(c.latitude) : null,
-    lng: c.longitude != null ? Number(c.longitude) : null,
-    label: ''
+    lat: c.location?.lat != null ? Number(c.location.lat) : (c.latitude != null ? Number(c.latitude) : null),
+    lng: c.location?.lng != null ? Number(c.location.lng) : (c.longitude != null ? Number(c.longitude) : null),
+    label: c.location?.label || c.spotLabel || c.spot_label || ''
   }
 }));
 
