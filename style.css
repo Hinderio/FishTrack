@@ -1296,59 +1296,54 @@ canvas + ul,
 
 
 
+/* polished weather controls */
 .map-weather-overlay-controls{
   position:absolute;
   top:18px;
   right:18px;
-  z-index:700;
+  z-index:800;
   display:flex;
-  gap:10px;
+  gap:14px;
+}
+
+.map-weather-overlay-controls .pill{
+  min-width:220px;
+  justify-content:center;
+  padding:18px 26px;
+  border-radius:999px;
+  font-size:18px;
+  font-weight:800;
+  background:rgba(16,27,42,.88);
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 10px 30px rgba(0,0,0,.24);
 }
 
 .map-weather-overlay-controls .pill.active{
-  background:rgba(74,215,209,.24);
-  border:1px solid rgba(74,215,209,.45);
+  background:linear-gradient(180deg, rgba(74,215,209,.34), rgba(45,95,120,.72));
+  border:1px solid rgba(126,245,255,.45);
+  color:#fff;
 }
 
-.weather-map-overlay{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index:500;
-  border-radius:24px;
-  overflow:hidden;
-}
-
+/* stronger weather overlay */
 .weather-gradient{
-  position:absolute;
-  inset:0;
   background:
-    radial-gradient(circle at 30% 25%, rgba(255,185,80,.22), transparent 26%),
-    radial-gradient(circle at 70% 60%, rgba(74,215,209,.18), transparent 30%),
-    radial-gradient(circle at 50% 80%, rgba(90,120,255,.14), transparent 24%);
-  opacity:0;
-  transition:opacity .25s ease;
+    radial-gradient(circle at 28% 24%, rgba(255,180,80,.45), transparent 28%),
+    radial-gradient(circle at 68% 58%, rgba(74,215,209,.38), transparent 34%),
+    radial-gradient(circle at 52% 82%, rgba(85,125,255,.34), transparent 28%),
+    linear-gradient(180deg, rgba(90,140,190,.20), rgba(20,40,70,.28));
+  mix-blend-mode:screen;
 }
 
 .weather-gradient.active{
-  opacity:1;
-}
-
-.wind-arrows{
-  position:absolute;
-  inset:0;
-  opacity:0;
-  transition:opacity .25s ease;
-}
-
-.wind-arrows.active{
-  opacity:1;
+  opacity:.92 !important;
 }
 
 .wind-arrow{
-  position:absolute;
-  color:rgba(255,255,255,.9);
-  font-size:28px;
-  transform:rotate(35deg);
-  text-shadow:0 0 12px rgba(0,0,0,.45);
+  font-size:34px;
+  color:rgba(255,255,255,.96);
+  text-shadow:
+    0 0 12px rgba(255,255,255,.35),
+    0 0 24px rgba(0,0,0,.45);
 }
