@@ -1,3 +1,10 @@
+// Disable old cached versions / service workers
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(registration => registration.unregister());
+  });
+}
+
 const STORAGE_KEY='fishtrack-norway-v2';const THEME_KEY='fishtrack-theme';const speciesPalette={'Barsch':'#8ff0a7','Hecht':'#ffb84d','Zander':'#66e7ff','Forelle':'#ff8ab4','Dorsch':'#b7a0ff','Andere':'#d4dbe3'};const RULESETS={all_fish:{id:'all_fish',name:'Jeder Fisch zählt',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:5,bonusLargestPerSpecies:3,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0},first_fish:{id:'first_fish',name:'Erster Fisch gewinnt',pointsPerFish:1,bonusFirstFish:10,bonusLargestFish:5,bonusLargestPerSpecies:0,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0},species_hunter:{id:'species_hunter',name:'Artenjäger',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:0,bonusLargestPerSpecies:5,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0,bonusNewSpecies:3},trophy_hunter:{id:'trophy_hunter',name:'Trophy Hunter',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:10,bonusLargestPerSpecies:3,bonusNewArea:0,bonusOver80cm:2,bonusOver100cm:5},explorer:{id:'explorer',name:'Entschneidern / Spot Explorer',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:5,bonusLargestPerSpecies:0,bonusNewArea:5,bonusOver80cm:0,bonusOver100cm:0}};const defaultData={meta:{tripName:'Fish Battle / Global',tripSubtitle:'Fänge, Fangorte und Teilnehmer-Leaderboard'},participants:[{id:crypto.randomUUID(),name:'Nico',color:'#4ad7d1',avatar:'🎣'},{id:crypto.randomUUID(),name:'Dad',color:'#ffb84d',avatar:'🧢'}],catches:[],tournaments:[]};(()=>{const now=new Date(),p1=defaultData.participants[0].id,p2=defaultData.participants[1].id,baseLat=59.915,baseLng=10.78,demo=[['Hecht',91,6.8,p1,-6,6,'Gummifisch','Nordufer'],['Barsch',34,0.65,p2,-5,18,'Spinner','Steg'],['Zander',63,2.7,p1,-4,21,'Jig','Tiefenkante'],['Barsch',29,0.42,p1,-3,7,'Wobbler','Schilfkante'],['Hecht',78,4.9,p2,-2,9,'Jerkbait','Bucht Ost'],['Forelle',47,1.4,p1,-1,14,'Spinner','Zulauf'],['Zander',58,2.1,p2,0,20,'Jig','Tiefenkante']];defaultData.catches=demo.map((d,i)=>{const dt=new Date(now);dt.setDate(now.getDate()+d[4]);dt.setHours(d[5],20,0,0);return{id:crypto.randomUUID(),species:d[0],customSpecies:'',lengthCm:d[1],weightKg:d[2],participantId:d[3],timestamp:dt.toISOString(),bait:d[6],spotLabel:d[7],note:'',location:{lat:baseLat+((i%3)*0.015),lng:baseLng+((i%4)*0.02),label:d[7]},createdAt:new Date().toISOString()}})})();
 
 let state = loadState();
@@ -1078,56 +1085,15 @@ function renderSpotBaitMatrix(){
     return;
   }
 
-  // Determine the maximum count to scale opacity for each cell
-  const max = Math.max(1, ...spots.flatMap(spot =>
-    baits.map(bait => catches.filter(c => (c.spotLabel || 'Unbekannt') === spot && (c.bait || 'Unbekannt') === bait).length)
-  ));
+  const max=Math.max(1,...spots.flatMap(spot=>baits.map(bait=>catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length)));
 
-  // Build a dynamic grid template based on the number of bait columns. This avoids using
-  // `auto-fit` in CSS which caused rows to wrap on narrow screens. Instead we explicitly
-  // define one column for the spot labels and one column per bait. Each bait column
-  // receives a minimum width so that labels and values do not overlap. Rows will
-  // horizontally scroll if the available width is insufficient.
-  const colCount = baits.length;
-  const colTemplate = `140px repeat(${colCount}, minmax(110px, 1fr))`;
-  // Compute a minimum width for the row to prevent wrapping; this is the sum of the
-  // minimum widths plus a small gap between columns. The `8px` gap is defined in the
-  // accompanying CSS. We add one extra gap at the end.
-  const minRowWidth = 140 + colCount * 110 + (colCount + 1) * 8;
-
-  // Construct the header HTML. We include inline styles to override the CSS `grid-template-columns`
-  // and `min-width` so that each header row remains on a single line regardless of
-  // screen width. Without this override, the `auto-fit` behaviour in the CSS would
-  // wrap cells onto multiple rows and cause misalignment and overlapping values.
-  const headerHTML = `
-    <div class="matrix-header" style="grid-template-columns:${colTemplate};min-width:${minRowWidth}px">
-      <div class="matrix-label">Spot \/ Köder</div>
-      ${baits.map(b => `<div class="matrix-label">${b}</div>`).join('')}
-    </div>
-  `;
-
-  // Construct HTML for each row. Each row uses the same column template and minimum
-  // width as the header. Cells are rendered using flexbox to ensure that the count
-  // and label stack vertically and remain centred. This prevents text from overlapping
-  // when the available space is limited.
-  const rowsHTML = spots.map(spot => {
-    const cellsHTML = baits.map(bait => {
-      const count = catches.filter(c => (c.spotLabel || 'Unbekannt') === spot && (c.bait || 'Unbekannt') === bait).length;
-      const opacity = 0.12 + (count / max) * 0.88;
-      return `<div class="matrix-cell" style="background:rgba(74,215,209,${opacity});display:flex;flex-direction:column;align-items:center;justify-content:center;">
-                <strong>${count}</strong>
-                <span>Fänge</span>
-              </div>`;
-    }).join('');
-    return `
-      <div class="matrix-row" style="grid-template-columns:${colTemplate};min-width:${minRowWidth}px">
-        <div class="matrix-label">${spot}</div>
-        ${cellsHTML}
-      </div>
-    `;
-  }).join('');
-
-  container.innerHTML = headerHTML + rowsHTML;
+  container.innerHTML=
+    '<div class="matrix-header"><div class="matrix-label">Spot \/ Köder</div>'+baits.map(b=>`<div class="matrix-label">${b}</div>`).join('')+'</div>'+
+    spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+spot+'</div>'+baits.map(bait=>{
+      const count=catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length;
+      const opacity=.12+(count/max)*.88;
+      return `<div class="matrix-cell" style="background:rgba(74,215,209,${opacity})"><strong>${count}</strong><span>Fänge</span></div>`;
+    }).join('')+'</div>').join('');
 }
 
 function renderParticipantTimeline(){
@@ -1138,68 +1104,25 @@ function renderParticipantTimeline(){
     window.timelineBubbleChartInstance.destroy();
   }
 
-  // Build a list of unique participant names in the order they appear in the dataset.
-  const participants = [...new Set(state.catches.map(c => participantById(c.participantId)?.name).filter(Boolean))];
+  const participants=[...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
 
-  // Create a dataset for each participant. Use each participant's colour (if available) for the
-  // bubble fill so that the chart matches the colours used throughout the app. If a
-  // participant does not define a colour, Chart.js will fall back to its default
-  // palette.
-  const datasets = participants.map((name, index) => {
-    const participant = state.participants.find(p => p.name === name);
-    return {
-      label: name,
-      data: state.catches
-        .filter(c => participantById(c.participantId)?.name === name)
-        .map(c => ({
-          x: new Date(c.timestamp).getHours() + new Date(c.timestamp).getMinutes() / 60,
-          y: index + 1,
-          r: Math.max(6, Math.min(18, Number(c.weightKg || 1) * 2))
-        })),
-      // Use participant colour if defined
-      backgroundColor: participant?.color || undefined
-    };
-  });
+  const datasets=participants.map((name,index)=>({
+    label:name,
+    data:state.catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({
+      x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+      y:index+1,
+      r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+    }))
+  }));
 
-  window.timelineBubbleChartInstance = new Chart(canvas, {
-    type: 'bubble',
-    data: { datasets },
-    options: {
-      plugins: {
-        legend: {
-          // Display legend items using bubbles instead of the default rectangles. This
-          // helps users visually associate the legend with the bubble symbols used in
-          // the chart. The `pointStyle` property ensures that the legend uses
-          // circular markers.
-          labels: {
-            color: css('--text'),
-            usePointStyle: true,
-            pointStyle: 'circle',
-            padding: 12
-          }
-        }
-      },
-      scales: {
-        x: {
-          min: 0,
-          max: 24,
-          ticks: {
-            color: css('--muted'),
-            callback: v => String(v).padStart(2, '0') + ':00'
-          },
-          grid: { color: 'rgba(255,255,255,.08)' }
-        },
-        y: {
-          ticks: {
-            color: css('--muted'),
-            callback: v => participants[v - 1] || ''
-          },
-          grid: { display: false }
-        }
-      },
-      layout: {
-        // Add a small top padding to separate the legend from the chart area
-        padding: { top: 10 }
+  window.timelineBubbleChartInstance=new Chart(canvas,{
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{legend:{labels:{color:css('--text')}}},
+      scales:{
+        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
       }
     }
   });
@@ -1213,62 +1136,28 @@ function renderSpeciesTimeline(){
     window.speciesTimelineBubbleChartInstance.destroy();
   }
 
-  // Gather unique species names in order of appearance. Use either the predefined
-  // species property or the custom species name if provided.
-  const species = [...new Set(state.catches.map(c => c.species || c.customSpecies || 'Andere').filter(Boolean))];
+  const species=[...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))];
 
-  // Construct a dataset for each species. Assign a distinct colour for each species
-  // using the predefined palette when available. The bubble radius is scaled based
-  // on weight to mirror the participant timeline. Colours will help distinguish
-  // species in both the chart and the legend. If no palette entry exists, fall back
-  // to an HSL-generated colour.
-  const datasets = species.map((name, index) => ({
-    label: name,
-    data: state.catches
-      .filter(c => (c.species || c.customSpecies || 'Andere') === name)
-      .map(c => ({
-        x: new Date(c.timestamp).getHours() + new Date(c.timestamp).getMinutes() / 60,
-        y: index + 1,
-        r: Math.max(6, Math.min(18, Number(c.weightKg || 1) * 2))
+  const datasets=species.map((name,index)=>({
+    label:name,
+    data:state.catches
+      .filter(c=>(c.species||c.customSpecies||'Andere')===name)
+      .map(c=>({
+        x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+        y:index+1,
+        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
       })),
-    backgroundColor: speciesPalette[name] || `hsl(${(index * 67) % 360} 75% 60%)`
+    backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`
   }));
 
-  window.speciesTimelineBubbleChartInstance = new Chart(canvas, {
-    type: 'bubble',
-    data: { datasets },
-    options: {
-      plugins: {
-        legend: {
-          labels: {
-            color: css('--text'),
-            usePointStyle: true,
-            pointStyle: 'circle',
-            padding: 12
-          }
-        }
-      },
-      scales: {
-        x: {
-          min: 0,
-          max: 24,
-          ticks: {
-            color: css('--muted'),
-            callback: v => String(v).padStart(2, '0') + ':00'
-          },
-          grid: { color: 'rgba(255,255,255,.08)' }
-        },
-        y: {
-          ticks: {
-            color: css('--muted'),
-            callback: v => species[v - 1] || ''
-          },
-          grid: { display: false }
-        }
-      },
-      layout: {
-        // Add padding to separate the legend from the chart content
-        padding: { top: 10 }
+  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{legend:{labels:{color:css('--text')}}},
+      scales:{
+        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
       }
     }
   });
