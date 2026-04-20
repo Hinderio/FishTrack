@@ -960,3 +960,26 @@ canvas + ul,
 #spotBaitMatrix .matrix-header div{
   white-space: nowrap;
 }
+
+
+/* Spot × Köder Matrix: verhindert Überlappung der Zellen */
+#spotBaitMatrix {
+  overflow-x: auto;
+}
+
+#spotBaitMatrix .matrix-row {
+  display: grid;
+  grid-template-columns: 260px repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  min-width: max-content;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-cell {
+  min-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  z-index: 1;
+}
