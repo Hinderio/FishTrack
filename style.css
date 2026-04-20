@@ -933,3 +933,92 @@ canvas + ul,
 .matrix-label{background:rgba(255,255,255,.06);font-weight:700}
 .matrix-cell{background:rgba(74,215,209,.12);border:1px solid rgba(255,255,255,.06);font-size:.9rem}
 .matrix-cell strong{display:block;font-size:1.05rem}
+
+
+
+
+
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-cell{
+  white-space:nowrap;
+  min-width:140px;
+}
+
+
+
+
+
+/* Spot × Köder Matrix – stabile einzeilige Darstellung mit horizontalem Scrollen */
+#spotBaitMatrix{
+  display:grid;
+  grid-auto-rows:minmax(84px,auto);
+  gap:16px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:8px;
+  scrollbar-width:thin;
+}
+
+#spotBaitMatrix::-webkit-scrollbar{
+  height:8px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background:rgba(255,255,255,0.06);
+  border-radius:999px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,0.22);
+  border-radius:999px;
+}
+
+#spotBaitMatrix > *{
+  min-width:160px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#spotBaitMatrix > *:first-child{
+  min-width:220px;
+}
+
+
+/* Präzise Ausrichtung Spot × Köder Matrix */
+#spotBaitMatrix{
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  padding-bottom:10px;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  display:grid !important;
+  grid-auto-flow:column !important;
+  grid-auto-columns:minmax(72px,72px) !important;
+  gap:8px !important;
+  width:max-content !important;
+  min-width:max-content !important;
+  align-items:stretch;
+}
+
+#spotBaitMatrix .matrix-header .matrix-label:first-child,
+#spotBaitMatrix .matrix-row .matrix-label:first-child{
+  width:150px !important;
+  min-width:150px !important;
+}
+
+#spotBaitMatrix .matrix-header > *,
+#spotBaitMatrix .matrix-row > *{
+  width:72px !important;
+  min-width:72px !important;
+  box-sizing:border-box;
+}
+
+#spotBaitMatrix .matrix-header > *:first-child,
+#spotBaitMatrix .matrix-row > *:first-child{
+  width:150px !important;
+  min-width:150px !important;
+}
