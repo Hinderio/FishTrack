@@ -1,3 +1,6 @@
+window.dailyChartMode = window.dailyChartMode || 'overall';
+window.speciesChartMode = window.speciesChartMode || 'overall';
+
 const STORAGE_KEY='fishtrack-norway-v2';const THEME_KEY='fishtrack-theme';const speciesPalette={'Barsch':'#8ff0a7','Hecht':'#ffb84d','Zander':'#66e7ff','Forelle':'#ff8ab4','Dorsch':'#b7a0ff','Andere':'#d4dbe3'};const RULESETS={all_fish:{id:'all_fish',name:'Jeder Fisch zählt',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:5,bonusLargestPerSpecies:3,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0},first_fish:{id:'first_fish',name:'Erster Fisch gewinnt',pointsPerFish:1,bonusFirstFish:10,bonusLargestFish:5,bonusLargestPerSpecies:0,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0},species_hunter:{id:'species_hunter',name:'Artenjäger',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:0,bonusLargestPerSpecies:5,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0,bonusNewSpecies:3},trophy_hunter:{id:'trophy_hunter',name:'Trophy Hunter',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:10,bonusLargestPerSpecies:3,bonusNewArea:0,bonusOver80cm:2,bonusOver100cm:5},explorer:{id:'explorer',name:'Entschneidern / Spot Explorer',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:5,bonusLargestPerSpecies:0,bonusNewArea:5,bonusOver80cm:0,bonusOver100cm:0}};const defaultData={meta:{tripName:'Fish Battle / Global',tripSubtitle:'Fänge, Fangorte und Teilnehmer-Leaderboard'},participants:[{id:crypto.randomUUID(),name:'Nico',color:'#4ad7d1',avatar:'🎣'},{id:crypto.randomUUID(),name:'Dad',color:'#ffb84d',avatar:'🧢'}],catches:[],tournaments:[]};(()=>{const now=new Date(),p1=defaultData.participants[0].id,p2=defaultData.participants[1].id,baseLat=59.915,baseLng=10.78,demo=[['Hecht',91,6.8,p1,-6,6,'Gummifisch','Nordufer'],['Barsch',34,0.65,p2,-5,18,'Spinner','Steg'],['Zander',63,2.7,p1,-4,21,'Jig','Tiefenkante'],['Barsch',29,0.42,p1,-3,7,'Wobbler','Schilfkante'],['Hecht',78,4.9,p2,-2,9,'Jerkbait','Bucht Ost'],['Forelle',47,1.4,p1,-1,14,'Spinner','Zulauf'],['Zander',58,2.1,p2,0,20,'Jig','Tiefenkante']];defaultData.catches=demo.map((d,i)=>{const dt=new Date(now);dt.setDate(now.getDate()+d[4]);dt.setHours(d[5],20,0,0);return{id:crypto.randomUUID(),species:d[0],customSpecies:'',lengthCm:d[1],weightKg:d[2],participantId:d[3],timestamp:dt.toISOString(),bait:d[6],spotLabel:d[7],note:'',location:{lat:baseLat+((i%3)*0.015),lng:baseLng+((i%4)*0.02),label:d[7]},createdAt:new Date().toISOString()}})})();
 
 let state = loadState();
@@ -1240,3 +1243,33 @@ function renderSpeciesTimeline(){
     }
   });
 }
+
+
+function bindChartToggleButtons(){
+  const dailyBtn = document.getElementById('dailyChartToggle');
+  const speciesBtn = document.getElementById('speciesChartToggle');
+  const dailyTitle = document.getElementById('dailyChartTitle');
+  const speciesTitle = document.getElementById('speciesChartTitle');
+
+  if(dailyBtn && !dailyBtn.dataset.bound){
+    dailyBtn.dataset.bound='1';
+    dailyBtn.addEventListener('click',()=>{
+      window.dailyChartMode = window.dailyChartMode === 'overall' ? 'species' : 'overall';
+      dailyBtn.textContent = window.dailyChartMode === 'species' ? 'Zur Gesamtansicht' : 'Zu Fischarten wechseln';
+      if(dailyTitle) dailyTitle.textContent = window.dailyChartMode === 'species' ? 'Fänge pro Tag nach Fischarten' : 'Fänge pro Tag';
+      if(typeof renderCharts==='function') renderCharts();
+    });
+  }
+
+  if(speciesBtn && !speciesBtn.dataset.bound){
+    speciesBtn.dataset.bound='1';
+    speciesBtn.addEventListener('click',()=>{
+      window.speciesChartMode = window.speciesChartMode === 'overall' ? 'species' : 'overall';
+      speciesBtn.textContent = window.speciesChartMode === 'species' ? 'Zur Gesamtansicht' : 'Zu Fischarten wechseln';
+      if(speciesTitle) speciesTitle.textContent = window.speciesChartMode === 'species' ? 'Artenverteilung nach Fischarten' : 'Artenverteilung';
+      if(typeof renderSpeciesTimeline==='function') renderSpeciesTimeline();
+    });
+  }
+}
+
+setTimeout(bindChartToggleButtons,300);
