@@ -46,7 +46,7 @@
             <p id="tripSubtitle">Analysen, Fangorte, Leaderboard und Fanghistorie.</p>
             <div class="dashboard-tournament-inline">
               <select id="dashboardTournamentSelect" class="dashboard-select">
-                <option value="overview">Alle Turniere</option>
+                <option value="overview">Overview</option>
               </select>
             </div>
           </div>
@@ -201,14 +201,7 @@
       </section>
 
       <section id="screen-analytics" class="screen">
-        <section class="panel glass analytics-filter-panel">
-  <div class="panel-head analytics-filter-head">
-    <h3>Analytics Filter</h3>
-    <select id="analyticsTournamentSelect2" class="dashboard-select"><option value="overview">Alle Turniere</option></select>
-    <select id="analyticsParticipantSelect" class="dashboard-select"><option value="all">Alle Teilnehmer</option></select>
-    <select id="analyticsSpeciesSelect" class="dashboard-select"><option value="all">Alle Fischarten</option></select>
-  </div>
-</section>
+        <section class="panel glass analytics-filter-panel"><div class="panel-head"><h3>Analytics Filter</h3><select id="analyticsTournamentSelect2" class="dashboard-select"><option value="overview">Overview</option></select></div></section>
         <div class="grid two-columns">
           <section class="panel glass"><div class="panel-head"><h3>Teilnehmervergleich</h3></div><canvas id="participantChart" height="220"></canvas></section>
           <section class="panel glass"><div class="panel-head"><h3>Uhrzeit-Hitmap</h3></div><div id="timeHeatmap" class="time-grid"></div></section>
@@ -219,23 +212,13 @@
         </div>
         <div class="grid two-columns">
           <section class="panel glass">
-            <div class="panel-head"><h3>Fang-Zeitstrahl nach Teilnehmer</h3></div>
-            <canvas id="timelineBubbleChart" height="260"></canvas>
+            <div class="panel-head"><h3>Spot × Köder Matrix</h3></div>
+            <div id="spotBaitMatrix" class="matrix-grid"></div>
           </section>
           <section class="panel glass">
-            <div class="panel-head"><h3>Fang-Zeitstrahl nach Fischart</h3></div>
-            <canvas id="speciesTimelineChart" height="260"></canvas>
+            <div class="panel-head"><h3>Fang-Zeitstrahl</h3></div>
+            <canvas id="timelineBubbleChart" height="260"></canvas>
           </section>
-        </div>
-
-        <section class="panel glass">
-          <div class="panel-head"><h3>Spot × Köder Matrix</h3></div>
-          <div id="spotBaitMatrix" class="matrix-grid"></div>
-        </section>
-
-        <div class="grid two-columns">
-          <section class="panel glass"><div class="panel-head"><h3>Rekorde</h3></div><div id="recordsList" class="stack-list"></div></section>
-          <section class="panel glass"><div class="panel-head"><h3>Prognose</h3></div><div id="forecastBox" class="forecast-box"></div></section>
         </div>
       </section>
 

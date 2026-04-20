@@ -933,39 +933,3 @@ canvas + ul,
 .matrix-label{background:rgba(255,255,255,.06);font-weight:700}
 .matrix-cell{background:rgba(74,215,209,.12);border:1px solid rgba(255,255,255,.06);font-size:.9rem}
 .matrix-cell strong{display:block;font-size:1.05rem}
-
-.analytics-filter-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.analytics-filter-head .dashboard-select{min-width:180px}
-
-.matrix-grid{
-  --matrix-cols: 6;
-  overflow-x:auto;
-}
-
-.matrix-header,.matrix-row{
-  display:grid;
-  grid-template-columns:minmax(140px,1.2fr) repeat(var(--matrix-cols), minmax(90px,1fr));
-  gap:8px;
-  min-width:max-content;
-}
-
-.matrix-label,.matrix-cell{
-  padding:8px 6px;
-  font-size:.85rem;
-  border-radius:14px;
-}
-
-.matrix-cell strong{font-size:1rem}
-
-.analytics-filter-head{
-  display:grid;
-  grid-template-columns:auto repeat(3,minmax(180px,220px));
-  gap:12px;
-  align-items:center;
-}
-
-@media (max-width: 1100px){
-  .analytics-filter-head{
-    grid-template-columns:1fr;
-  }
-}
