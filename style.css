@@ -952,7 +952,7 @@ canvas + ul,
 /* Spot × Köder Matrix – stabile einzeilige Darstellung mit horizontalem Scrollen */
 #spotBaitMatrix{
   display:grid;
-  grid-auto-rows:minmax(64px,auto);
+  grid-auto-rows:minmax(84px,auto);
   gap:16px;
   overflow-x:auto;
   overflow-y:hidden;
@@ -986,28 +986,31 @@ canvas + ul,
 }
 
 
-/* More compact Spot × Köder Matrix */
+/* Scrollbar instead of overlap for Spot × Köder Matrix */
+#spotBaitMatrix{
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  width:100%;
+  padding-bottom:10px;
+}
+
 #spotBaitMatrix .matrix-header,
 #spotBaitMatrix .matrix-row{
-  gap:6px !important;
+  min-width:max-content !important;
+  width:max-content;
+  flex-wrap:nowrap !important;
 }
 
-#spotBaitMatrix .matrix-label{
-  font-size:.9rem;
-  border-radius:12px;
+#spotBaitMatrix::-webkit-scrollbar{
+  height:10px;
 }
 
-#spotBaitMatrix .matrix-cell{
-  border-radius:12px;
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background:rgba(255,255,255,.06);
+  border-radius:999px;
 }
 
-#spotBaitMatrix .matrix-cell strong{
-  font-size:.88rem !important;
-  line-height:1;
-  margin-bottom:2px;
-}
-
-#spotBaitMatrix .matrix-cell span{
-  font-size:.66rem !important;
-  line-height:1;
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.22);
+  border-radius:999px;
 }
