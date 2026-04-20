@@ -933,3 +933,16 @@ canvas + ul,
 .matrix-label{background:rgba(255,255,255,.06);font-weight:700}
 .matrix-cell{background:rgba(74,215,209,.12);border:1px solid rgba(255,255,255,.06);font-size:.9rem}
 .matrix-cell strong{display:block;font-size:1.05rem}
+
+
+/* Spot × Köder Matrix nicht umbrechen */
+#spotBaitMatrix{
+  overflow-x:auto;
+  grid-auto-flow:column;
+  grid-auto-columns:minmax(180px,1fr);
+}
+
+#spotBaitMatrix > div{
+  min-width:180px;
+  white-space:nowrap;
+}
