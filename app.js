@@ -803,13 +803,28 @@ document.addEventListener('click', (e) => {
 
 
 window.analyticsTournamentFilter = window.analyticsTournamentFilter || 'overview';
+window.analyticsParticipantFilter = window.analyticsParticipantFilter || 'all';
+window.analyticsSpeciesFilter = window.analyticsSpeciesFilter || 'all';
 
 function getAnalyticsCatches(){
-  if(!window.analyticsTournamentFilter || window.analyticsTournamentFilter === 'overview'){
-    return state.catches;
+  let catches = [...state.catches];
+
+  if(window.analyticsTournamentFilter && window.analyticsTournamentFilter !== 'overview'){
+    catches = catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
   }
 
-  return state.catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
+  if(window.analyticsParticipantFilter && window.analyticsParticipantFilter !== 'all'){
+    catches = catches.filter(c => (c.participantId || '') === window.analyticsParticipantFilter);
+  }
+
+  if(window.analyticsSpeciesFilter && window.analyticsSpeciesFilter !== 'all'){
+    catches = catches.filter(c => {
+      const species = c.species || c.fishType || c.type || '';
+      return species === window.analyticsSpeciesFilter;
+    });
+  }
+
+  return catches;
 }
 
 function rerenderAnalyticsView(){
