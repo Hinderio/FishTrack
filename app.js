@@ -812,13 +812,26 @@ function getAnalyticsCatches(){
   return state.catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
 }
 
-function rerenderAnalyticsCharts(){
+function rerenderAnalyticsView(){
+  if(typeof refreshAnalyticsTournamentSelect === 'function'){
+    refreshAnalyticsTournamentSelect();
+  }
+
   const originalCatches = state.catches;
   state.catches = getAnalyticsCatches();
 
   try{
     if(typeof renderCharts === 'function'){
       renderCharts();
+    }
+    if(typeof renderTimeHeatmap === 'function'){
+      renderTimeHeatmap();
+    }
+    if(typeof renderRecords === 'function'){
+      renderRecords();
+    }
+    if(typeof renderForecast === 'function'){
+      renderForecast();
     }
   } finally {
     state.catches = originalCatches;
@@ -844,27 +857,52 @@ function refreshAnalyticsTournamentSelect(){
 
   select.addEventListener('change', () => {
     window.analyticsTournamentFilter = select.value;
-    rerenderAnalyticsCharts();
+    rerenderAnalyticsView();
   });
+}
+
+function withAnalyticsFilter(fn){
+  if(typeof fn !== 'function') return fn;
+
+  return function(){
+    const analyticsScreen = document.getElementById('screen-analytics');
+    const shouldFilter = analyticsScreen?.classList.contains('active');
+
+    if(!shouldFilter){
+      return fn.apply(this, arguments);
+    }
+
+    const originalCatches = state.catches;
+    state.catches = getAnalyticsCatches();
+
+    try{
+      return fn.apply(this, arguments);
+    } finally {
+      state.catches = originalCatches;
+    }
+  };
 }
 
 document.addEventListener('DOMContentLoaded', refreshAnalyticsTournamentSelect);
 window.addEventListener('load', () => setTimeout(refreshAnalyticsTournamentSelect, 50));
 
-const originalRenderChartsForAnalyticsFilter = renderCharts;
-renderCharts = function(){
-  const originalCatches = state.catches;
+renderCharts = withAnalyticsFilter(renderCharts);
+renderTimeHeatmap = withAnalyticsFilter(renderTimeHeatmap);
+renderRecords = withAnalyticsFilter(renderRecords);
+renderForecast = withAnalyticsFilter(renderForecast);
 
-  if(document.getElementById('screen-analytics')?.classList.contains('active')){
-    state.catches = getAnalyticsCatches();
+const originalShowScreenForAnalyticsFilter = showScreen;
+showScreen = function(name){
+  const result = originalShowScreenForAnalyticsFilter.apply(this, arguments);
+
+  if(name === 'analytics'){
+    setTimeout(() => {
+      refreshAnalyticsTournamentSelect();
+      rerenderAnalyticsView();
+    }, 0);
   }
 
-  try{
-    return originalRenderChartsForAnalyticsFilter.apply(this, arguments);
-  } finally {
-    state.catches = originalCatches;
-    refreshAnalyticsTournamentSelect();
-  }
+  return result;
 }
 
 
