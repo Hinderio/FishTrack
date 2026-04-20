@@ -1127,3 +1127,111 @@ canvas + ul,
   display:block;
   margin-top:8px;
 }
+
+
+
+/* Spot × Köder Matrix – finale responsive Grid-Definition */
+#spotBaitMatrix{
+  --matrix-gap: 14px;
+  --matrix-spot-col: 220px;
+  --matrix-cell-min: 130px;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+
+#spotBaitMatrix::-webkit-scrollbar{
+  height: 6px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  display: grid !important;
+  grid-template-columns:
+    minmax(var(--matrix-spot-col), var(--matrix-spot-col))
+    repeat(6, minmax(var(--matrix-cell-min), 1fr)) !important;
+  gap: var(--matrix-gap) !important;
+  width: max(100%, calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap)))) !important;
+  min-width: calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap))) !important;
+  margin-bottom: var(--matrix-gap) !important;
+  align-items: stretch !important;
+}
+
+#spotBaitMatrix .matrix-label,
+#spotBaitMatrix .matrix-cell{
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 96px !important;
+  height: 96px !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  position: static !important;
+}
+
+#spotBaitMatrix .matrix-label{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+#spotBaitMatrix .matrix-cell{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+#spotBaitMatrix .matrix-cell strong{
+  display:block;
+  font-size:20px;
+  line-height:1;
+}
+
+#spotBaitMatrix .matrix-cell span{
+  display:block;
+  margin-top:4px;
+  font-size:14px;
+  opacity:.92;
+}
+
+#spotBaitMatrix .matrix-label::before,
+#spotBaitMatrix .matrix-label::after,
+#spotBaitMatrix .matrix-cell::before,
+#spotBaitMatrix .matrix-cell::after{
+  display:none !important;
+  content:none !important;
+}
+
+@media (max-width: 1280px){
+  #spotBaitMatrix{
+    --matrix-spot-col: 200px;
+    --matrix-cell-min: 118px;
+    --matrix-gap: 12px;
+  }
+}
+
+@media (max-width: 980px){
+  #spotBaitMatrix{
+    --matrix-spot-col: 190px;
+    --matrix-cell-min: 108px;
+    --matrix-gap: 10px;
+  }
+}
