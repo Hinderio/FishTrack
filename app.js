@@ -1212,7 +1212,9 @@ function renderSpeciesTimeline(){
         y:index+1,
         r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
       })),
-    backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`
+    borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
+    backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
+    borderWidth: 1.5
   }));
 
   window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
