@@ -960,12 +960,7 @@ canvas + ul,
 
 
 /* Spot × Köder Matrix – finale stabile Version */
-#spotBaitMatrix{
-  overflow-x:auto;
-  overflow-y:hidden;
-  padding-bottom:6px;
-  scrollbar-width:thin;
-}
+
 
 #spotBaitMatrix::-webkit-scrollbar{
   height:6px;
@@ -980,14 +975,7 @@ canvas + ul,
   background:transparent;
 }
 
-#spotBaitMatrix .matrix-header,
-#spotBaitMatrix .matrix-row{
-  display:grid;
-  grid-template-columns:180px repeat(6, 110px);
-  gap:12px;
-  width:max-content;
-  margin-bottom:12px;
-}
+
 
 #spotBaitMatrix .matrix-label{
   display:flex;
@@ -1025,4 +1013,86 @@ canvas + ul,
 #spotBaitMatrix .matrix-cell::after{
   display:none !important;
   content:none !important;
+}
+
+
+
+/* Spot x Köder Matrix – definitive responsive layout */
+#spotBaitMatrix{
+  width:100%;
+  overflow:hidden;
+}
+
+#spotBaitMatrix .matrix-scroll{
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:8px;
+  scrollbar-width:thin;
+}
+
+#spotBaitMatrix .matrix-grid{
+  width:max-content;
+  min-width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  display:grid;
+  grid-template-columns:180px repeat(6, minmax(110px, 1fr));
+  gap:14px;
+  width:max-content;
+}
+
+#spotBaitMatrix .matrix-label,
+#spotBaitMatrix .matrix-cell{
+  min-height:96px;
+  border-radius:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:12px;
+  box-sizing:border-box;
+}
+
+#spotBaitMatrix .matrix-label{
+  background:rgba(255,255,255,0.06);
+  color:#f3f6fb;
+  font-weight:700;
+  font-size:18px;
+  white-space:nowrap;
+}
+
+#spotBaitMatrix .matrix-cell{
+  background:rgba(72, 196, 202, 0.22);
+  min-width:110px;
+  max-width:110px;
+}
+
+#spotBaitMatrix .matrix-cell strong{
+  display:block;
+  font-size:20px;
+  line-height:1;
+}
+
+#spotBaitMatrix .matrix-cell span{
+  display:block;
+  margin-top:4px;
+  font-size:14px;
+  opacity:.92;
+}
+
+@media (max-width: 1200px){
+  #spotBaitMatrix .matrix-header,
+  #spotBaitMatrix .matrix-row{
+    grid-template-columns:160px repeat(6, 100px);
+  }
+
+  #spotBaitMatrix .matrix-cell{
+    min-width:100px;
+    max-width:100px;
+  }
 }
