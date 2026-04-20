@@ -1279,3 +1279,47 @@ function bindChartToggleButtons(){
 }
 
 setTimeout(bindChartToggleButtons,300);
+
+
+window.weatherOverlayVisible = false;
+window.windOverlayVisible = false;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const weatherBtn = document.getElementById('toggleWeatherLayer');
+  const windBtn = document.getElementById('toggleWindLayer');
+
+  const badge = document.createElement('div');
+  badge.className = 'weather-badge';
+  badge.id = 'weatherBadge';
+  badge.style.display = 'none';
+  badge.innerHTML = '🌦 14°C · Bewölkt · 1013 hPa';
+  document.body.appendChild(badge);
+
+  weatherBtn?.addEventListener('click', () => {
+    window.weatherOverlayVisible = !window.weatherOverlayVisible;
+    badge.style.display = window.weatherOverlayVisible ? 'block' : 'none';
+    weatherBtn.classList.toggle('active');
+  });
+
+  windBtn?.addEventListener('click', () => {
+    window.windOverlayVisible = !window.windOverlayVisible;
+    windBtn.classList.toggle('active');
+
+    document.querySelectorAll('.leaflet-pane svg .wind-arrow').forEach(el => el.remove());
+
+    if (!window.windOverlayVisible) return;
+
+    const mapPane = document.querySelector('.leaflet-overlay-pane');
+    if (!mapPane) return;
+
+    const marker = document.createElement('div');
+    marker.className = 'weather-badge';
+    marker.style.top = '58px';
+    marker.innerHTML = '💨 Südwest 18 km/h';
+    document.body.appendChild(marker);
+
+    setTimeout(() => {
+      if (!window.windOverlayVisible) marker.remove();
+    }, 100);
+  });
+});

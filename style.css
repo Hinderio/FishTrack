@@ -1294,3 +1294,30 @@ canvas + ul,
   max-width:100% !important;
 }
 
+
+
+.weather-layer-toggle{
+  position:fixed;
+  top:88px;
+  right:18px;
+  display:flex;
+  gap:10px;
+  z-index:999;
+}
+
+.weather-layer-toggle .timeline-switch-btn{
+  backdrop-filter: blur(10px);
+}
+
+.weather-badge{
+  position:absolute;
+  right:12px;
+  top:12px;
+  background:rgba(18,26,34,.85);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;
+  padding:8px 12px;
+  color:#dce7ef;
+  font-size:13px;
+  z-index:800;
+}
