@@ -1096,3 +1096,34 @@ canvas + ul,
     max-width:100px;
   }
 }
+
+
+/* Turnier-Story */
+.panel-head.compact{
+  margin-bottom:10px;
+}
+
+.tournament-story-card{
+  padding:18px 18px 16px;
+  border-radius:22px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.04);
+}
+
+.tournament-story-text{
+  color:var(--text);
+  line-height:1.6;
+}
+
+.tournament-story-text p{
+  margin:0 0 10px;
+}
+
+.tournament-story-text p:last-child{
+  margin-bottom:0;
+}
+
+.tournament-story-text .meta{
+  display:block;
+  margin-top:8px;
+}
