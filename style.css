@@ -933,13 +933,3 @@ canvas + ul,
 .matrix-label{background:rgba(255,255,255,.06);font-weight:700}
 .matrix-cell{background:rgba(74,215,209,.12);border:1px solid rgba(255,255,255,.06);font-size:.9rem}
 .matrix-cell strong{display:block;font-size:1.05rem}
-
-
-.matrix-header,.matrix-row{
-  grid-template-columns:minmax(160px,1.4fr) repeat(var(--matrix-cols,4), minmax(110px,1fr));
-}
-
-.matrix-grid{
-  overflow-x:auto;
-  padding-bottom:4px;
-}

@@ -201,17 +201,14 @@
       </section>
 
       <section id="screen-analytics" class="screen">
-        <section class="panel glass analytics-filter-panel">
-          <div class="panel-head analytics-filter-head">
-            <h3>Analytics Filter</h3>
-            <select id="analyticsTournamentSelect2" class="dashboard-select"><option value="overview">Overview</option></select>
-            <select id="analyticsParticipantFilter" class="dashboard-select"><option value="all">Alle Teilnehmer</option></select>
-            <select id="analyticsSpeciesFilter" class="dashboard-select"><option value="all">Alle Fischarten</option></select>
-          </div>
-        </section>
+        <section class="panel glass analytics-filter-panel"><div class="panel-head"><h3>Analytics Filter</h3><select id="analyticsTournamentSelect2" class="dashboard-select"><option value="overview">Overview</option></select></div></section>
         <div class="grid two-columns">
           <section class="panel glass"><div class="panel-head"><h3>Teilnehmervergleich</h3></div><canvas id="participantChart" height="220"></canvas></section>
           <section class="panel glass"><div class="panel-head"><h3>Uhrzeit-Hitmap</h3></div><div id="timeHeatmap" class="time-grid"></div></section>
+        </div>
+        <div class="grid two-columns">
+          <section class="panel glass"><div class="panel-head"><h3>Rekorde</h3></div><div id="recordsList" class="stack-list"></div></section>
+          <section class="panel glass"><div class="panel-head"><h3>Prognose</h3></div><div id="forecastBox" class="forecast-box"></div></section>
         </div>
         <div class="grid two-columns">
           <section class="panel glass">
@@ -222,10 +219,6 @@
             <div class="panel-head"><h3>Fang-Zeitstrahl</h3></div>
             <canvas id="timelineBubbleChart" height="260"></canvas>
           </section>
-        </div>
-        <div class="grid two-columns">
-          <section class="panel glass"><div class="panel-head"><h3>Rekorde</h3></div><div id="recordsList" class="stack-list"></div></section>
-          <section class="panel glass"><div class="panel-head"><h3>Prognose</h3></div><div id="forecastBox" class="forecast-box"></div></section>
         </div>
       </section>
 
