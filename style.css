@@ -935,14 +935,28 @@ canvas + ul,
 .matrix-cell strong{display:block;font-size:1.05rem}
 
 
-/* Spot × Köder Matrix nicht umbrechen */
-#spotBaitMatrix{
-  overflow-x:auto;
-  grid-auto-flow:column;
-  grid-auto-columns:minmax(180px,1fr);
+
+
+
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-cell{
+  white-space:nowrap;
+  min-width:140px;
 }
 
-#spotBaitMatrix > div{
-  min-width:180px;
-  white-space:nowrap;
+
+/* Spot × Köder Matrix: Texte bleiben einzeilig, Grid bleibt unverändert */
+#spotBaitMatrix{
+  overflow-x:auto;
+}
+
+#spotBaitMatrix .matrix-header{
+  white-space: nowrap;
+}
+
+#spotBaitMatrix .matrix-header span,
+#spotBaitMatrix .matrix-header strong,
+#spotBaitMatrix .matrix-header div{
+  white-space: nowrap;
 }
