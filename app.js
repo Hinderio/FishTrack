@@ -1096,6 +1096,76 @@ function renderSpotBaitMatrix(){
     }).join('')+'</div>').join('');
 }
 
+
+function buildBubbleTimelineConfig({canvas,categories,datasets}){
+  const rowHeight=42;
+  const minHeight=300;
+  const extraHeight=110;
+  const targetHeight=Math.max(minHeight, categories.length*rowHeight+extraHeight);
+  canvas.height=targetHeight;
+
+  return {
+    type:'bubble',
+    data:{datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      layout:{padding:{top:12,right:12,bottom:18,left:12}},
+      elements:{
+        point:{
+          hoverRadius:0,
+          borderWidth:1.5,
+          borderColor:'rgba(12,18,26,0.35)'
+        }
+      },
+      plugins:{
+        legend:{
+          position:'bottom',
+          align:'start',
+          labels:{
+            color:css('--text'),
+            usePointStyle:true,
+            pointStyle:'circle',
+            boxWidth:8,
+            boxHeight:8,
+            padding:14
+          }
+        },
+        tooltip:{
+          displayColors:true,
+          usePointStyle:true
+        }
+      },
+      scales:{
+        x:{
+          min:0,
+          max:24,
+          offset:true,
+          ticks:{
+            color:css('--muted'),
+            padding:8,
+            callback:v=>String(v).padStart(2,'0')+':00'
+          },
+          grid:{color:'rgba(255,255,255,.08)'},
+          border:{color:'rgba(255,255,255,.12)'}
+        },
+        y:{
+          min:.5,
+          max:categories.length+.5,
+          ticks:{
+            stepSize:1,
+            color:css('--muted'),
+            padding:10,
+            callback:v=>categories[v-1]||''
+          },
+          grid:{display:false},
+          border:{display:false}
+        }
+      }
+    }
+  };
+}
+
 function renderParticipantTimeline(){
   const canvas=document.getElementById('timelineBubbleChart');
   if(!canvas||typeof Chart==='undefined') return;
@@ -1108,24 +1178,20 @@ function renderParticipantTimeline(){
 
   const datasets=participants.map((name,index)=>({
     label:name,
-    data:state.catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({
-      x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
-      y:index+1,
-      r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
-    }))
+    data:state.catches
+      .filter(c=>participantById(c.participantId)?.name===name)
+      .map(c=>({
+        x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+        y:index+1,
+        r:Math.max(6,Math.min(16,Number(c.weightKg||1)*1.8))
+      })),
+    backgroundColor:`hsl(${(index*67)%360} 78% 62%)`
   }));
 
-  window.timelineBubbleChartInstance=new Chart(canvas,{
-    type:'bubble',
-    data:{datasets},
-    options:{
-      plugins:{legend:{labels:{color:css('--text')}}},
-      scales:{
-        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
-      }
-    }
-  });
+  window.timelineBubbleChartInstance=new Chart(
+    canvas,
+    buildBubbleTimelineConfig({canvas,categories:participants,datasets})
+  );
 }
 
 function renderSpeciesTimeline(){
@@ -1145,20 +1211,13 @@ function renderSpeciesTimeline(){
       .map(c=>({
         x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
         y:index+1,
-        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+        r:Math.max(6,Math.min(16,Number(c.weightKg||1)*1.8))
       })),
-    backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`
+    backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 78% 62%)`
   }));
 
-  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
-    type:'bubble',
-    data:{datasets},
-    options:{
-      plugins:{legend:{labels:{color:css('--text')}}},
-      scales:{
-        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
-      }
-    }
-  });
+  window.speciesTimelineBubbleChartInstance=new Chart(
+    canvas,
+    buildBubbleTimelineConfig({canvas,categories:species,datasets})
+  );
 }
