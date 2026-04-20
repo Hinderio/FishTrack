@@ -802,28 +802,14 @@ document.addEventListener('click', (e) => {
 });
 
 
-
-window.analyticsParticipantFilter = window.analyticsParticipantFilter || 'all';
-window.analyticsSpeciesFilter = window.analyticsSpeciesFilter || 'all';
-
 window.analyticsTournamentFilter = window.analyticsTournamentFilter || 'overview';
 
 function getAnalyticsCatches(){
-  let catches=[...state.catches];
-
-  if(window.analyticsTournamentFilter && window.analyticsTournamentFilter !== 'overview'){
-    catches=catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
+  if(!window.analyticsTournamentFilter || window.analyticsTournamentFilter === 'overview'){
+    return state.catches;
   }
 
-  if(window.analyticsParticipantFilter && window.analyticsParticipantFilter !== 'all'){
-    catches=catches.filter(c => c.participantId === window.analyticsParticipantFilter);
-  }
-
-  if(window.analyticsSpeciesFilter && window.analyticsSpeciesFilter !== 'all'){
-    catches=catches.filter(c => speciesName(c) === window.analyticsSpeciesFilter);
-  }
-
-  return catches;
+  return state.catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
 }
 
 function rerenderAnalyticsView(){
@@ -860,42 +846,23 @@ function rerenderAnalyticsView(){
 
 function refreshAnalyticsTournamentSelect(){
   const select = document.getElementById('analyticsTournamentSelect2');
-  const participantSelect = document.getElementById('analyticsParticipantFilter');
-  const speciesSelect = document.getElementById('analyticsSpeciesFilter');
-
-  if(!select || !participantSelect || !speciesSelect) return;
+  if(!select) return;
 
   select.innerHTML =
     '<option value="overview">Overview</option>' +
     (state.tournaments || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
 
-  participantSelect.innerHTML =
-    '<option value="all">Alle Teilnehmer</option>' +
-    (state.participants || []).map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-
-  speciesSelect.innerHTML =
-    '<option value="all">Alle Fischarten</option>' +
-    [...new Set((state.catches || []).map(c => speciesName(c)))].sort().map(s => `<option value="${s}">${s}</option>`).join('');
+  if(!(state.tournaments || []).some(t => t.id === window.analyticsTournamentFilter)){
+    window.analyticsTournamentFilter = 'overview';
+  }
 
   select.value = window.analyticsTournamentFilter;
-  participantSelect.value = window.analyticsParticipantFilter;
-  speciesSelect.value = window.analyticsSpeciesFilter;
 
   if(select.dataset.bound === '1') return;
   select.dataset.bound = '1';
 
   select.addEventListener('change', () => {
     window.analyticsTournamentFilter = select.value;
-    rerenderAnalyticsView();
-  });
-
-  participantSelect.addEventListener('change', () => {
-    window.analyticsParticipantFilter = participantSelect.value;
-    rerenderAnalyticsView();
-  });
-
-  speciesSelect.addEventListener('change', () => {
-    window.analyticsSpeciesFilter = speciesSelect.value;
     rerenderAnalyticsView();
   });
 }
@@ -1154,11 +1121,7 @@ function renderParticipantTimeline(){
             usePointStyle:true,
             pointStyle:'circle',
             boxWidth:10,
-            boxHeight:10,
-            padding:8
-          }
-        },
-        layout:{padding:{top:6}}
+            boxHeight:10
           }
         }
       },
