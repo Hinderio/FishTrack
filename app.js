@@ -65,7 +65,7 @@ if (typeof renderCharts === 'function') {
 }
 
 if (typeof window.renderSpeciesTimeline === 'function') {
-  window.renderSpeciesTimeline();
+  window.
 }
 
 hasLoadedFromSupabase = true;
@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.__timelineSourceCatches = matching;
         if (typeof renderSpeciesTimeline === 'function') {
-          window.renderSpeciesTimeline();
+          window.
         }
       };
       charts.daily.update();
@@ -505,7 +505,7 @@ function refreshDashboardTournamentSelect(){
     if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
     if(typeof renderCharts === 'function') renderCharts();
     if(typeof renderMap === 'function') renderMap();
-    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if(typeof renderSpeciesTimeline === 'function') 
   });
 }
 
@@ -703,7 +703,7 @@ setTimeout(() => {
     try {
       if (typeof renderDashboard === 'function') renderDashboard();
       if (typeof renderCharts === 'function') renderCharts();
-      if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+      if (typeof renderSpeciesTimeline === 'function') 
       if (typeof renderMap === 'function') renderMap();
     } finally {
       state.catches = original;
@@ -758,7 +758,7 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if (typeof renderSpeciesTimeline === 'function') 
   } finally {
     state.catches = original;
   }
@@ -854,7 +854,7 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if(typeof renderSpeciesTimeline === 'function') 
   } finally {
     state.catches = original;
   }
@@ -1148,79 +1148,56 @@ function renderSpotBaitMatrix(){
     }).join('')+'</div>').join('');
 }
 
+
 function renderParticipantTimeline(){
   const canvas=document.getElementById('timelineBubbleChart');
-  canvas.height=260;
+  const title=document.getElementById('timelineSwitchTitle');
   if(!canvas||typeof Chart==='undefined') return;
+  canvas.height=260;
 
   if(window.timelineBubbleChartInstance){
     window.timelineBubbleChartInstance.destroy();
   }
 
-  const participants=[...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
+  const isSpecies=timelineViewMode==='species';
+  const labels=isSpecies
+    ? [...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))]
+    : [...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
 
-  const datasets=participants.map((name,index)=>({
-    label:name,
-    data:state.catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({
-      x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
-      y:index+1,
-      r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
-    }))
-  }));
-
-  window.timelineBubbleChartInstance=new Chart(canvas,{
-    type:'bubble',
-    data:{datasets},
-    options:{
-      plugins:{
-        legend:{
-          labels:{
-            color:css('--text'),
-            usePointStyle:true,
-            pointStyle:'circle',
-            boxWidth:8,
-            boxHeight:8,
-            padding:14
-          }
-        }
-      },
-      scales:{
-        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
-      }
-    }
-  });
-}
-
-function renderSpeciesTimeline(){
-  const canvas=document.getElementById('speciesTimelineBubbleChart');
-  canvas.height=260;
-  if(!canvas||typeof Chart==='undefined') return;
-
-  if(window.speciesTimelineBubbleChartInstance){
-    window.speciesTimelineBubbleChartInstance.destroy();
-  }
-
-  const species=[...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))];
-
-  const datasets=species.map((name,index)=>({
+  const datasets=labels.map((name,index)=>({
     label:name,
     data:state.catches
-      .filter(c=>(c.species||c.customSpecies||'Andere')===name)
+      .filter(c=>isSpecies
+        ? (c.species||c.customSpecies||'Andere')===name
+        : participantById(c.participantId)?.name===name)
       .map(c=>({
         x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
         y:index+1,
         r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
       })),
-    borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
-    backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
-    borderWidth: 1.5
+    ...(isSpecies
+      ? {
+          borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
+          backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
+          borderWidth: 1.5
+        }
+      : {})
   }));
 
-  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
+  if(title){
+    title.textContent=isSpecies ? 'Fang-Zeitstrahl nach Fischart' : 'Fang-Zeitstrahl nach Teilnehmer';
+  }
+
+  window.timelineBubbleChartInstance=new Chart(canvas,{
     type:'bubble',
     data:{datasets},
     options:{
+      onClick:(event,elements,chart)=>{
+        if(!elements.length){
+          timelineViewMode=isSpecies ? 'participants' : 'species';
+          renderParticipantTimeline();
+        }
+      },
       plugins:{
         legend:{
           labels:{
@@ -1235,8 +1212,11 @@ function renderSpeciesTimeline(){
       },
       scales:{
         x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
+        y:{ticks:{color:css('--muted'),callback:v=>labels[v-1]||''},grid:{display:false}}
       }
     }
   });
 }
+
+
+

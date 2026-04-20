@@ -1235,3 +1235,9 @@ canvas + ul,
     --matrix-gap: 10px;
   }
 }
+
+
+/* Umschaltbarer Fang-Zeitstrahl */
+#timelineBubbleChart{
+  cursor:pointer;
+}
