@@ -1281,45 +1281,46 @@ function bindChartToggleButtons(){
 setTimeout(bindChartToggleButtons,300);
 
 
-window.weatherOverlayVisible = false;
-window.windOverlayVisible = false;
-
 document.addEventListener('DOMContentLoaded', () => {
-  const weatherBtn = document.getElementById('toggleWeatherLayer');
-  const windBtn = document.getElementById('toggleWindLayer');
+  const mapEl = document.getElementById('map');
+  if(!mapEl) return;
 
-  const badge = document.createElement('div');
-  badge.className = 'weather-badge';
-  badge.id = 'weatherBadge';
-  badge.style.display = 'none';
-  badge.innerHTML = '🌦 14°C · Bewölkt · 1013 hPa';
-  document.body.appendChild(badge);
+  const overlay = document.createElement('div');
+  overlay.className = 'weather-map-overlay';
 
-  weatherBtn?.addEventListener('click', () => {
-    window.weatherOverlayVisible = !window.weatherOverlayVisible;
-    badge.style.display = window.weatherOverlayVisible ? 'block' : 'none';
+  const weather = document.createElement('div');
+  weather.className = 'weather-gradient';
+
+  const wind = document.createElement('div');
+  wind.className = 'wind-arrows';
+
+  [
+    ['18%','28%'],['42%','35%'],['66%','22%'],
+    ['58%','58%'],['30%','68%'],['78%','72%']
+  ].forEach(([x,y])=>{
+    const arrow = document.createElement('div');
+    arrow.className='wind-arrow';
+    arrow.style.left=x;
+    arrow.style.top=y;
+    arrow.innerHTML='➝';
+    wind.appendChild(arrow);
+  });
+
+  overlay.appendChild(weather);
+  overlay.appendChild(wind);
+  mapEl.parentElement.style.position='relative';
+  mapEl.parentElement.appendChild(overlay);
+
+  const weatherBtn = document.getElementById('weatherOverlayBtn');
+  const windBtn = document.getElementById('windOverlayBtn');
+
+  weatherBtn?.addEventListener('click',()=>{
+    weather.classList.toggle('active');
     weatherBtn.classList.toggle('active');
   });
 
-  windBtn?.addEventListener('click', () => {
-    window.windOverlayVisible = !window.windOverlayVisible;
+  windBtn?.addEventListener('click',()=>{
+    wind.classList.toggle('active');
     windBtn.classList.toggle('active');
-
-    document.querySelectorAll('.leaflet-pane svg .wind-arrow').forEach(el => el.remove());
-
-    if (!window.windOverlayVisible) return;
-
-    const mapPane = document.querySelector('.leaflet-overlay-pane');
-    if (!mapPane) return;
-
-    const marker = document.createElement('div');
-    marker.className = 'weather-badge';
-    marker.style.top = '58px';
-    marker.innerHTML = '💨 Südwest 18 km/h';
-    document.body.appendChild(marker);
-
-    setTimeout(() => {
-      if (!window.windOverlayVisible) marker.remove();
-    }, 100);
   });
 });

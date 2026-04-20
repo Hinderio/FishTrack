@@ -1296,28 +1296,59 @@ canvas + ul,
 
 
 
-.weather-layer-toggle{
-  position:fixed;
-  top:88px;
+.map-weather-overlay-controls{
+  position:absolute;
+  top:18px;
   right:18px;
+  z-index:700;
   display:flex;
   gap:10px;
-  z-index:999;
 }
 
-.weather-layer-toggle .timeline-switch-btn{
-  backdrop-filter: blur(10px);
+.map-weather-overlay-controls .pill.active{
+  background:rgba(74,215,209,.24);
+  border:1px solid rgba(74,215,209,.45);
 }
 
-.weather-badge{
+.weather-map-overlay{
   position:absolute;
-  right:12px;
-  top:12px;
-  background:rgba(18,26,34,.85);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:14px;
-  padding:8px 12px;
-  color:#dce7ef;
-  font-size:13px;
-  z-index:800;
+  inset:0;
+  pointer-events:none;
+  z-index:500;
+  border-radius:24px;
+  overflow:hidden;
+}
+
+.weather-gradient{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,185,80,.22), transparent 26%),
+    radial-gradient(circle at 70% 60%, rgba(74,215,209,.18), transparent 30%),
+    radial-gradient(circle at 50% 80%, rgba(90,120,255,.14), transparent 24%);
+  opacity:0;
+  transition:opacity .25s ease;
+}
+
+.weather-gradient.active{
+  opacity:1;
+}
+
+.wind-arrows{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  transition:opacity .25s ease;
+}
+
+.wind-arrows.active{
+  opacity:1;
+}
+
+.wind-arrow{
+  position:absolute;
+  color:rgba(255,255,255,.9);
+  font-size:28px;
+  transform:rotate(35deg);
+  text-shadow:0 0 12px rgba(0,0,0,.45);
 }
