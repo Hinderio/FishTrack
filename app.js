@@ -1120,3 +1120,38 @@ function renderParticipantTimeline(){
     }
   });
 }
+
+function renderSpeciesTimeline(){
+  const canvas=document.getElementById('speciesTimelineBubbleChart');
+  if(!canvas||typeof Chart==='undefined') return;
+
+  if(window.speciesTimelineBubbleChartInstance){
+    window.speciesTimelineBubbleChartInstance.destroy();
+  }
+
+  const species=[...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))];
+
+  const datasets=species.map((name,index)=>({
+    label:name,
+    data:state.catches
+      .filter(c=>(c.species||c.customSpecies||'Andere')===name)
+      .map(c=>({
+        x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+        y:index+1,
+        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+      })),
+    backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`
+  }));
+
+  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{legend:{labels:{color:css('--text')}}},
+      scales:{
+        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
+      }
+    }
+  });
+}
