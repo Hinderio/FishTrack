@@ -986,31 +986,39 @@ canvas + ul,
 }
 
 
-/* Scrollbar instead of overlap for Spot × Köder Matrix */
+/* Präzise Ausrichtung Spot × Köder Matrix */
 #spotBaitMatrix{
   overflow-x:auto !important;
   overflow-y:hidden !important;
-  width:100%;
   padding-bottom:10px;
 }
 
 #spotBaitMatrix .matrix-header,
 #spotBaitMatrix .matrix-row{
+  display:grid !important;
+  grid-auto-flow:column !important;
+  grid-auto-columns:minmax(72px,72px) !important;
+  gap:8px !important;
+  width:max-content !important;
   min-width:max-content !important;
-  width:max-content;
-  flex-wrap:nowrap !important;
+  align-items:stretch;
 }
 
-#spotBaitMatrix::-webkit-scrollbar{
-  height:10px;
+#spotBaitMatrix .matrix-header .matrix-label:first-child,
+#spotBaitMatrix .matrix-row .matrix-label:first-child{
+  width:150px !important;
+  min-width:150px !important;
 }
 
-#spotBaitMatrix::-webkit-scrollbar-track{
-  background:rgba(255,255,255,.06);
-  border-radius:999px;
+#spotBaitMatrix .matrix-header > *,
+#spotBaitMatrix .matrix-row > *{
+  width:72px !important;
+  min-width:72px !important;
+  box-sizing:border-box;
 }
 
-#spotBaitMatrix::-webkit-scrollbar-thumb{
-  background:rgba(255,255,255,.22);
-  border-radius:999px;
+#spotBaitMatrix .matrix-header > *:first-child,
+#spotBaitMatrix .matrix-row > *:first-child{
+  width:150px !important;
+  min-width:150px !important;
 }
