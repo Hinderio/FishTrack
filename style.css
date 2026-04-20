@@ -925,3 +925,11 @@ canvas + ul,
 .analytics-filter-panel{margin-bottom:18px}
 .analytics-filter-panel .panel-head{gap:16px;flex-wrap:wrap}
 .analytics-filter-panel .dashboard-select{min-width:min(360px,100%)}
+
+
+.matrix-grid{display:grid;gap:8px;overflow:auto}
+.matrix-header,.matrix-row{display:grid;grid-template-columns:140px repeat(auto-fit,minmax(90px,1fr));gap:8px;min-width:620px}
+.matrix-cell,.matrix-label{padding:10px;border-radius:14px;text-align:center}
+.matrix-label{background:rgba(255,255,255,.06);font-weight:700}
+.matrix-cell{background:rgba(74,215,209,.12);border:1px solid rgba(255,255,255,.06);font-size:.9rem}
+.matrix-cell strong{display:block;font-size:1.05rem}

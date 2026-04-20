@@ -833,6 +833,12 @@ function rerenderAnalyticsView(){
     if(typeof renderForecast === 'function'){
       renderForecast();
     }
+    if(typeof renderSpotBaitMatrix === 'function'){
+      renderSpotBaitMatrix();
+    }
+    if(typeof renderParticipantTimeline === 'function'){
+      renderParticipantTimeline();
+    }
   } finally {
     state.catches = originalCatches;
   }
@@ -1057,3 +1063,60 @@ function ensureCatchDropdownFields(){
 document.addEventListener('DOMContentLoaded',()=>{ensureCatchDropdownFields()});
 
 
+
+
+function renderSpotBaitMatrix(){
+  const container=document.getElementById('spotBaitMatrix');
+  if(!container) return;
+
+  const catches=[...state.catches];
+  const spots=[...new Set(catches.map(c=>c.spotLabel||'Unbekannt'))].slice(0,6);
+  const baits=[...new Set(catches.map(c=>c.bait||'Unbekannt'))].slice(0,6);
+
+  if(!spots.length||!baits.length){
+    container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';
+    return;
+  }
+
+  const max=Math.max(1,...spots.flatMap(spot=>baits.map(bait=>catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length)));
+
+  container.innerHTML=
+    '<div class="matrix-header"><div class="matrix-label">Spot \/ Köder</div>'+baits.map(b=>`<div class="matrix-label">${b}</div>`).join('')+'</div>'+
+    spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+spot+'</div>'+baits.map(bait=>{
+      const count=catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length;
+      const opacity=.12+(count/max)*.88;
+      return `<div class="matrix-cell" style="background:rgba(74,215,209,${opacity})"><strong>${count}</strong><span>Fänge</span></div>`;
+    }).join('')+'</div>').join('');
+}
+
+function renderParticipantTimeline(){
+  const canvas=document.getElementById('timelineBubbleChart');
+  if(!canvas||typeof Chart==='undefined') return;
+
+  if(window.timelineBubbleChartInstance){
+    window.timelineBubbleChartInstance.destroy();
+  }
+
+  const participants=[...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
+
+  const datasets=participants.map((name,index)=>({
+    label:name,
+    data:state.catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({
+      x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+      y:index+1,
+      r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+    }))
+  }));
+
+  window.timelineBubbleChartInstance=new Chart(canvas,{
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{legend:{labels:{color:css('--text')}}},
+      scales:{
+        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
+      }
+    }
+  });
+}
