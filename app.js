@@ -1172,7 +1172,6 @@ function renderParticipantTimeline(){
     type:'bubble',
     data:{datasets},
     options:{
-      
       plugins:{
         legend:{
           labels:{

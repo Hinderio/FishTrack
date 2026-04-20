@@ -1237,11 +1237,6 @@ canvas + ul,
 }
 
 
-#timelineBubbleChart{
-  cursor:pointer;
-}
-
-
 .panel-head-split{
   display:flex;
   align-items:flex-start;
