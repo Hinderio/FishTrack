@@ -877,27 +877,43 @@ function refreshAnalyticsTournamentSelect(){
     '<option value="all">Alle Fischarten</option>' +
     [...new Set((state.catches || []).map(c => speciesName(c)))].sort().map(s => `<option value="${s}">${s}</option>`).join('');
 
+  if(![...select.options].some(o => o.value === window.analyticsTournamentFilter)){
+    window.analyticsTournamentFilter = 'overview';
+  }
+  if(![...participantSelect.options].some(o => o.value === window.analyticsParticipantFilter)){
+    window.analyticsParticipantFilter = 'all';
+  }
+  if(![...speciesSelect.options].some(o => o.value === window.analyticsSpeciesFilter)){
+    window.analyticsSpeciesFilter = 'all';
+  }
+
   select.value = window.analyticsTournamentFilter;
   participantSelect.value = window.analyticsParticipantFilter;
   speciesSelect.value = window.analyticsSpeciesFilter;
 
-  if(select.dataset.bound === '1') return;
-  select.dataset.bound = '1';
+  if(select.dataset.bound !== '1'){
+    select.dataset.bound = '1';
+    select.addEventListener('change', () => {
+      window.analyticsTournamentFilter = select.value;
+      rerenderAnalyticsView();
+    });
+  }
 
-  select.addEventListener('change', () => {
-    window.analyticsTournamentFilter = select.value;
-    rerenderAnalyticsView();
-  });
+  if(participantSelect.dataset.bound !== '1'){
+    participantSelect.dataset.bound = '1';
+    participantSelect.addEventListener('change', () => {
+      window.analyticsParticipantFilter = participantSelect.value;
+      rerenderAnalyticsView();
+    });
+  }
 
-  participantSelect.addEventListener('change', () => {
-    window.analyticsParticipantFilter = participantSelect.value;
-    rerenderAnalyticsView();
-  });
-
-  speciesSelect.addEventListener('change', () => {
-    window.analyticsSpeciesFilter = speciesSelect.value;
-    rerenderAnalyticsView();
-  });
+  if(speciesSelect.dataset.bound !== '1'){
+    speciesSelect.dataset.bound = '1';
+    speciesSelect.addEventListener('change', () => {
+      window.analyticsSpeciesFilter = speciesSelect.value;
+      rerenderAnalyticsView();
+    });
+  }
 }
 
 function withAnalyticsFilter(fn){
