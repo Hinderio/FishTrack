@@ -949,7 +949,14 @@ canvas + ul,
 
 
 
-/* Spot × Köder Matrix – stabile einzeilige Darstellung mit horizontalem Scrollen */
+/* Spot × Köder Matrix – responsive ohne Überlappungen */
+.matrix-header,
+.matrix-row{
+  display:grid;
+  gap:8px;
+  min-width:max-content;
+}
+
 #spotBaitMatrix{
   display:grid;
   grid-auto-rows:minmax(84px,auto);
@@ -958,6 +965,49 @@ canvas + ul,
   overflow-y:hidden;
   padding-bottom:8px;
   scrollbar-width:thin;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  grid-auto-columns:minmax(72px,1fr);
+}
+
+#spotBaitMatrix .matrix-label{
+  min-width:110px;
+  padding:10px 8px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#spotBaitMatrix .matrix-cell{
+  min-width:72px;
+  padding:8px 6px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#spotBaitMatrix .matrix-cell strong{
+  font-size:.95rem;
+}
+
+#spotBaitMatrix .matrix-cell span{
+  font-size:.72rem;
+}
+
+#spotBaitMatrix::-webkit-scrollbar{
+  height:8px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background:rgba(255,255,255,0.06);
+  border-radius:999px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,0.22);
+  border-radius:999px;
 }
 
 #spotBaitMatrix::-webkit-scrollbar{
