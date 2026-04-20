@@ -108,39 +108,8 @@
               <label><span>Länge (cm)</span><input type="number" name="lengthCm" min="1" step="1" required /></label>
               <label><span>Gewicht (kg) <small class="subtle-inline">(optional)</small></span><input type="number" name="weightKg" min="0" step="0.01" placeholder="optional" /></label>
               <label><span>Zeitpunkt</span><input type="datetime-local" name="timestamp" id="timestampInput" required /></label>
-              <label>
-  <span>Köder <small class="subtle-inline">(optional)</small></span>
-  <select name="bait">
-    <option value="">Bitte wählen</option>
-    <option>Gummifisch</option>
-    <option>Wobbler</option>
-    <option>Spinner</option>
-    <option>Blinker</option>
-    <option>Jerkbait</option>
-    <option>Crankbait</option>
-    <option>Topwater-Köder</option>
-    <option>Naturköder</option>
-    <option>Köderfisch</option>
-    <option>Andere</option>
-  </select>
-</label>
-              <label>
-  <span>Spot / Bereich <small class="subtle-inline">(optional)</small></span>
-  <select name="spotLabel">
-    <option value="">Bitte wählen</option>
-    <option>Schilfkante</option>
-    <option>Krautkante</option>
-    <option>Totholz</option>
-    <option>Steilkante</option>
-    <option>Flachwasserbucht</option>
-    <option>Einlauf</option>
-    <option>Auslauf</option>
-    <option>Strömungskante</option>
-    <option>Brückenpfeiler</option>
-    <option>Seerosenfeld</option>
-    <option>Andere</option>
-  </select>
-</label>
+              <label><span>Köder <small class="subtle-inline">(optional)</small></span><select name="bait"><option value="">Bitte wählen</option><option value="Gummifisch">Gummifisch</option><option value="Wobbler">Wobbler</option><option value="Spinner">Spinner</option><option value="Blinker">Blinker</option><option value="Jerkbait">Jerkbait</option><option value="Crankbait">Crankbait</option><option value="Topwater-Köder">Topwater-Köder</option><option value="Naturköder">Naturköder</option><option value="Köderfisch">Köderfisch</option><option value="Andere">Andere</option></select></label>
+              <label><span>Spot / Bereich <small class="subtle-inline">(optional)</small></span><select name="spotLabel"><option value="">Bitte wählen</option><option value="Schilfkante">Schilfkante</option><option value="Krautkante">Krautkante</option><option value="Totholz">Totholz</option><option value="Steilkante">Steilkante</option><option value="Flachwasserbucht">Flachwasserbucht</option><option value="Einlauf">Einlauf</option><option value="Auslauf">Auslauf</option><option value="Strömungskante">Strömungskante</option><option value="Brückenpfeiler">Brückenpfeiler</option><option value="Seerosenfeld">Seerosenfeld</option><option value="Andere">Andere</option></select></label>
               <label class="full"><span>Notiz</span><textarea name="note" rows="3" placeholder="Wetter, Strömung, Besonderheiten ..."></textarea></label>
               <div class="location-box full">
                 <div class="location-head">
