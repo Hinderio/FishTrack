@@ -1237,7 +1237,6 @@ canvas + ul,
 }
 
 
-/* Umschaltbarer Fang-Zeitstrahl */
 #timelineBubbleChart{
   cursor:pointer;
 }

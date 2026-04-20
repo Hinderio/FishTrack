@@ -65,7 +65,7 @@ if (typeof renderCharts === 'function') {
 }
 
 if (typeof window.renderSpeciesTimeline === 'function') {
-  window.
+  window.renderSpeciesTimeline();
 }
 
 hasLoadedFromSupabase = true;
@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.__timelineSourceCatches = matching;
         if (typeof renderSpeciesTimeline === 'function') {
-          window.
+          window.renderSpeciesTimeline();
         }
       };
       charts.daily.update();
@@ -505,7 +505,7 @@ function refreshDashboardTournamentSelect(){
     if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
     if(typeof renderCharts === 'function') renderCharts();
     if(typeof renderMap === 'function') renderMap();
-    if(typeof renderSpeciesTimeline === 'function') 
+    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
   });
 }
 
@@ -703,7 +703,7 @@ setTimeout(() => {
     try {
       if (typeof renderDashboard === 'function') renderDashboard();
       if (typeof renderCharts === 'function') renderCharts();
-      if (typeof renderSpeciesTimeline === 'function') 
+      if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
       if (typeof renderMap === 'function') renderMap();
     } finally {
       state.catches = original;
@@ -758,7 +758,7 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if (typeof renderSpeciesTimeline === 'function') 
+    if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
   } finally {
     state.catches = original;
   }
@@ -854,7 +854,7 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if(typeof renderSpeciesTimeline === 'function') 
+    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
   } finally {
     state.catches = original;
   }
@@ -1148,54 +1148,34 @@ function renderSpotBaitMatrix(){
     }).join('')+'</div>').join('');
 }
 
-
 function renderParticipantTimeline(){
   const canvas=document.getElementById('timelineBubbleChart');
-  const title=document.getElementById('timelineSwitchTitle');
-  if(!canvas||typeof Chart==='undefined') return;
   canvas.height=260;
+  if(!canvas||typeof Chart==='undefined') return;
 
   if(window.timelineBubbleChartInstance){
     window.timelineBubbleChartInstance.destroy();
   }
 
-  const isSpecies=timelineViewMode==='species';
-  const labels=isSpecies
-    ? [...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))]
-    : [...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
+  const participants=[...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
 
-  const datasets=labels.map((name,index)=>({
+  const datasets=participants.map((name,index)=>({
     label:name,
-    data:state.catches
-      .filter(c=>isSpecies
-        ? (c.species||c.customSpecies||'Andere')===name
-        : participantById(c.participantId)?.name===name)
-      .map(c=>({
-        x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
-        y:index+1,
-        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
-      })),
-    ...(isSpecies
-      ? {
-          borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
-          backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
-          borderWidth: 1.5
-        }
-      : {})
+    data:state.catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({
+      x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+      y:index+1,
+      r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+    }))
   }));
-
-  if(title){
-    title.textContent=isSpecies ? 'Fang-Zeitstrahl nach Fischart' : 'Fang-Zeitstrahl nach Teilnehmer';
-  }
 
   window.timelineBubbleChartInstance=new Chart(canvas,{
     type:'bubble',
     data:{datasets},
     options:{
-      onClick:(event,elements,chart)=>{
+      onClick:(event,elements)=>{
         if(!elements.length){
-          timelineViewMode=isSpecies ? 'participants' : 'species';
-          renderParticipantTimeline();
+          timelineMode='species';
+          renderTimelineSwitcher();
         }
       },
       plugins:{
@@ -1212,11 +1192,57 @@ function renderParticipantTimeline(){
       },
       scales:{
         x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>labels[v-1]||''},grid:{display:false}}
+        y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
       }
     }
   });
 }
 
+function renderSpeciesTimeline(){
+  const canvas=document.getElementById('speciesTimelineBubbleChart');
+  canvas.height=260;
+  if(!canvas||typeof Chart==='undefined') return;
 
+  if(window.speciesTimelineBubbleChartInstance){
+    window.speciesTimelineBubbleChartInstance.destroy();
+  }
 
+  const species=[...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))];
+
+  const datasets=species.map((name,index)=>({
+    label:name,
+    data:state.catches
+      .filter(c=>(c.species||c.customSpecies||'Andere')===name)
+      .map(c=>({
+        x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
+        y:index+1,
+        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+      })),
+    borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
+    backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
+    borderWidth: 1.5
+  }));
+
+  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{
+        legend:{
+          labels:{
+            color:css('--text'),
+            usePointStyle:true,
+            pointStyle:'circle',
+            boxWidth:8,
+            boxHeight:8,
+            padding:14
+          }
+        }
+      },
+      scales:{
+        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
+      }
+    }
+  });
+}
