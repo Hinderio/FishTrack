@@ -1172,8 +1172,9 @@ function renderParticipantTimeline(){
     type:'bubble',
     data:{datasets},
     options:{
-      onClick:(event,elements)=>{
-        if(!elements.length){
+      onClick:(event,_,chart)=>{
+        const hit=chart.getElementsAtEventForMode(event,'nearest',{intersect:true},true);
+        if(!hit.length){
           timelineMode='species';
           renderTimelineSwitcher();
         }
