@@ -70,6 +70,7 @@ if (typeof window.renderSpeciesTimeline === 'function') {
 
 hasLoadedFromSupabase = true;
 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+ensureCatchDropdownFields();
 rerender();
 if (typeof refreshAnalyticsTournamentSelect === 'function') refreshAnalyticsTournamentSelect();
 
@@ -951,3 +952,51 @@ window.addEventListener('load', () => {
   start();
   setTimeout(start, 500);
 });
+
+
+function ensureCatchDropdownFields(){
+  const baitField=document.querySelector('[name="bait"]');
+  if(baitField&&baitField.tagName==='INPUT'){
+    const wrapper=baitField.closest('label');
+    if(wrapper){
+      wrapper.innerHTML=`<span>Köder <small class="subtle-inline">(optional)</small></span>
+  <select name="bait">
+    <option value="">Bitte wählen</option>
+    <option>Gummifisch</option>
+    <option>Wobbler</option>
+    <option>Spinner</option>
+    <option>Blinker</option>
+    <option>Jerkbait</option>
+    <option>Crankbait</option>
+    <option>Topwater-Köder</option>
+    <option>Naturköder</option>
+    <option>Köderfisch</option>
+    <option>Andere</option>
+  </select>`;
+    }
+  }
+  const spotField=document.querySelector('[name="spotLabel"]');
+  if(spotField&&spotField.tagName==='INPUT'){
+    const wrapper=spotField.closest('label');
+    if(wrapper){
+      wrapper.innerHTML=`<span>Spot / Bereich <small class="subtle-inline">(optional)</small></span>
+  <select name="spotLabel">
+    <option value="">Bitte wählen</option>
+    <option>Schilfkante</option>
+    <option>Krautkante</option>
+    <option>Totholz</option>
+    <option>Steilkante</option>
+    <option>Flachwasserbucht</option>
+    <option>Einlauf</option>
+    <option>Auslauf</option>
+    <option>Strömungskante</option>
+    <option>Brückenpfeiler</option>
+    <option>Seerosenfeld</option>
+    <option>Andere</option>
+  </select>`;
+    }
+  }
+}
+
+
+document.addEventListener('DOMContentLoaded',()=>{ensureCatchDropdownFields()});
