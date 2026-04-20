@@ -820,7 +820,10 @@ function getAnalyticsCatches(){
   }
 
   if(window.analyticsParticipantFilter && window.analyticsParticipantFilter !== 'all'){
-    catches = catches.filter(c => (c.participantId || '') === window.analyticsParticipantFilter);
+    catches = catches.filter(c => 
+      (c.participantId || '') === window.analyticsParticipantFilter ||
+      (c.participantName || '') === window.analyticsParticipantFilter
+    );
   }
 
   if(window.analyticsSpeciesFilter && window.analyticsSpeciesFilter !== 'all'){
