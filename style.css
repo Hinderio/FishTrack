@@ -1240,3 +1240,34 @@ canvas + ul,
 #timelineBubbleChart{
   cursor:pointer;
 }
+
+
+.panel-head-split{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.timeline-switch-btn{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  border-radius:999px;
+  padding:10px 14px;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.timeline-switch-btn:hover{
+  background:rgba(255,255,255,.10);
+  border-color:rgba(255,255,255,.18);
+}
+
+.timeline-switch-btn:active{
+  transform:scale(.98);
+}

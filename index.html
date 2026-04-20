@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="style.css?v=104" />
+  <link rel="stylesheet" href="style.css?v=106" />
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
@@ -218,9 +218,12 @@
         </div>
         <div class="grid">
           <section class="panel glass">
-            <div class="panel-head">
-              <h3 id="timelineSwitchTitle">Fang-Zeitstrahl nach Teilnehmer</h3>
-              <span class="meta">Klick auf freie Chart-Fläche zum Wechseln zwischen Teilnehmern und Fischarten</span>
+            <div class="panel-head panel-head-split">
+              <div>
+                <h3 id="timelineSwitchTitle">Fang-Zeitstrahl nach Teilnehmer</h3>
+                <span class="meta">Umschalten per Button zwischen Teilnehmern und Fischarten</span>
+              </div>
+              <button id="timelineSwitchButton" class="timeline-switch-btn" type="button">Zu Fischarten wechseln</button>
             </div>
             <canvas id="timelineBubbleChart" height="260"></canvas>
           </section>
@@ -357,6 +360,6 @@
   console.log('Supabase erfolgreich verbunden');
 </script>
 
-<script src="app.js?v=105"></script>
+<script src="app.js?v=106"></script>
 </body>
 </html>
