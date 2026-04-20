@@ -946,40 +946,41 @@ canvas + ul,
 }
 
 
-/* Spot × Köder Matrix: Texte bleiben einzeilig, Grid bleibt unverändert */
+
+
+
+/* Spot × Köder Matrix – stabile einzeilige Darstellung mit horizontalem Scrollen */
 #spotBaitMatrix{
+  display:grid;
+  grid-auto-rows:minmax(84px,auto);
+  gap:16px;
   overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:8px;
+  scrollbar-width:thin;
 }
 
-#spotBaitMatrix .matrix-header{
-  white-space: nowrap;
+#spotBaitMatrix::-webkit-scrollbar{
+  height:8px;
 }
 
-#spotBaitMatrix .matrix-header span,
-#spotBaitMatrix .matrix-header strong,
-#spotBaitMatrix .matrix-header div{
-  white-space: nowrap;
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background:rgba(255,255,255,0.06);
+  border-radius:999px;
 }
 
-
-/* Spot × Köder Matrix: verhindert Überlappung der Zellen */
-#spotBaitMatrix {
-  overflow-x: auto;
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,0.22);
+  border-radius:999px;
 }
 
-#spotBaitMatrix .matrix-row {
-  display: grid;
-  grid-template-columns: 260px repeat(auto-fit, minmax(140px, 1fr));
-  gap: 16px;
-  min-width: max-content;
+#spotBaitMatrix > *{
+  min-width:160px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-#spotBaitMatrix .matrix-header,
-#spotBaitMatrix .matrix-cell {
-  min-width: 140px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  position: relative;
-  z-index: 1;
+#spotBaitMatrix > *:first-child{
+  min-width:220px;
 }
