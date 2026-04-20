@@ -93,7 +93,10 @@ async function saveCatchToSupabase(entry) {
   country: 'Norway',
   latitude: entry.location?.lat != null ? Number(entry.location.lat) : null,
   longitude: entry.location?.lng != null ? Number(entry.location.lng) : null,
-  caught_at: entry.timestamp
+  caught_at: entry.timestamp,
+  bait: entry.bait || null,
+  spot_label: entry.spotLabel || null,
+  note: entry.note || null
 };
 
 const { error, data } = await db
