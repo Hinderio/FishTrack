@@ -1210,4 +1210,70 @@ function renderSpeciesTimeline(){
       }
     }
   });
+}function refreshAnalyticsTournamentFilter(){
+  const tournamentSelect = document.getElementById('analyticsTournamentSelect2');
+  const participantSelect = document.getElementById('analyticsParticipantSelect');
+  const speciesSelect = document.getElementById('analyticsSpeciesSelect');
+
+  if(!tournamentSelect) return;
+
+  tournamentSelect.innerHTML =
+    '<option value="overview">Alle Turniere</option>' +
+    (state.tournaments || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
+  if(participantSelect){
+    const participants = (state.participants || []).length
+      ? (state.participants || []).map(p => ({
+          value: p.id || p.name,
+          label: p.name || p.id
+        }))
+      : [...new Set((state.catches || []).map(c => c.participantName || c.participantId).filter(Boolean))]
+          .map(v => ({ value: v, label: v }));
+
+    participantSelect.innerHTML =
+      '<option value="all">Alle Teilnehmer</option>' +
+      participants.map(p => `<option value="${p.value}">${p.label}</option>`).join('');
+  }
+
+  if(speciesSelect){
+    const species = [...new Set(
+      (state.catches || [])
+        .map(c => c.species || c.fishType || c.type || c.fish || c.kind || c.art)
+        .filter(Boolean)
+    )];
+
+    speciesSelect.innerHTML =
+      '<option value="all">Alle Fischarten</option>' +
+      species.map(s => `<option value="${s}">${s}</option>`).join('');
+  }
+
+  tournamentSelect.value = window.analyticsTournamentFilter || 'overview';
+  if(participantSelect) participantSelect.value = window.analyticsParticipantFilter || 'all';
+  if(speciesSelect) speciesSelect.value = window.analyticsSpeciesFilter || 'all';
+
+  if(!tournamentSelect.dataset.bound){
+    tournamentSelect.dataset.bound = '1';
+    tournamentSelect.addEventListener('change', () => {
+      window.analyticsTournamentFilter = tournamentSelect.value;
+      rerenderAnalyticsView();
+    });
+  }
+
+  if(participantSelect && !participantSelect.dataset.bound){
+    participantSelect.dataset.bound = '1';
+    participantSelect.addEventListener('change', () => {
+      window.analyticsParticipantFilter = participantSelect.value;
+      rerenderAnalyticsView();
+    });
+  }
+
+  if(speciesSelect && !speciesSelect.dataset.bound){
+    speciesSelect.dataset.bound = '1';
+    speciesSelect.addEventListener('change', () => {
+      window.analyticsSpeciesFilter = speciesSelect.value;
+      rerenderAnalyticsView();
+    });
+  }
 }
+
+
