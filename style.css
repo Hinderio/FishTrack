@@ -1347,3 +1347,21 @@ canvas + ul,
     0 0 12px rgba(255,255,255,.35),
     0 0 24px rgba(0,0,0,.45);
 }
+
+
+/* Identical left padding/alignment for both charts */
+.chart-card .timeline-chart-wrap{
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+}
+
+#speciesTimelineChart{
+  margin-left: -18px !important;
+  width: calc(100% + 18px) !important;
+}
+
+#dailyCatchesChart,
+#dailyChart{
+  margin-left: -18px !important;
+  width: calc(100% + 18px) !important;
+}
