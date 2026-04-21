@@ -1277,33 +1277,33 @@ canvas + ul,
 }
 
 
-.weather-overlay-controls{
-  display:flex;
-  gap:18px;
-  justify-content:center;
-  margin:18px 0 22px;
-  flex-wrap:wrap;
+/* FINAL FIX – Fänge pro Tag nach Fischarten */
+#dailyCatchesChart,
+#dailyChart{
+  width:100% !important;
+  height:320px !important;
+  max-height:320px !important;
 }
 
-.map-action-btn{
-  min-width:320px;
-  padding:26px 34px;
-  border-radius:36px;
-  border:1px solid rgba(255,255,255,0.12);
-  background:rgba(33,44,62,0.88);
-  color:#fff;
-  font-size:28px;
-  font-weight:700;
-  box-shadow:0 10px 30px rgba(0,0,0,0.28);
-  backdrop-filter:blur(12px);
+.chart-card:has(#dailyCatchesChart),
+.chart-card:has(#dailyChart){
+  overflow:hidden;
 }
 
-.map-action-btn.active{
-  background:linear-gradient(180deg, rgba(59,130,246,0.55), rgba(30,64,175,0.55));
-  border-color:rgba(147,197,253,0.55);
+.chart-card canvas{
+  max-width:100% !important;
 }
 
-.leaflet-temperature-overlay{
-  opacity:0.62 !important;
-  mix-blend-mode:screen;
+
+
+/* Match Artenverteilung axis insets to the already-good right chart */
+#speciesDistributionCard .timeline-chart-wrap{
+  padding-left: 24px !important;
+  padding-right: 0 !important;
+}
+
+#speciesDistributionCard #speciesTimelineChart{
+  margin-left: 0 !important;
+  width: 100% !important;
+  display: block !important;
 }
