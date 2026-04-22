@@ -1,36 +1,1295 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background: #0b1220;
+*{box-sizing:border-box}:root{--bg:#07111a;--bg2:#0d1825;--card:rgba(15,27,40,.76);--card-border:rgba(255,255,255,.08);--text:#eef6ff;--muted:#9db0c3;--primary:#4ad7d1;--accent:#8ff0a7;--danger:#ff7070;--warning:#ffb84d;--shadow:0 16px 40px rgba(0,0,0,.28);--radius:28px}body.light{--bg:#edf4fb;--bg2:#dfeaf6;--card:rgba(255,255,255,.82);--card-border:rgba(17,36,58,.08);--text:#0d1827;--muted:#5f758e;--shadow:0 12px 30px rgba(50,80,120,.12)}html,body{margin:0;padding:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),var(--bg2));color:var(--text)}body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}.app-shell{max-width:1280px;margin:0 auto;padding:18px 16px 110px}.topbar,.panel,.hero-card,.metric-card,.bottom-nav{backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}.glass{background:var(--card);border:1px solid var(--card-border);box-shadow:var(--shadow)}.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-radius:26px;margin-bottom:18px}h1,h2,h3,p{margin:0}.eyebrow{font-size:.76rem;text-transform:uppercase;letter-spacing:.12em;color:var(--primary);margin-bottom:6px}.topbar-actions{display:flex;gap:10px}.icon-btn,.pill,.nav-btn{border:none;transition:.2s transform ease,.2s opacity ease,.2s background ease}.icon-btn:hover,.pill:hover,.nav-btn:hover{transform:translateY(-1px)}.icon-btn{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.08);color:var(--text)}.pill{padding:12px 16px;border-radius:999px;font-weight:600}.pill.primary{background:linear-gradient(135deg,var(--primary),#66e7ff);color:#00131c}.pill.secondary{background:rgba(255,255,255,.08);color:var(--text)}.pill.danger{background:rgba(255,112,112,.16);color:#ffd4d4}.content{display:flex;flex-direction:column;gap:20px}.screen{display:none;gap:20px}.screen.active{display:flex;flex-direction:column}.hero-card{display:flex;justify-content:space-between;gap:18px;border-radius:30px;padding:22px}.hero-stats{display:grid;grid-template-columns:repeat(3,minmax(100px,1fr));gap:10px;min-width:45%}.mini-stat{background:rgba(255,255,255,.06);border-radius:22px;padding:16px;display:flex;flex-direction:column;justify-content:center}.mini-stat span{font-size:1.2rem;font-weight:800}.mini-stat label{margin-top:4px;color:var(--muted);font-size:.88rem}.grid{display:grid;gap:18px}.cards-4{grid-template-columns:repeat(4,minmax(0,1fr))}.two-columns{grid-template-columns:1.2fr .95fr}.two-equal{grid-template-columns:1fr 1fr}.metric-card,.panel{border-radius:28px;padding:18px}.metric-card strong{display:block;font-size:1.8rem;margin:10px 0 4px}.metric-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}.panel-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.subtle{color:var(--muted);font-size:.9rem}.stack-list{display:flex;flex-direction:column;gap:12px}.stack-list.tall{max-height:70vh;overflow:auto;padding-right:2px}.list-card{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.04)}.list-title-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}.badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:.78rem;color:#00131c;font-weight:700}.meta,.note{color:var(--muted);line-height:1.35}.note{margin-top:6px}.list-actions{display:flex;gap:8px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.form-grid label{display:flex;flex-direction:column;gap:8px}.form-grid label.full,.form-actions.full,.location-box.full{grid-column:1/-1}input,select,textarea{width:100%;border:none;border-radius:18px;background:rgba(255,255,255,.06);color:var(--text);padding:14px;outline:none}input::placeholder,textarea::placeholder{color:var(--muted)}textarea{resize:vertical}.location-box{padding:14px;border-radius:22px;background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1)}.location-head,.action-row,.filter-row,.form-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.filter-row{margin-bottom:12px}.filter-row>*{flex:1 1 180px}#map{height:62vh;min-height:420px;border-radius:24px;overflow:hidden}.legend-box{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}.legend-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:999px}.legend-color{width:14px;height:14px;border-radius:50%}.heatmap-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.heat-cell,.time-cell,.insight-card{border-radius:18px;padding:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.04)}.heat-cell strong,.time-cell strong,.insight-card strong{display:block;margin-bottom:6px}.time-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.forecast-box{display:flex;flex-direction:column;gap:10px}.insights-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.bottom-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(94vw,760px);display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:10px;border-radius:28px;z-index:50}.nav-btn{padding:14px 10px;border-radius:22px;background:transparent;color:var(--muted);font-weight:700}.nav-btn.active{background:rgba(255,255,255,.1);color:var(--text)}.file-input-pill{position:relative;overflow:hidden}.file-input-pill input{position:absolute;inset:0;opacity:0;cursor:pointer}.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#11202d;color:#f1f7ff}body.light .leaflet-popup-content-wrapper,body.light .leaflet-popup-tip{background:#fff;color:#0e1724}@media (max-width:1100px){.cards-4,.two-columns,.insights-grid,.hero-stats,.time-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media (max-width:760px){.app-shell{padding:14px 12px 110px}.topbar,.hero-card,.metric-card,.panel{border-radius:24px}.hero-card,.topbar{flex-direction:column;align-items:flex-start}.cards-4,.two-columns,.hero-stats,.form-grid,.two-equal,.insights-grid,.heatmap-grid,.time-grid{grid-template-columns:1fr}.bottom-nav{width:calc(100vw - 14px);bottom:7px;padding:8px}.nav-btn{padding:12px 6px;font-size:.82rem}}
+
+.subtle-inline{
+  font-size:.82rem;
+  color:var(--muted);
+  font-weight:500;
 }
 
-#map {
-  height: 100vh;
+#locationPreviewMap{
+  margin-top:14px;
+  height:190px;
+  border-radius:24px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+}
+
+.map-modal{
+  position:fixed;
+  inset:0;
+  background:rgba(3,9,16,.68);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  z-index:1000;
+}
+
+.map-modal.hidden{
+  display:none !important;
+}
+
+.map-modal-card{
+  width:min(92vw,820px);
+  padding:20px;
+  border-radius:30px;
+}
+
+#mapPicker{
+  height:min(70vh,560px);
+  border-radius:24px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.08);
+  margin-bottom:16px;
+}
+
+.location-head{
+  justify-content:space-between;
+}
+
+.location-head .action-row{
+  justify-content:flex-end;
+}
+
+@media (max-width:760px){
+  .location-head{
+    align-items:flex-start;
+  }
+
+  .location-head .action-row{
+    width:100%;
+  }
+
+  .location-head .action-row .pill{
+    flex:1 1 100%;
+    text-align:center;
+  }
+
+  #locationPreviewMap{
+    height:170px;
+  }
+}
+
+
+.participant-picks{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.pick-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:18px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.06);
+}
+
+.pick-chip input{
+  width:auto;
+  margin:0;
+  accent-color:var(--primary);
+}
+
+.tournament-card.active{
+  outline:2px solid rgba(110,231,249,.35);
+  background:rgba(255,255,255,.08) !important;
+}
+
+.tournament-highlight{
+  padding:14px 16px;
+  border-radius:18px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.04);
+}
+
+.tournament-rule{
+  color:var(--muted);
+  font-size:.92rem;
+  margin-top:6px;
+}
+
+@media (max-width:760px){
+  .participant-picks{
+    grid-template-columns:1fr;
+  }
+}
+
+.scoring-panel{
+  margin-top:8px;
+}
+.pick-chip.compact{
+  width:auto;
+  padding:10px 14px;
+}
+.scoring-panel input[type="number"]:disabled{
+  opacity:.55;
+}
+
+
+.scoring-panel{
+  margin-top: 6px;
+  padding: 26px !important;
+}
+
+.scoring-grid{
+  margin-top: 14px;
+}
+
+.scoring-grid label{
+  min-width: 0;
+}
+
+@media (min-width: 900px){
+  .scoring-grid{
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 18px 22px;
+  }
+}
+
+@media (max-width: 760px){
+  .scoring-panel .panel-head{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+}
+
+
+/* Breitere Regel-Ansicht */
+.scoring-panel{
   width: 100%;
 }
 
-/* Weather Button */
-.weather-control {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+.scoring-panel .panel-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:24px;
+}
+
+.scoring-grid{
+  display:grid !important;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 22px 24px;
+  width:100%;
+}
+
+.scoring-grid label{
+  width:100%;
+}
+
+.scoring-grid input{
+  width:100%;
+}
+
+@media (max-width: 1100px){
+  .scoring-grid{
+    grid-template-columns: repeat(2, minmax(180px,1fr));
+  }
+}
+
+@media (max-width: 760px){
+  .scoring-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* REVIEWED FIX: Regel-Panel wirklich über volle Breite */
+.tournament-form .scoring-panel.full{
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: none !important;
+  display: block !important;
+}
+
+.tournament-form .scoring-panel .panel-head{
+  width: 100%;
   display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+}
+
+.tournament-form .scoring-grid{
+  width: 100%;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(220px, 1fr)) !important;
+  gap: 24px !important;
+}
+
+.tournament-form .scoring-grid label{
+  width: 100%;
+  min-width: 0;
+}
+
+.tournament-form .scoring-grid input{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1100px){
+  .tournament-form .scoring-grid{
+    grid-template-columns: repeat(2, minmax(180px,1fr)) !important;
+  }
+}
+
+@media (max-width: 760px){
+  .tournament-form .scoring-grid{
+    grid-template-columns: 1fr !important;
+  }
+
+  .tournament-form .scoring-panel .panel-head{
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+
+/* FINAL REVIEWED FIX */
+.scoring-panel-wide{
+  grid-column: 1 / -1 !important;
+  width: calc(100% - 4px) !important;
+  max-width: none !important;
+  min-width: 100% !important;
+  display: block !important;
+  box-sizing: border-box !important;
+}
+
+.scoring-panel-wide .scoring-grid{
+  display: grid !important;
+  width: 100% !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 24px !important;
+}
+
+.scoring-panel-wide .scoring-grid > label{
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.scoring-panel-wide .scoring-grid input{
+  width: 100% !important;
+}
+
+@media (max-width: 1100px){
+  .scoring-panel-wide .scoring-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px){
+  .scoring-panel-wide .scoring-grid{
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
+.map-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:18px;
+  margin:0 0 20px 0;
+}
+
+.map-action-btn{
+  border:none;
+  border-radius:28px;
+  padding:18px 34px;
+  background:rgba(255,255,255,0.06);
+  color:#fff;
+  font-size:18px;
+  font-weight:700;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  cursor:pointer;
+}
+
+.map-action-btn:hover{
+  box-shadow: inset 0 0 0 2px rgba(120,220,255,0.45);
+}
+
+/* Species KPI grid styles */
+.species-kpi-grid {
+  margin: 14px 0;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.species-card {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(20,30,45,0.9);
-  color: white;
-  font-size: 18px;
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(6px);
-  transition: all 0.2s ease;
+  padding: 14px 10px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-.weather-control.active {
-  background: #4fd1c5;
-  color: #000;
+.kpi-icon {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
 }
 
-.weather-control:hover {
-  background: rgba(30,50,70,0.95);
+.species-card strong {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.species-card small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.fish-icon{width:58px;height:30px;stroke-linecap:round;stroke-linejoin:round;margin-bottom:6px}
+.fish-icon.perch{color:#38bdf8}
+.fish-icon.pike{color:#22c55e}
+.fish-icon.zander{color:#facc15}
+.fish-icon.trout{color:#fb923c}
+.fish-icon.cod{color:#a78bfa}
+.fish-icon.generic{color:#94a3b8}
+.species-card{gap:8px}
+
+
+/* Refined minimalist fish icons with consistent species colors */
+.species-kpi-grid{
+  gap:18px;
+  margin-top:18px;
+}
+.species-card{
+  min-height:140px;
+  background:linear-gradient(180deg, rgba(15,23,42,.95), rgba(10,18,34,.88));
+  border:1px solid rgba(255,255,255,.06);
+  box-shadow:0 10px 30px rgba(0,0,0,.18);
+  transition:transform .2s ease, border-color .2s ease;
+}
+.species-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(255,255,255,.12);
+}
+.fish-icon{
+  width:72px;
+  height:44px;
+  margin-bottom:10px;
+}
+.fish-icon.hecht{color:#f6b84c;}
+.fish-icon.barsch{color:#8BE39A;}
+.fish-icon.forelle{color:#F48AB5;}
+.fish-icon.zander{color:#66D9F3;}
+.fish-icon.dorsch{color:#A997FF;}
+.fish-icon.andere{color:#D9DEE5;}
+
+.species-card strong{
+  font-size:2rem;
+  color:#fff;
+  margin-bottom:6px;
+}
+.species-card small{
+  font-size:1.1rem;
+  color:#d5dce6;
+}
+
+/* Beautify the timeline chart section */
+#speciesTimelineChart{
+  margin-top:18px;
+  padding:18px;
+  border-radius:28px;
+  background:linear-gradient(180deg, rgba(15,23,42,.9), rgba(8,15,30,.95));
+}
+
+
+/* Add spacing between KPI number and fish species label */
+.species-card strong{
+  margin-right: 10px;
+}
+
+.species-card{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+}
+
+.species-card small{
+  margin-left: 2px;
+}
+
+
+/* Ensure KPI content is consistently centered in every card */
+.species-card{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+}
+
+.species-card strong,
+.species-card small{
+  display:block;
+  margin:0;
+}
+
+.species-card .fish-icon{
+  margin-bottom:14px;
+}
+
+.species-card strong{
+  margin-bottom:6px;
+}
+
+
+#speciesTimelineChart{
+  width:100% !important;
+  height:420px !important;
+  padding:18px;
+  border-radius:28px;
+  background:linear-gradient(180deg, rgba(10,22,45,.95), rgba(6,14,28,.98));
+}
+
+.timeline-chart-wrap{
+  width:100%;
+  height:460px;
+  margin-top:24px;
+}
+#speciesTimelineChart{
+  width:100% !important;
+  height:100% !important;
+  display:block;
+}
+
+
+.timeline-chart-wrap{
+  background: radial-gradient(circle at top, rgba(18,38,66,0.45), rgba(5,17,33,0.95));
+  border-radius: 36px;
+  padding: 28px 28px 18px 28px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  max-width: 920px;
+  margin: 24px auto 0 auto;
+  height: 540px;
+}
+
+#speciesTimelineChart{
+  filter: drop-shadow(0 0 14px rgba(110,190,255,0.08));
+}
+
+
+/* Match reference style exactly */
+.timeline-chart-wrap{
+  width: calc(100% - 48px) !important;
+  max-width: none !important;
+  height: 420px !important;
+  margin: 28px 24px 8px 24px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+#speciesTimelineChart{
+  width: 100% !important;
+  height: 100% !important;
+  filter: none !important;
+}
+
+
+/* Fix stretched / squeezed chart layout */
+.dashboard-distribution-section,
+.species-distribution-card,
+#speciesDistributionCard {
+  display: block !important;
+  width: 100% !important;
+}
+
+#speciesDistributionCard h3,
+.dashboard-distribution-section h3 {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 0 28px 0 !important;
+}
+
+.timeline-chart-wrap{
+  width: 100% !important;
+  height: 380px !important;
+  margin: 0 !important;
+  padding: 0 12px 12px 12px !important;
+  display: block !important;
+}
+
+#speciesTimelineChart{
+  width: 100% !important;
+  height: 380px !important;
+  max-width: 100% !important;
+}
+
+
+/* Fix Artenverteilung card layout */
+.dashboard-distribution-section,
+#speciesDistributionCard,
+.species-distribution-card{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:stretch !important;
+}
+
+.dashboard-distribution-section h3,
+#speciesDistributionCard h3{
+  width:100% !important;
+  margin:0 0 20px 0 !important;
+  display:block !important;
+}
+
+.timeline-chart-wrap{
+  width:100% !important;
+  height:360px !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+#speciesTimelineChart{
+  width:100% !important;
+  height:360px !important;
+  max-width:100% !important;
+}
+
+/* Custom legend look similar to KPI cards */
+.chartjs-legend ul{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:18px !important;
+  margin:0 0 18px 0 !important;
+  padding:0 !important;
+}
+
+.chartjs-legend li{
+  display:flex !important;
+  align-items:center !important;
+  color:#E5EDF7 !important;
+  font-size:14px !important;
+}
+
+.chartjs-legend li span{
+  border-radius:999px !important;
+  width:14px !important;
+  height:14px !important;
+  margin-right:8px !important;
+}
+
+
+/* Final reviewed Artenverteilung chart styling */
+#speciesDistributionCard{
+  display:block !important;
+}
+
+#speciesDistributionCard .panel-head{
+  display:block !important;
+  margin-bottom:18px !important;
+}
+
+#speciesDistributionCard .panel-head h3{
+  display:block !important;
+  margin:0 !important;
+}
+
+.timeline-chart-wrap{
+  width:100% !important;
+  height:360px !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:transparent !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+  display:block !important;
+  max-width:none !important;
+}
+
+#speciesTimelineLegend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px;
+  align-items:center;
+  margin:0 0 14px 0;
+}
+
+#speciesTimelineLegend .legend-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+#speciesTimelineLegend .legend-item span{
+  color:#DCE3EC;
+  font-size:14px;
+  line-height:1;
+}
+
+#speciesTimelineLegend .legend-fish{
+  width:34px;
+  height:20px;
+  flex:0 0 auto;
+}
+
+#speciesTimelineLegend .legend-fish.barsch{ color:#8BE39A; }
+#speciesTimelineLegend .legend-fish.hecht{ color:#F6B84C; }
+#speciesTimelineLegend .legend-fish.forelle{ color:#F48AB5; }
+#speciesTimelineLegend .legend-fish.zander{ color:#66D9F3; }
+#speciesTimelineLegend .legend-fish.dorsch{ color:#A997FF; }
+#speciesTimelineLegend .legend-fish.andere{ color:#D9DEE5; }
+
+#speciesTimelineChart{
+  width:100% !important;
+  height:300px !important;
+  max-width:100% !important;
+  display:block !important;
+  filter:none !important;
+}
+
+
+/* Final chart polish */
+
+.timeline-chart-wrap{
+  width:100% !important;
+  height:340px !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+}
+
+#speciesTimelineChart{
+  width:100% !important;
+  height:300px !important;
+  display:block !important;
+}
+
+
+#speciesTimelineLegend{
+  display:flex !important;
+  flex-wrap:wrap;
+  gap:16px;
+  margin-bottom:18px;
+}
+
+#speciesTimelineLegend .legend-item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 18px;
+  border-radius:999px;
+  background:rgba(255,255,255,0.05);
+  border:1px solid rgba(255,255,255,0.03);
+}
+
+#speciesTimelineLegend .legend-item span{
+  color:#DCE3EC;
+  font-size:15px;
+  font-weight:500;
+}
+
+#speciesTimelineLegend .legend-fish{
+  width:34px;
+  height:22px;
+}
+
+#speciesTimelineChart{
+  background:transparent !important;
+}
+
+
+#speciesTimelineLegend {
+  display: none !important;
+}
+
+.timeline-chart-wrap {
+  width: 100%;
+  height: 300px;
+  display: flex;
+  align-items: stretch;
+}
+
+#speciesTimelineChart {
+  width: 100% !important;
+  height: 300px !important;
+}
+
+.dashboard-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 16px 0;
+}
+
+#dashboardTournamentSelect {
+  background: rgba(18,32,48,.9);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+
+.species-icon-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px;
+  margin:0 0 18px 0;
+}
+
+.species-icon-pill{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:16px 22px;
+  border-radius:24px;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.05);
+  color:#eaf1f8;
+  font-size:18px;
+  font-weight:600;
+  cursor:pointer;
+  transition:all .2s ease;
+}
+
+.species-icon-pill:hover{
+  background:rgba(255,255,255,.09);
+}
+
+.species-icon-pill.inactive{
+  opacity:.35;
+}
+
+.species-icon-pill.active{
+  background:rgba(255,255,255,.12);
+  border-color:rgba(255,255,255,.14);
+}
+
+.species-icon-pill .fish-icon{
+  width:34px;
+  height:34px;
+  display:flex;
+}
+
+.species-icon-pill svg{
+  width:34px;
+  height:34px;
+}
+
+
+/* remove any remaining rectangle legend completely */
+.timeline-chart-wrap > ul,
+.chartjs-legend,
+canvas + ul,
+.timeline-chart-wrap .legend,
+.timeline-chart-wrap .chart-legend {
+  display: none !important;
+}
+
+/* make the custom legend identical to the KPI cards */
+.species-icon-legend{
+  display:grid !important;
+  grid-template-columns: repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+  margin-bottom:26px;
+}
+
+.species-icon-pill{
+  width:100%;
+  justify-content:flex-start;
+  padding:22px 28px !important;
+  border-radius:28px !important;
+  background:rgba(255,255,255,0.05) !important;
+  border:1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+  font-size:22px !important;
+  font-weight:700 !important;
+}
+
+.species-icon-pill .fish-icon{
+  width:42px;
+  height:42px;
+  margin-right:8px;
+}
+
+.species-icon-pill svg{
+  width:42px;
+  height:42px;
+}
+
+.species-icon-pill.inactive{
+  opacity:.35;
+}
+
+.species-icon-pill.active{
+  opacity:1;
+  background:rgba(255,255,255,.09) !important;
+  border-color:rgba(255,255,255,.12) !important;
+}
+
+
+/* Make both charts use identical inner spacing so x-axis lines align visually */
+.timeline-chart-wrap {
+  padding: 0 24px 0 24px !important;
+}
+
+#speciesTimelineChart,
+#dailyChart {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+
+.dashboard-toolbar{
+  margin: 10px 0 22px 0 !important;
+  justify-content: flex-start !important;
+}
+
+
+.dashboard-tournament-inline{
+  margin-top:18px;
+}
+
+.dashboard-select{
+  min-width:240px;
+  padding:10px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  font-size:14px;
+}
+
+
+/* Equal chart heights */
+#speciesTimelineChart,
+#dailyCatchesChart {
+  height: 320px !important;
+  max-height: 320px !important;
+}
+
+.chart-card canvas {
+  height: 320px !important;
+}
+
+
+/* Force both chart cards and canvas wrappers to same height */
+.chart-card {
+  min-height: 420px !important;
+}
+
+.chart-card .chart-wrap,
+.chart-card .chart-container,
+.chart-card canvas {
+  height: 320px !important;
+  min-height: 320px !important;
+  max-height: 320px !important;
+}
+
+
+/* clickable heatmap zones */
+.heatmap-zone,
+.zone-card,
+[data-zone]{
+  cursor:pointer;
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.heatmap-zone:hover,
+.zone-card:hover,
+[data-zone]:hover{
+  transform:translateY(-2px);
+}
+
+.active-zone{
+  border:2px solid rgba(122,255,190,.9) !important;
+  box-shadow:0 0 0 3px rgba(122,255,190,.18), 0 12px 30px rgba(0,0,0,.25);
+}
+
+.heat-cell{
+  cursor:pointer;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.heat-cell:hover{
+  transform:translateY(-2px);
+}
+.heat-cell.active-zone{
+  border:2px solid #8ff0a7 !important;
+  box-shadow:0 0 0 3px rgba(143,240,167,.2);
+}
+
+
+.analytics-filter-panel{margin-bottom:18px}
+.analytics-filter-panel .panel-head{gap:16px;flex-wrap:wrap}
+.analytics-filter-panel .dashboard-select{min-width:min(360px,100%)}
+
+
+.matrix-grid{display:grid;gap:8px;overflow:auto}
+.matrix-header,.matrix-row{display:grid;grid-template-columns:140px repeat(auto-fit,minmax(90px,1fr));gap:8px;min-width:620px}
+.matrix-cell,.matrix-label{padding:10px;border-radius:14px;text-align:center}
+.matrix-label{background:rgba(255,255,255,.06);font-weight:700}
+.matrix-cell{background:rgba(74,215,209,.12);border:1px solid rgba(255,255,255,.06);font-size:.9rem}
+.matrix-cell strong{display:block;font-size:1.05rem}
+
+
+
+
+
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-cell{
+  white-space:nowrap;
+  min-width:140px;
+}
+
+
+
+
+
+
+#spotBaitMatrix > *:first-child{
+  min-width:220px;
+}
+
+
+
+
+
+
+/* Spot × Köder Matrix – finale stabile Version */
+
+
+#spotBaitMatrix::-webkit-scrollbar{
+  height:6px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.18);
+  border-radius:999px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+
+
+#spotBaitMatrix .matrix-label{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:96px;
+  padding:0 12px;
+  box-sizing:border-box;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  position:static !important;
+  min-width:0 !important;
+  max-width:none !important;
+}
+
+#spotBaitMatrix .matrix-cell{
+  width:110px;
+  height:96px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  white-space:nowrap;
+  overflow:hidden;
+  position:static !important;
+  min-width:0 !important;
+  max-width:none !important;
+}
+
+#spotBaitMatrix .matrix-label::before,
+#spotBaitMatrix .matrix-label::after,
+#spotBaitMatrix .matrix-cell::before,
+#spotBaitMatrix .matrix-cell::after{
+  display:none !important;
+  content:none !important;
+}
+
+
+
+/* Spot x Köder Matrix – definitive responsive layout */
+#spotBaitMatrix{
+  width:100%;
+  overflow:hidden;
+}
+
+#spotBaitMatrix .matrix-scroll{
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:8px;
+  scrollbar-width:thin;
+}
+
+#spotBaitMatrix .matrix-grid{
+  width:max-content;
+  min-width:100%;
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  display:grid;
+  grid-template-columns:180px repeat(6, minmax(110px, 1fr));
+  gap:14px;
+  width:max-content;
+}
+
+#spotBaitMatrix .matrix-label,
+#spotBaitMatrix .matrix-cell{
+  min-height:96px;
+  border-radius:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:12px;
+  box-sizing:border-box;
+}
+
+#spotBaitMatrix .matrix-label{
+  background:rgba(255,255,255,0.06);
+  color:#f3f6fb;
+  font-weight:700;
+  font-size:18px;
+  white-space:nowrap;
+}
+
+#spotBaitMatrix .matrix-cell{
+  background:rgba(72, 196, 202, 0.22);
+  min-width:110px;
+  max-width:110px;
+}
+
+#spotBaitMatrix .matrix-cell strong{
+  display:block;
+  font-size:20px;
+  line-height:1;
+}
+
+#spotBaitMatrix .matrix-cell span{
+  display:block;
+  margin-top:4px;
+  font-size:14px;
+  opacity:.92;
+}
+
+@media (max-width: 1200px){
+  #spotBaitMatrix .matrix-header,
+  #spotBaitMatrix .matrix-row{
+    grid-template-columns:160px repeat(6, 100px);
+  }
+
+  #spotBaitMatrix .matrix-cell{
+    min-width:100px;
+    max-width:100px;
+  }
+}
+
+
+/* Turnier-Story */
+.panel-head.compact{
+  margin-bottom:10px;
+}
+
+.tournament-story-card{
+  padding:18px 18px 16px;
+  border-radius:22px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.04);
+}
+
+.tournament-story-text{
+  color:var(--text);
+  line-height:1.6;
+}
+
+.tournament-story-text p{
+  margin:0 0 10px;
+}
+
+.tournament-story-text p:last-child{
+  margin-bottom:0;
+}
+
+.tournament-story-text .meta{
+  display:block;
+  margin-top:8px;
+}
+
+
+
+/* Spot × Köder Matrix – finale responsive Grid-Definition */
+#spotBaitMatrix{
+  --matrix-gap: 14px;
+  --matrix-spot-col: 220px;
+  --matrix-cell-min: 130px;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+
+#spotBaitMatrix::-webkit-scrollbar{
+  height: 6px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,.18);
+  border-radius: 999px;
+}
+
+#spotBaitMatrix::-webkit-scrollbar-track{
+  background: transparent;
+}
+
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  display: grid !important;
+  grid-template-columns:
+    minmax(var(--matrix-spot-col), var(--matrix-spot-col))
+    repeat(6, minmax(var(--matrix-cell-min), 1fr)) !important;
+  gap: var(--matrix-gap) !important;
+  width: max(100%, calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap)))) !important;
+  min-width: calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap))) !important;
+  margin-bottom: var(--matrix-gap) !important;
+  align-items: stretch !important;
+}
+
+#spotBaitMatrix .matrix-label,
+#spotBaitMatrix .matrix-cell{
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 96px !important;
+  height: 96px !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+  border-radius: 22px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  position: static !important;
+}
+
+#spotBaitMatrix .matrix-label{
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+#spotBaitMatrix .matrix-cell{
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+#spotBaitMatrix .matrix-cell strong{
+  display:block;
+  font-size:20px;
+  line-height:1;
+}
+
+#spotBaitMatrix .matrix-cell span{
+  display:block;
+  margin-top:4px;
+  font-size:14px;
+  opacity:.92;
+}
+
+#spotBaitMatrix .matrix-label::before,
+#spotBaitMatrix .matrix-label::after,
+#spotBaitMatrix .matrix-cell::before,
+#spotBaitMatrix .matrix-cell::after{
+  display:none !important;
+  content:none !important;
+}
+
+@media (max-width: 1280px){
+  #spotBaitMatrix{
+    --matrix-spot-col: 200px;
+    --matrix-cell-min: 118px;
+    --matrix-gap: 12px;
+  }
+}
+
+@media (max-width: 980px){
+  #spotBaitMatrix{
+    --matrix-spot-col: 190px;
+    --matrix-cell-min: 108px;
+    --matrix-gap: 10px;
+  }
+}
+
+
+.panel-head-split{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.timeline-switch-btn{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:var(--text);
+  border-radius:999px;
+  padding:10px 14px;
+  font:inherit;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .15s ease, background .15s ease, border-color .15s ease;
+}
+
+.timeline-switch-btn:hover{
+  background:rgba(255,255,255,.10);
+  border-color:rgba(255,255,255,.18);
+}
+
+.timeline-switch-btn:active{
+  transform:scale(.98);
+}
+
+
+/* Map weather button */
+.weather-control{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(20,30,45,.92);
+  color:#fff;
+  font-size:18px;
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 8px 24px rgba(0,0,0,.24);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  cursor:pointer;
+}
+.weather-control.active{
+  background:linear-gradient(135deg,#4ad7d1,#66e7ff);
+  color:#00131c;
+}
+.weather-popup{
+  font-size:14px;
+  line-height:1.45;
 }
