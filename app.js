@@ -1217,20 +1217,26 @@ function renderSpeciesTimeline(){
     borderWidth: 1.5
   }));
 
-  const hours=[...Array(24).keys()];
-const species=[...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))];
-const datasets=species.map((name,index)=>({
-  label:name,
-  data:hours.map(h=>state.catches.filter(c=>{
-    const d=new Date(c.timestamp);
-    return (c.species||c.customSpecies||'Andere')===name && d.getHours()===h;
-  }).length),
-  backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`
-}));
-
-window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
-  type:'bar',
-  data:{labels:hours.map(h=>h+':00'),datasets},
-  options:{responsive:true,plugins:{legend:{labels:{color:css('--text')}}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true}}}
-});
+  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{
+        legend:{
+          labels:{
+            color:css('--text'),
+            usePointStyle:true,
+            pointStyle:'circle',
+            boxWidth:8,
+            boxHeight:8,
+            padding:14
+          }
+        }
+      },
+      scales:{
+        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
+        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
+      }
+    }
+  });
 }
