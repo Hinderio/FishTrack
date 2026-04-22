@@ -1242,78 +1242,31 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== FETCH HOOK CATCHES (FINAL FIX) =====
-(function(){
-    const origFetch = window.fetch;
-    window.fetch = async function(...args){
-        const res = await origFetch.apply(this, args);
-
-        try {
-            const url = args[0];
-            if (typeof url === "string" && url.includes("catches")) {
-                const clone = res.clone();
-                clone.json().then(data => {
-                    if (Array.isArray(data)) {
-                        window.allCatches = data;
-                        console.log("🎣 Catches via fetch erkannt:", data.length);
-                    }
-                }).catch(()=>{});
-            }
-        } catch(e){}
-
-        return res;
-    };
-})();
-
-// ===== FINAL SHOW =====
-function showUserFishDetail(username) {
-    const data = window.allCatches || [];
-
-    if (!data.length) {
-        console.warn("❌ Noch keine Catches im fetch erkannt");
-        return;
-    }
-
-    const userCatches = data
-        .filter(c => c.angler === username)
-        .sort((a,b)=>(b.length||0)-(a.length||0));
-
-    const container = document.createElement("div");
-    container.id="fishDetailView";
-
-    let html = `
-    <div class="fish-detail-header">
-        <button id="backBtn">← Zurück</button>
-        <h2>${username}</h2>
-    </div>
-    <div class="fish-grid">`;
-
-    userCatches.forEach(c=>{
-        html+=`
-        <div class="fish-card">
-            <div class="fish-size">${c.length||"-"} cm</div>
-            <div class="fish-type">${c.species||"-"}</div>
-            <div class="fish-weight">${c.weight||"-"} kg</div>
-        </div>`;
-    });
-
-    html+="</div>";
-    container.innerHTML=html;
-    document.body.appendChild(container);
-
-    document.getElementById("backBtn").onclick=()=>container.remove();
-}
-
-// click handler
-document.addEventListener("click",function(e){
-    const el=e.target.closest("div");
+// ===== LEADERBOARD SIMPLE FIX (USE EXISTING FILTER LOGIC) =====
+document.addEventListener("click", function(e){
+    const el = e.target.closest("div");
     if(!el) return;
 
-    const text=el.innerText||"";
-    if(!text.includes("#")||!text.includes("Punkte")) return;
+    const text = el.innerText || "";
+    if(!text.includes("#") || !text.includes("Punkte")) return;
 
-    const match=text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
+    const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
     if(!match) return;
 
-    showUserFishDetail(match[1]);
+    const username = match[1];
+
+    // 👉 1. Set participant filter (existing dropdown)
+    const participantSelect = document.querySelector('select, .participant-select');
+    if (participantSelect) {
+        participantSelect.value = username;
+        participantSelect.dispatchEvent(new Event('change'));
+    }
+
+    // 👉 2. Switch to "Fänge" tab if exists
+    const tab = Array.from(document.querySelectorAll("button, div"))
+        .find(el => el.innerText && el.innerText.toLowerCase().includes("fänge"));
+
+    if (tab) tab.click();
+
+    console.log("👉 Filter gesetzt für:", username);
 });
