@@ -1242,83 +1242,77 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== LEADERBOARD FINAL2 SAFE DATA HOOK =====
+// ===== FETCH HOOK CATCHES (FINAL FIX) =====
+(function(){
+    const origFetch = window.fetch;
+    window.fetch = async function(...args){
+        const res = await origFetch.apply(this, args);
 
-// Fallback polling until catches exist somewhere
-function getAllCatchesSafe() {
-    if (window.allCatches && window.allCatches.length) return window.allCatches;
+        try {
+            const url = args[0];
+            if (typeof url === "string" && url.includes("catches")) {
+                const clone = res.clone();
+                clone.json().then(data => {
+                    if (Array.isArray(data)) {
+                        window.allCatches = data;
+                        console.log("🎣 Catches via fetch erkannt:", data.length);
+                    }
+                }).catch(()=>{});
+            }
+        } catch(e){}
 
-    // try common names
-    if (window.catches && window.catches.length) return window.catches;
-    if (window.data && window.data.length) return window.data;
+        return res;
+    };
+})();
 
-    return [];
-}
-
-// wait until data is loaded
-function waitForCatches(callback, tries = 0) {
-    const data = getAllCatchesSafe();
-
-    if (data.length) {
-        window.allCatches = data;
-        callback(data);
-        return;
-    }
-
-    if (tries > 20) {
-        console.warn("❌ Catches konnten nicht geladen werden");
-        return;
-    }
-
-    setTimeout(() => waitForCatches(callback, tries + 1), 300);
-}
-
-// FINAL show function
+// ===== FINAL SHOW =====
 function showUserFishDetail(username) {
-    waitForCatches((allCatches) => {
+    const data = window.allCatches || [];
 
-        const userCatches = allCatches
-            .filter(c => c.angler === username)
-            .sort((a, b) => (b.length || 0) - (a.length || 0));
+    if (!data.length) {
+        console.warn("❌ Noch keine Catches im fetch erkannt");
+        return;
+    }
 
-        const container = document.createElement("div");
-        container.id = "fishDetailView";
+    const userCatches = data
+        .filter(c => c.angler === username)
+        .sort((a,b)=>(b.length||0)-(a.length||0));
 
-        let html = `
-        <div class="fish-detail-header">
-            <button id="backBtn">← Zurück</button>
-            <h2>${username}</h2>
-        </div>
-        <div class="fish-grid">
-        `;
+    const container = document.createElement("div");
+    container.id="fishDetailView";
 
-        userCatches.forEach(c => {
-            html += `
-            <div class="fish-card">
-                <div class="fish-size">${c.length || "-"} cm</div>
-                <div class="fish-type">${c.species || "-"}</div>
-                <div class="fish-weight">${c.weight || "-"} kg</div>
-            </div>`;
-        });
+    let html = `
+    <div class="fish-detail-header">
+        <button id="backBtn">← Zurück</button>
+        <h2>${username}</h2>
+    </div>
+    <div class="fish-grid">`;
 
-        html += "</div>";
-
-        container.innerHTML = html;
-        document.body.appendChild(container);
-
-        document.getElementById("backBtn").onclick = () => container.remove();
+    userCatches.forEach(c=>{
+        html+=`
+        <div class="fish-card">
+            <div class="fish-size">${c.length||"-"} cm</div>
+            <div class="fish-type">${c.species||"-"}</div>
+            <div class="fish-weight">${c.weight||"-"} kg</div>
+        </div>`;
     });
+
+    html+="</div>";
+    container.innerHTML=html;
+    document.body.appendChild(container);
+
+    document.getElementById("backBtn").onclick=()=>container.remove();
 }
 
-// global click handler stays
-document.addEventListener("click", function(e){
-    const el = e.target.closest("div");
+// click handler
+document.addEventListener("click",function(e){
+    const el=e.target.closest("div");
     if(!el) return;
 
-    const text = el.innerText || "";
-    if(!text.includes("#") || !text.includes("Punkte")) return;
+    const text=el.innerText||"";
+    if(!text.includes("#")||!text.includes("Punkte")) return;
 
-    const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
+    const match=text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
     if(!match) return;
 
     showUserFishDetail(match[1]);
