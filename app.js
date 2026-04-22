@@ -1242,61 +1242,75 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== WRAP SUPABASE LOAD (robust global data access) =====
-if (typeof loadFromSupabase === "function") {
-    const _origLoadFromSupabase = loadFromSupabase;
-    loadFromSupabase = async function(...args) {
-        const result = await _origLoadFromSupabase.apply(this, args);
-        if (Array.isArray(result)) {
-            window.allCatches = result;
-            console.log("✅ allCatches gesetzt:", result.length);
-        }
-        return result;
-    };
+// ===== LEADERBOARD FINAL2 SAFE DATA HOOK =====
+
+// Fallback polling until catches exist somewhere
+function getAllCatchesSafe() {
+    if (window.allCatches && window.allCatches.length) return window.allCatches;
+
+    // try common names
+    if (window.catches && window.catches.length) return window.catches;
+    if (window.data && window.data.length) return window.data;
+
+    return [];
 }
 
-// ===== Leaderboard Detail FINAL =====
-function showUserFishDetail(username) {
-    const allCatches = window.allCatches || [];
+// wait until data is loaded
+function waitForCatches(callback, tries = 0) {
+    const data = getAllCatchesSafe();
 
-    if (!allCatches.length) {
-        console.warn("Keine Catches verfügbar (noch nicht geladen)");
+    if (data.length) {
+        window.allCatches = data;
+        callback(data);
         return;
     }
 
-    const userCatches = allCatches
-        .filter(c => c.angler === username)
-        .sort((a, b) => (b.length || 0) - (a.length || 0));
+    if (tries > 20) {
+        console.warn("❌ Catches konnten nicht geladen werden");
+        return;
+    }
 
-    const container = document.createElement("div");
-    container.id = "fishDetailView";
-
-    let html = `
-    <div class="fish-detail-header">
-        <button id="backBtn">← Zurück</button>
-        <h2>${username}</h2>
-    </div>
-    <div class="fish-grid">
-    `;
-
-    userCatches.forEach(c => {
-        html += `
-        <div class="fish-card">
-            <div class="fish-size">${c.length || "-"} cm</div>
-            <div class="fish-type">${c.species || "-"}</div>
-            <div class="fish-weight">${c.weight || "-"} kg</div>
-        </div>`;
-    });
-
-    html += "</div>";
-
-    container.innerHTML = html;
-    document.body.appendChild(container);
-
-    document.getElementById("backBtn").onclick = () => container.remove();
+    setTimeout(() => waitForCatches(callback, tries + 1), 300);
 }
 
-// click handler
+// FINAL show function
+function showUserFishDetail(username) {
+    waitForCatches((allCatches) => {
+
+        const userCatches = allCatches
+            .filter(c => c.angler === username)
+            .sort((a, b) => (b.length || 0) - (a.length || 0));
+
+        const container = document.createElement("div");
+        container.id = "fishDetailView";
+
+        let html = `
+        <div class="fish-detail-header">
+            <button id="backBtn">← Zurück</button>
+            <h2>${username}</h2>
+        </div>
+        <div class="fish-grid">
+        `;
+
+        userCatches.forEach(c => {
+            html += `
+            <div class="fish-card">
+                <div class="fish-size">${c.length || "-"} cm</div>
+                <div class="fish-type">${c.species || "-"}</div>
+                <div class="fish-weight">${c.weight || "-"} kg</div>
+            </div>`;
+        });
+
+        html += "</div>";
+
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        document.getElementById("backBtn").onclick = () => container.remove();
+    });
+}
+
+// global click handler stays
 document.addEventListener("click", function(e){
     const el = e.target.closest("div");
     if(!el) return;
