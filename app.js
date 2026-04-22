@@ -1242,22 +1242,29 @@ function renderSpeciesTimeline(){
 }
 
 
-// =====================
-// GLOBAL CLICK HANDLER LEADERBOARD (ROBUST)
-// =====================
-
+// ===== Leaderboard Detail FIX (Supabase safe) =====
 function showUserFishDetail(username) {
-    const container = document.createElement("div");
-    container.id = "fishDetailView";
+    const allCatches = window.allCatches || [];
 
-    const userCatches = catches
+    if (!allCatches.length) {
+        console.warn("Keine Catches verfügbar");
+        return;
+    }
+
+    const userCatches = allCatches
         .filter(c => c.angler === username)
         .sort((a, b) => (b.length || 0) - (a.length || 0));
 
-    let html = `<div class="fish-detail-header">
+    const container = document.createElement("div");
+    container.id = "fishDetailView";
+
+    let html = `
+    <div class="fish-detail-header">
         <button id="backBtn">← Zurück</button>
         <h2>${username}</h2>
-    </div><div class="fish-grid">`;
+    </div>
+    <div class="fish-grid">
+    `;
 
     userCatches.forEach(c => {
         html += `
@@ -1269,25 +1276,23 @@ function showUserFishDetail(username) {
     });
 
     html += "</div>";
-    container.innerHTML = html;
 
+    container.innerHTML = html;
     document.body.appendChild(container);
 
     document.getElementById("backBtn").onclick = () => container.remove();
 }
 
-// EVENT DELEGATION (works always)
-document.addEventListener("click", function(e) {
+// global click handler
+document.addEventListener("click", function(e){
     const el = e.target.closest("div");
-    if (!el) return;
+    if(!el) return;
 
     const text = el.innerText || "";
-
-    // detect leaderboard row
-    if (!text.includes("#") || !text.includes("Punkte")) return;
+    if(!text.includes("#") || !text.includes("Punkte")) return;
 
     const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
-    if (!match) return;
+    if(!match) return;
 
     const username = match[1];
     showUserFishDetail(username);
