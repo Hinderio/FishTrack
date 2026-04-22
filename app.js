@@ -1242,12 +1242,25 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== Leaderboard Detail FIX (Supabase safe) =====
+// ===== WRAP SUPABASE LOAD (robust global data access) =====
+if (typeof loadFromSupabase === "function") {
+    const _origLoadFromSupabase = loadFromSupabase;
+    loadFromSupabase = async function(...args) {
+        const result = await _origLoadFromSupabase.apply(this, args);
+        if (Array.isArray(result)) {
+            window.allCatches = result;
+            console.log("✅ allCatches gesetzt:", result.length);
+        }
+        return result;
+    };
+}
+
+// ===== Leaderboard Detail FINAL =====
 function showUserFishDetail(username) {
     const allCatches = window.allCatches || [];
 
     if (!allCatches.length) {
-        console.warn("Keine Catches verfügbar");
+        console.warn("Keine Catches verfügbar (noch nicht geladen)");
         return;
     }
 
@@ -1283,7 +1296,7 @@ function showUserFishDetail(username) {
     document.getElementById("backBtn").onclick = () => container.remove();
 }
 
-// global click handler
+// click handler
 document.addEventListener("click", function(e){
     const el = e.target.closest("div");
     if(!el) return;
@@ -1294,6 +1307,5 @@ document.addEventListener("click", function(e){
     const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
     if(!match) return;
 
-    const username = match[1];
-    showUserFishDetail(username);
+    showUserFishDetail(match[1]);
 });
