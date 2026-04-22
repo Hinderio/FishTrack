@@ -1,5 +1,6 @@
 // === MAP INIT ===
 const map = L.map('map').setView([53.5, 10], 11);
+initWeatherControl(map);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap'
@@ -62,3 +63,35 @@ map.on("click", async (e) => {
     `)
     .openOn(map);
 });
+
+
+// === WEATHER BUTTON SAFE INTEGRATION ===
+const WEATHER_API_KEY = "4c5a729e0897dca74d57292846be41ab";
+let weatherEnabled = false;
+
+function initWeatherControl(map){
+  const control = L.control({ position: 'topright' });
+
+  control.onAdd = function () {
+    const div = L.DomUtil.create('div', 'weather-control');
+    div.innerHTML = "🌡️";
+
+    L.DomEvent.disableClickPropagation(div);
+
+    div.onclick = () => {
+      weatherEnabled = !weatherEnabled;
+      div.classList.toggle("active", weatherEnabled);
+    };
+
+    return div;
+  };
+
+  control.addTo(map);
+}
+
+async function getWeather(lat, lon){
+  const res = await fetch(
+    `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`
+  );
+  return await res.json();
+}
