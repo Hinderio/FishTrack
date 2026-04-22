@@ -1242,54 +1242,32 @@ function renderSpeciesTimeline(){
 }
 
 
-// PREMIUM WEATHER ADDON (minimal-invasive)
-let premiumWeatherActive = false;
-let windyOverlay = null;
-
+// --- PREMIUM DEBUG SAFE ---
 function activatePremiumWeather() {
-    if (windyOverlay) return;
+    console.log("Premium ON");
+
+    if (window.windyOverlay) return;
 
     const mapContainer = map.getContainer();
-    windyOverlay = document.createElement("iframe");
-    windyOverlay.id = "windyOverlay";
+
+    window.windyOverlay = document.createElement("iframe");
+    window.windyOverlay.id = "windyOverlay";
 
     const center = map.getCenter();
     const zoom = map.getZoom();
 
-    windyOverlay.src = `https://embed.windy.com/embed2.html?lat=${center.lat}&lon=${center.lng}&zoom=${zoom}&level=surface&overlay=wind`;
+    const url = `https://embed.windy.com/embed2.html?lat=${center.lat}&lon=${center.lng}&zoom=${zoom}&level=surface&overlay=wind`;
 
-    mapContainer.appendChild(windyOverlay);
+    console.log(url);
+
+    window.windyOverlay.src = url;
+
+    mapContainer.appendChild(window.windyOverlay);
 }
 
 function deactivatePremiumWeather() {
-    if (windyOverlay) {
-        windyOverlay.remove();
-        windyOverlay = null;
+    if (window.windyOverlay) {
+        window.windyOverlay.remove();
+        window.windyOverlay = null;
     }
 }
-
-map.on("moveend", () => {
-    if (premiumWeatherActive && windyOverlay) {
-        const center = map.getCenter();
-        const zoom = map.getZoom();
-        windyOverlay.src = `https://embed.windy.com/embed2.html?lat=${center.lat}&lon=${center.lng}&zoom=${zoom}&level=surface&overlay=wind`;
-    }
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-        if (!map) return;
-        const premiumBtn = document.createElement("button");
-        premiumBtn.innerText = "🌪️";
-        premiumBtn.className = "map-weather-btn";
-        premiumBtn.style.top = "70px";
-
-        premiumBtn.onclick = () => {
-            premiumWeatherActive = !premiumWeatherActive;
-            if (premiumWeatherActive) activatePremiumWeather();
-            else deactivatePremiumWeather();
-        };
-
-        map.getContainer().appendChild(premiumBtn);
-    }, 500);
-});
