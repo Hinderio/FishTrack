@@ -1242,18 +1242,19 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== TOPO TOGGLE FIX (BASE LAYER SWITCH) =====
-
-// assume existing osm layer variable
-let currentBaseLayer = null;
-
+// ===== ROBUST TOPO TOGGLE (FINAL) =====
 setTimeout(() => {
-    // find existing tile layer (first one)
+
+    // find ALL tile layers
+    let baseLayers = [];
     map.eachLayer(layer => {
-        if (layer instanceof L.TileLayer && !currentBaseLayer) {
-            currentBaseLayer = layer;
+        if (layer instanceof L.TileLayer) {
+            baseLayers.push(layer);
         }
     });
+
+    // assume first is current base
+    let osmLayer = baseLayers[0];
 
     const topoLayer = L.tileLayer(
         "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
@@ -1271,19 +1272,32 @@ setTimeout(() => {
     btn.style.top = "110px";
 
     btn.onclick = () => {
-        if (!currentBaseLayer) return;
+
+        console.log("TOGGLE TOPO", isTopo);
 
         if (!isTopo) {
-            map.removeLayer(currentBaseLayer);
+            // remove ALL tile layers
+            map.eachLayer(layer => {
+                if (layer instanceof L.TileLayer) {
+                    map.removeLayer(layer);
+                }
+            });
+
             topoLayer.addTo(map);
             isTopo = true;
+
         } else {
             map.removeLayer(topoLayer);
-            currentBaseLayer.addTo(map);
+
+            // re-add original layer
+            if (osmLayer) {
+                osmLayer.addTo(map);
+            }
+
             isTopo = false;
         }
     };
 
     map.getContainer().appendChild(btn);
-}, 800);
 
+}, 1000);
