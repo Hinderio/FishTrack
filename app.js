@@ -6,7 +6,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // === WEATHER API ===
-const WEATHER_API_KEY = "PASTE_YOUR_API_KEY_HERE";
+const WEATHER_API_KEY = "4c5a729e0897dca74d57292846be41ab";
 
 async function getWeather(lat, lon){
   try{
