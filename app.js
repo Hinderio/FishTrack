@@ -1243,13 +1243,15 @@ function renderSpeciesTimeline(){
 
 
 // =====================
-// Leaderboard Detail View
+// Leaderboard Detail FIX (robust binding)
 // =====================
+
 function showUserFishDetail(username) {
     const container = document.createElement("div");
     container.id = "fishDetailView";
 
-    const userCatches = catches.filter(c => c.angler === username)
+    const userCatches = catches
+        .filter(c => c.angler === username)
         .sort((a, b) => (b.length || 0) - (a.length || 0));
 
     let html = `<div class="fish-detail-header">
@@ -1267,7 +1269,6 @@ function showUserFishDetail(username) {
     });
 
     html += "</div>";
-
     container.innerHTML = html;
 
     document.body.appendChild(container);
@@ -1277,16 +1278,26 @@ function showUserFishDetail(username) {
     };
 }
 
-// Hook into leaderboard names (safe)
-setTimeout(() => {
-    document.querySelectorAll(".leaderboard-item").forEach(item => {
-        const nameEl = item.querySelector(".name, .leaderboard-name");
-        if (!nameEl) return;
+// IMPORTANT: hook AFTER leaderboard render
+function attachLeaderboardClickHandlers() {
+    document.querySelectorAll(".leaderboard div").forEach(el => {
+        if (el.dataset.bound) return;
 
-        nameEl.style.cursor = "pointer";
-        nameEl.onclick = () => {
-            const username = nameEl.innerText.trim();
+        const text = el.innerText || "";
+        if (!text.includes("#")) return;
+
+        el.style.cursor = "pointer";
+        el.dataset.bound = "true";
+
+        el.onclick = () => {
+            const nameMatch = text.match(/#\d+\s+(.*?)\s+/);
+            if (!nameMatch) return;
+
+            const username = nameMatch[1];
             showUserFishDetail(username);
         };
     });
-}, 500);
+}
+
+// re-attach after render cycles
+setInterval(attachLeaderboardClickHandlers, 1000);
