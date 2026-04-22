@@ -1284,63 +1284,12 @@ canvas + ul,
   backdrop-filter:blur(8px);
   -webkit-backdrop-filter:blur(8px);
   cursor:pointer;
-  padding:0;
 }
 .weather-control.active{
   background:linear-gradient(135deg,#4ad7d1,#66e7ff);
   color:#00131c;
 }
-.weather-control.loading{
-  cursor:progress;
-}
-.weather-spinner{
-  width:16px;
-  height:16px;
-  border-radius:50%;
-  border:2px solid currentColor;
-  border-right-color:transparent;
-  animation:weatherSpin .85s linear infinite;
-}
 .weather-popup{
   font-size:14px;
   line-height:1.45;
-  min-width:210px;
-}
-.weather-popup__header{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  margin-bottom:10px;
-  flex-wrap:wrap;
-}
-.weather-popup__header span{
-  color:var(--muted);
-  font-size:12px;
-}
-.weather-popup__grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:8px;
-}
-.weather-popup__grid div{
-  padding:8px 10px;
-  border-radius:12px;
-  background:rgba(255,255,255,.06);
-}
-.weather-popup__grid span{
-  display:block;
-  font-size:11px;
-  color:var(--muted);
-  margin-bottom:2px;
-}
-.weather-popup__grid strong{
-  display:block;
-  font-size:14px;
-}
-.weather-popup--loading,
-.weather-popup--error{
-  min-width:180px;
-}
-@keyframes weatherSpin{
-  to{transform:rotate(360deg)}
 }
