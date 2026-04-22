@@ -1282,7 +1282,7 @@ setTimeout(bindChartToggleButtons,300);
 
 
 // === WEATHER API INTEGRATION ===
-const WEATHER_API_KEY = "PASTE_YOUR_API_KEY_HERE";
+const WEATHER_API_KEY = "4c5a729e0897dca74d57292846be41ab";
 
 async function getWeather(lat, lon){
   try{
