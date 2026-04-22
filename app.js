@@ -1240,3 +1240,53 @@ function renderSpeciesTimeline(){
     }
   });
 }
+
+
+// =====================
+// Leaderboard Detail View
+// =====================
+function showUserFishDetail(username) {
+    const container = document.createElement("div");
+    container.id = "fishDetailView";
+
+    const userCatches = catches.filter(c => c.angler === username)
+        .sort((a, b) => (b.length || 0) - (a.length || 0));
+
+    let html = `<div class="fish-detail-header">
+        <button id="backBtn">← Zurück</button>
+        <h2>${username}</h2>
+    </div><div class="fish-grid">`;
+
+    userCatches.forEach(c => {
+        html += `
+        <div class="fish-card">
+            <div class="fish-size">${c.length || "-"} cm</div>
+            <div class="fish-type">${c.species || "-"}</div>
+            <div class="fish-weight">${c.weight || "-"} kg</div>
+        </div>`;
+    });
+
+    html += "</div>";
+
+    container.innerHTML = html;
+
+    document.body.appendChild(container);
+
+    document.getElementById("backBtn").onclick = () => {
+        container.remove();
+    };
+}
+
+// Hook into leaderboard names (safe)
+setTimeout(() => {
+    document.querySelectorAll(".leaderboard-item").forEach(item => {
+        const nameEl = item.querySelector(".name, .leaderboard-name");
+        if (!nameEl) return;
+
+        nameEl.style.cursor = "pointer";
+        nameEl.onclick = () => {
+            const username = nameEl.innerText.trim();
+            showUserFishDetail(username);
+        };
+    });
+}, 500);
