@@ -155,7 +155,21 @@ async function saveTournamentToSupabase(tournament) {
 
 
 let charts = {};
-let map;let markersLayer;let beforeInstallPromptEvent=null;let activeTournamentId=null;let weatherEnabled=false;let weatherControlAdded=false;const WEATHER_API_KEY="4c5a729e0897dca74d57292846be41ab";async function getWeather(lat,lon){try{const res=await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`);if(!res.ok) throw new Error(`Weather ${res.status}`);return await res.json()}catch(err){console.error("Weather fetch failed",err);return null}}function initWeatherControl(){if(!map||weatherControlAdded||typeof L==="undefined")return;const control=L.control({position:"topright"});control.onAdd=function(){const div=L.DomUtil.create("div","leaflet-bar weather-control");div.innerHTML="🌡️";L.DomEvent.disableClickPropagation(div);L.DomEvent.on(div,"click",(e)=>{L.DomEvent.stop(e);weatherEnabled=!weatherEnabled;div.classList.toggle("active",weatherEnabled)});return div};control.addTo(map);weatherControlAdded=true;if(!map._weatherClickBound){map.on("click",async function(e){if(!weatherEnabled)return;const data=await getWeather(e.latlng.lat,e.latlng.lng);if(!data||!data.current)return;L.popup().setLatLng(e.latlng).setContent(`<div class="weather-popup">🌡 <strong>${Math.round(data.current.temp)}°C</strong><br>💨 Wind: ${data.current.wind_speed} m/s<br>☁️ Wolken: ${data.current.clouds}%<br>💧 Feuchte: ${data.current.humidity}%</div>`).openOn(map)});map._weatherClickBound=true;}};function loadState(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultData);try{const data=JSON.parse(raw);return{meta:data.meta||structuredClone(defaultData.meta),participants:Array.isArray(data.participants)?data.participants:[],catches:Array.isArray(data.catches)?data.catches:[],tournaments:Array.isArray(data.tournaments)?data.tournaments:[]}}catch{return structuredClone(defaultData)}}
+let map;let markersLayer;let beforeInstallPromptEvent=null;let activeTournamentId=null;let weatherEnabled=false;let weatherControlAdded=false;const WEATHER_API_KEY="4c5a729e0897dca74d57292846be41ab";async function getWeather(lat, lon){
+  try{
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+    );
+    const data = await res.json();
+    return {
+      temp: data.current_weather.temperature,
+      wind: data.current_weather.windspeed
+    };
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+};control.onAdd=function(){const div=L.DomUtil.create("div","leaflet-bar weather-control");div.innerHTML="🌡️";L.DomEvent.disableClickPropagation(div);L.DomEvent.on(div,"click",(e)=>{L.DomEvent.stop(e);weatherEnabled=!weatherEnabled;div.classList.toggle("active",weatherEnabled)});return div};control.addTo(map);weatherControlAdded=true;if(!map._weatherClickBound){map.on("click",async function(e){if(!weatherEnabled)return;const data=await getWeather(e.latlng.lat,e.latlng.lng);if(!data||!data.current)return;L.popup().setLatLng(e.latlng).setContent(`<div class="weather-popup">🌡 <strong>${Math.round(data.temp)}°C</strong><br>💨 Wind: ${data.wind} m/s<br>☁️ Wolken: ${data.current.clouds}%<br>💧 Feuchte: ${data.current.humidity}%</div>`).openOn(map)});map._weatherClickBound=true;}};function loadState(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultData);try{const data=JSON.parse(raw);return{meta:data.meta||structuredClone(defaultData.meta),participants:Array.isArray(data.participants)?data.participants:[],catches:Array.isArray(data.catches)?data.catches:[],tournaments:Array.isArray(data.tournaments)?data.tournaments:[]}}catch{return structuredClone(defaultData)}}
 
 let isSyncing = false;
 
