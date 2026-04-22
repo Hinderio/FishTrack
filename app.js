@@ -6,20 +6,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // === WEATHER API ===
+const WEATHER_API_KEY = "4c5a729e0897dca74d57292846be41ab";
 
-async function getWeather(lat, lon){
-  try{
-    const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
-    );
-    if(!res.ok) throw new Error("weather fetch failed");
-    const data = await res.json();
-    return data.current_weather;
+&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`);
+    return await res.json();
   }catch(e){
     console.error(e);
     return null;
   }
-}
 }
 
 // === WEATHER CONTROL BUTTON ===
@@ -59,10 +53,26 @@ map.on("click", async (e) => {
   L.popup()
     .setLatLng(e.latlng)
     .setContent(`
-      🌡 <b>${data.temperature}°C</b><br>
-      💨 Wind: ${data.windspeed} m/s<br>
+      🌡 <b>${data.current.temp}°C</b><br>
+      💨 Wind: ${data.current.wind_speed} m/s<br>
       ☁️ Wolken: ${data.current.clouds}%<br>
       💧 Feuchte: ${data.current.humidity}%<br>
     `)
     .openOn(map);
 });
+
+
+// === CLEAN WEATHER FUNCTION ===
+async function getWeather(lat, lon){
+  try{
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+    );
+    if(!res.ok) return null;
+    const data = await res.json();
+    return data.current_weather;
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+}
