@@ -1307,5 +1307,3 @@ canvas + ul,
   opacity:0.62 !important;
   mix-blend-mode:screen;
 }
-
-.weather-control{z-index:9999;}
