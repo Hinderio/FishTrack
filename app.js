@@ -1242,31 +1242,45 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== LEADERBOARD SIMPLE FIX (USE EXISTING FILTER LOGIC) =====
+// ===== LEADERBOARD WORKING FIX =====
 document.addEventListener("click", function(e){
-    const el = e.target.closest("div");
-    if(!el) return;
+    const row = e.target.closest("*");
+    if(!row) return;
 
-    const text = el.innerText || "";
+    const text = row.innerText || "";
     if(!text.includes("#") || !text.includes("Punkte")) return;
 
     const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
     if(!match) return;
 
     const username = match[1];
+    console.log("CLICK USER:", username);
 
-    // 👉 1. Set participant filter (existing dropdown)
-    const participantSelect = document.querySelector('select, .participant-select');
-    if (participantSelect) {
-        participantSelect.value = username;
-        participantSelect.dispatchEvent(new Event('change'));
+    // find ANY select containing this username
+    const selects = document.querySelectorAll("select");
+
+    let found = false;
+
+    selects.forEach(sel => {
+        const options = Array.from(sel.options);
+        const matchOption = options.find(o => o.text.trim() === username);
+
+        if(matchOption){
+            sel.value = matchOption.value;
+            sel.dispatchEvent(new Event("change"));
+            found = true;
+        }
+    });
+
+    if(!found){
+        console.warn("❌ Kein Dropdown gefunden für:", username);
     }
 
-    // 👉 2. Switch to "Fänge" tab if exists
-    const tab = Array.from(document.querySelectorAll("button, div"))
-        .find(el => el.innerText && el.innerText.toLowerCase().includes("fänge"));
-
-    if (tab) tab.click();
-
-    console.log("👉 Filter gesetzt für:", username);
+    // switch to Fänge tab
+    const tabs = document.querySelectorAll("button, div");
+    tabs.forEach(el=>{
+        if(el.innerText && el.innerText.toLowerCase().includes("fänge")){
+            el.click();
+        }
+    });
 });
