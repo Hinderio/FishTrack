@@ -1240,3 +1240,38 @@ function renderSpeciesTimeline(){
     }
   });
 }
+
+
+// ===== TOPO TOGGLE FEATURE =====
+
+// create topo layer
+const topoLayer = L.tileLayer(
+    "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom: 17,
+        attribution: "© OpenTopoMap"
+    }
+);
+
+// keep reference to current base layer
+let isTopoActive = false;
+
+// create button after map is initialized
+setTimeout(() => {
+    const btn = document.createElement("button");
+    btn.innerText = "⛰";
+    btn.className = "map-weather-btn";
+    btn.style.top = "110px";
+
+    btn.onclick = () => {
+        if (!isTopoActive) {
+            map.addLayer(topoLayer);
+            isTopoActive = true;
+        } else {
+            map.removeLayer(topoLayer);
+            isTopoActive = false;
+        }
+    };
+
+    map.getContainer().appendChild(btn);
+}, 500);
