@@ -1243,7 +1243,7 @@ function renderSpeciesTimeline(){
 
 
 // =====================
-// Leaderboard Detail FIX (robust binding)
+// GLOBAL CLICK HANDLER LEADERBOARD (ROBUST)
 // =====================
 
 function showUserFishDetail(username) {
@@ -1273,31 +1273,22 @@ function showUserFishDetail(username) {
 
     document.body.appendChild(container);
 
-    document.getElementById("backBtn").onclick = () => {
-        container.remove();
-    };
+    document.getElementById("backBtn").onclick = () => container.remove();
 }
 
-// IMPORTANT: hook AFTER leaderboard render
-function attachLeaderboardClickHandlers() {
-    document.querySelectorAll(".leaderboard div").forEach(el => {
-        if (el.dataset.bound) return;
+// EVENT DELEGATION (works always)
+document.addEventListener("click", function(e) {
+    const el = e.target.closest("div");
+    if (!el) return;
 
-        const text = el.innerText || "";
-        if (!text.includes("#")) return;
+    const text = el.innerText || "";
 
-        el.style.cursor = "pointer";
-        el.dataset.bound = "true";
+    // detect leaderboard row
+    if (!text.includes("#") || !text.includes("Punkte")) return;
 
-        el.onclick = () => {
-            const nameMatch = text.match(/#\d+\s+(.*?)\s+/);
-            if (!nameMatch) return;
+    const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
+    if (!match) return;
 
-            const username = nameMatch[1];
-            showUserFishDetail(username);
-        };
-    });
-}
-
-// re-attach after render cycles
-setInterval(attachLeaderboardClickHandlers, 1000);
+    const username = match[1];
+    showUserFishDetail(username);
+});
