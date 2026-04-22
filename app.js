@@ -1279,3 +1279,40 @@ function bindChartToggleButtons(){
 }
 
 setTimeout(bindChartToggleButtons,300);
+
+
+// === WEATHER API INTEGRATION ===
+const WEATHER_API_KEY = "PASTE_YOUR_API_KEY_HERE";
+
+async function getWeather(lat, lon){
+  try{
+    const res = await fetch(`https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`);
+    return await res.json();
+  }catch(e){
+    console.error("Weather fetch failed", e);
+    return null;
+  }
+}
+
+function bindWeatherToMap(){
+  if(typeof map === "undefined") return;
+
+  map.on("click", async (e)=>{
+    const {lat, lng} = e.latlng;
+    const data = await getWeather(lat, lng);
+    if(!data || !data.current) return;
+
+    const popup = `
+      <div style="font-size:14px;line-height:1.4">
+        🌡 <b>${data.current.temp}°C</b><br>
+        💨 Wind: ${data.current.wind_speed} m/s<br>
+        ☁️ Wolken: ${data.current.clouds}%<br>
+        💧 Feuchte: ${data.current.humidity}%<br>
+      </div>
+    `;
+
+    L.popup().setLatLng(e.latlng).setContent(popup).openOn(map);
+  });
+}
+
+setTimeout(bindWeatherToMap, 500);
