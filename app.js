@@ -1240,34 +1240,3 @@ function renderSpeciesTimeline(){
     }
   });
 }
-
-
-// --- PREMIUM DEBUG SAFE ---
-function activatePremiumWeather() {
-    console.log("Premium ON");
-
-    if (window.windyOverlay) return;
-
-    const mapContainer = map.getContainer();
-
-    window.windyOverlay = document.createElement("iframe");
-    window.windyOverlay.id = "windyOverlay";
-
-    const center = map.getCenter();
-    const zoom = map.getZoom();
-
-    const url = `https://embed.windy.com/embed2.html?lat=${center.lat}&lon=${center.lng}&zoom=${zoom}&level=surface&overlay=wind`;
-
-    console.log(url);
-
-    window.windyOverlay.src = url;
-
-    mapContainer.appendChild(window.windyOverlay);
-}
-
-function deactivatePremiumWeather() {
-    if (window.windyOverlay) {
-        window.windyOverlay.remove();
-        window.windyOverlay = null;
-    }
-}
