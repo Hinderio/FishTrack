@@ -1242,43 +1242,45 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== LEADERBOARD WORKING FIX =====
+// ===== LEADERBOARD FINAL RENDER FIX =====
 document.addEventListener("click", function(e){
-    const row = e.target.closest("*");
-    if(!row) return;
+    const el = e.target.closest("div");
+    if(!el) return;
 
-    const text = row.innerText || "";
+    const text = el.innerText || "";
     if(!text.includes("#") || !text.includes("Punkte")) return;
 
     const match = text.match(/#\d+\s+(.*?)\s+\d+\s+Punkte/);
     if(!match) return;
 
     const username = match[1];
-    console.log("CLICK USER:", username);
+    console.log("👉 Filter gesetzt für:", username);
 
-    // find ANY select containing this username
+    // find dropdown
     const selects = document.querySelectorAll("select");
 
-    let found = false;
-
     selects.forEach(sel => {
-        const options = Array.from(sel.options);
-        const matchOption = options.find(o => o.text.trim() === username);
+        const option = Array.from(sel.options)
+            .find(o => o.text.trim() === username);
 
-        if(matchOption){
-            sel.value = matchOption.value;
+        if(option){
+            sel.value = option.value;
+
+            // trigger change
             sel.dispatchEvent(new Event("change"));
-            found = true;
+
+            // 🔥 FORCE RENDER
+            if (typeof renderCatches === "function") {
+                renderCatches();
+            }
+            if (typeof applyFilters === "function") {
+                applyFilters();
+            }
         }
     });
 
-    if(!found){
-        console.warn("❌ Kein Dropdown gefunden für:", username);
-    }
-
-    // switch to Fänge tab
-    const tabs = document.querySelectorAll("button, div");
-    tabs.forEach(el=>{
+    // switch tab to Fänge
+    document.querySelectorAll("button, div").forEach(el=>{
         if(el.innerText && el.innerText.toLowerCase().includes("fänge")){
             el.click();
         }
