@@ -5,13 +5,19 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap'
 }).addTo(map);
 
-// === WEATHER API ===
-const WEATHER_API_KEY = "4c5a729e0897dca74d57292846be41ab";
-
-&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`);
-    return await res.json();
+// === WEATHER API (Open-Meteo, no API key needed) ===
+async function getWeather(lat, lon){
+  try{
+    const res = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+    );
+    if(!res.ok){
+      throw new Error(`Weather ${res.status}`);
+    }
+    const data = await res.json();
+    return data.current_weather || null;
   }catch(e){
-    console.error(e);
+    console.error("Weather fetch failed:", e);
     return null;
   }
 }
@@ -25,11 +31,11 @@ const WeatherControl = L.Control.extend({
     div.innerHTML = "🌡️";
 
     L.DomEvent.disableClickPropagation(div);
-
-    div.onclick = () => {
+    L.DomEvent.on(div, 'click', (e) => {
+      L.DomEvent.stop(e);
       weatherEnabled = !weatherEnabled;
       div.classList.toggle("active", weatherEnabled);
-    };
+    });
 
     return div;
   }
@@ -48,31 +54,16 @@ map.on("click", async (e) => {
   const { lat, lng } = e.latlng;
   const data = await getWeather(lat, lng);
 
-  if(!data || !data.current) return;
+  if(!data) return;
 
   L.popup()
     .setLatLng(e.latlng)
     .setContent(`
-      🌡 <b>${data.current.temp}°C</b><br>
-      💨 Wind: ${data.current.wind_speed} m/s<br>
-      ☁️ Wolken: ${data.current.clouds}%<br>
-      💧 Feuchte: ${data.current.humidity}%<br>
+      <div class="weather-popup">
+        🌡 <b>${Math.round(data.temperature)}°C</b><br>
+        💨 Wind: ${Math.round(data.windspeed)} km/h<br>
+        🧭 Richtung: ${Math.round(data.winddirection)}°
+      </div>
     `)
     .openOn(map);
 });
-
-
-// === CLEAN WEATHER FUNCTION ===
-async function getWeather(lat, lon){
-  try{
-    const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
-    );
-    if(!res.ok) return null;
-    const data = await res.json();
-    return data.current_weather;
-  }catch(e){
-    console.error(e);
-    return null;
-  }
-}

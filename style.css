@@ -34,3 +34,9 @@ html, body {
 .weather-control:hover {
   background: rgba(30,50,70,0.95);
 }
+
+
+.weather-popup{
+  font-size:14px;
+  line-height:1.45;
+}
