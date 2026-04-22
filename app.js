@@ -1242,19 +1242,8 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== ROBUST TOPO TOGGLE (FINAL) =====
+// ===== TOPO CONTROL (VISIBLE FIX) =====
 setTimeout(() => {
-
-    // find ALL tile layers
-    let baseLayers = [];
-    map.eachLayer(layer => {
-        if (layer instanceof L.TileLayer) {
-            baseLayers.push(layer);
-        }
-    });
-
-    // assume first is current base
-    let osmLayer = baseLayers[0];
 
     const topoLayer = L.tileLayer(
         "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
@@ -1265,39 +1254,44 @@ setTimeout(() => {
     );
 
     let isTopo = false;
+    let baseLayer = null;
 
-    const btn = document.createElement("button");
-    btn.innerText = "⛰";
-    btn.className = "map-weather-btn";
-    btn.style.top = "110px";
-
-    btn.onclick = () => {
-
-        console.log("TOGGLE TOPO", isTopo);
-
-        if (!isTopo) {
-            // remove ALL tile layers
-            map.eachLayer(layer => {
-                if (layer instanceof L.TileLayer) {
-                    map.removeLayer(layer);
-                }
-            });
-
-            topoLayer.addTo(map);
-            isTopo = true;
-
-        } else {
-            map.removeLayer(topoLayer);
-
-            // re-add original layer
-            if (osmLayer) {
-                osmLayer.addTo(map);
-            }
-
-            isTopo = false;
+    map.eachLayer(l=>{
+        if(l instanceof L.TileLayer && !baseLayer){
+            baseLayer = l;
         }
+    });
+
+    const topoControl = L.control({ position: "topright" });
+
+    topoControl.onAdd = function () {
+        const btn = L.DomUtil.create("button", "leaflet-bar");
+        btn.innerHTML = "⛰";
+        btn.style.width = "40px";
+        btn.style.height = "40px";
+        btn.style.cursor = "pointer";
+
+        L.DomEvent.on(btn, "click", function (e) {
+            L.DomEvent.stopPropagation(e);
+            L.DomEvent.preventDefault(e);
+
+            console.log("TOPO CLICK", isTopo);
+
+            if (!isTopo) {
+                if (baseLayer) map.removeLayer(baseLayer);
+                topoLayer.addTo(map);
+                isTopo = true;
+            } else {
+                map.removeLayer(topoLayer);
+                if (baseLayer) baseLayer.addTo(map);
+                isTopo = false;
+            }
+        });
+
+        return btn;
     };
 
-    map.getContainer().appendChild(btn);
+    topoControl.addTo(map);
 
 }, 1000);
+
