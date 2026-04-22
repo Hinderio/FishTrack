@@ -1242,36 +1242,48 @@ function renderSpeciesTimeline(){
 }
 
 
-// ===== TOPO TOGGLE FEATURE =====
+// ===== TOPO TOGGLE FIX (BASE LAYER SWITCH) =====
 
-// create topo layer
-const topoLayer = L.tileLayer(
-    "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-    {
-        maxZoom: 17,
-        attribution: "© OpenTopoMap"
-    }
-);
+// assume existing osm layer variable
+let currentBaseLayer = null;
 
-// keep reference to current base layer
-let isTopoActive = false;
-
-// create button after map is initialized
 setTimeout(() => {
+    // find existing tile layer (first one)
+    map.eachLayer(layer => {
+        if (layer instanceof L.TileLayer && !currentBaseLayer) {
+            currentBaseLayer = layer;
+        }
+    });
+
+    const topoLayer = L.tileLayer(
+        "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 17,
+            attribution: "© OpenTopoMap"
+        }
+    );
+
+    let isTopo = false;
+
     const btn = document.createElement("button");
     btn.innerText = "⛰";
     btn.className = "map-weather-btn";
     btn.style.top = "110px";
 
     btn.onclick = () => {
-        if (!isTopoActive) {
-            map.addLayer(topoLayer);
-            isTopoActive = true;
+        if (!currentBaseLayer) return;
+
+        if (!isTopo) {
+            map.removeLayer(currentBaseLayer);
+            topoLayer.addTo(map);
+            isTopo = true;
         } else {
             map.removeLayer(topoLayer);
-            isTopoActive = false;
+            currentBaseLayer.addTo(map);
+            isTopo = false;
         }
     };
 
     map.getContainer().appendChild(btn);
-}, 500);
+}, 800);
+
