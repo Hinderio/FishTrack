@@ -1491,3 +1491,9 @@ body.mobile-mode canvas {
 body.mobile-mode #screen-datascience .ds-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
 body.mobile-mode #screen-datascience .ds-wide{grid-column:span 2}
 @media (orientation:portrait) and (max-width:980px){body.mobile-mode #screen-datascience .ds-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* DATA LAB FIX */
+.data-lab-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.data-lab-chart{height:320px;min-height:320px;max-height:320px}
+.data-lab-chart.placeholder{opacity:.15;border:1px dashed rgba(255,255,255,.1)}
+@media(max-width:768px){.data-lab-grid{grid-template-columns:1fr}}

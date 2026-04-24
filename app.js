@@ -1635,3 +1635,9 @@ setTimeout(() => clearInterval(_bonusEnhancerTimer), 15000);
     if(document.getElementById('screen-datascience')?.classList.contains('active')) Object.values(dsCharts).forEach(c=>c.resize());
   });
 })();
+
+
+let dataLabCharts={},dataLabResizeObserver=null;
+function destroyDataLabCharts(){Object.values(dataLabCharts).forEach(c=>c&&c.destroy&&c.destroy());dataLabCharts={};}
+function initResizeObserver(){if(dataLabResizeObserver)return;dataLabResizeObserver=new ResizeObserver(entries=>{entries.forEach(e=>{const id=e.target.dataset.chartId;dataLabCharts[id]&&dataLabCharts[id].resize();});});}
+function ensureEvenCharts(c){const items=c.querySelectorAll('.data-lab-chart');if(items.length%2!==0){const d=document.createElement('div');d.className='data-lab-chart placeholder';c.appendChild(d);}}
