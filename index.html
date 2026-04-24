@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="style.css?v=122" />
+  <link rel="stylesheet" href="style.css?v=121" />
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
@@ -230,25 +230,6 @@
         </div>
       </section>
 
-
-      <section id="screen-datascience" class="screen">
-        <section class="hero-card glass ds-hero">
-          <div>
-            <p class="eyebrow">Data Science Lab</p>
-            <h2>Advanced Fishing Intelligence</h2>
-            <p>Explorative Muster, Ausreisser, Hot Zones und Performance-Signale – komplett datengetrieben und responsive.</p>
-          </div>
-          <div class="ds-hero-orb"><span>AI</span><small>Insights</small></div>
-        </section>
-        <section class="panel glass ds-filter-panel"><div class="panel-head panel-head-split"><div><h3>Data Science Filter</h3><span class="subtle">isoliert von Dashboard und Analytics</span></div><select id="dsTournamentSelect" class="dashboard-select"><option value="overview">Overview</option></select></div></section>
-        <div id="dsKpiGrid" class="ds-kpi-grid"></div>
-        <div class="grid ds-grid-3"><section class="panel glass ds-card ds-wide"><div class="panel-head"><h3>Catch Intelligence Timeline</h3><span class="subtle">Volumen, Ø Gewicht, Trend</span></div><canvas id="dsTimelineChart" height="250"></canvas></section><section class="panel glass ds-card"><div class="panel-head"><h3>Trophy Radar</h3><span class="subtle">Teilnehmerprofil</span></div><canvas id="dsRadarChart" height="250"></canvas></section></div>
-        <div class="grid ds-grid-3"><section class="panel glass ds-card"><div class="panel-head"><h3>Length × Weight Clusters</h3></div><canvas id="dsScatterChart" height="240"></canvas></section><section class="panel glass ds-card"><div class="panel-head"><h3>Species Mix</h3></div><canvas id="dsDoughnutChart" height="240"></canvas></section><section class="panel glass ds-card"><div class="panel-head"><h3>24h Activity Polar</h3></div><canvas id="dsPolarChart" height="240"></canvas></section></div>
-        <div class="grid ds-grid-3"><section class="panel glass ds-card"><div class="panel-head"><h3>Bait Efficiency Index</h3></div><canvas id="dsBaitChart" height="230"></canvas></section><section class="panel glass ds-card"><div class="panel-head"><h3>Length Distribution</h3></div><canvas id="dsHistogramChart" height="230"></canvas></section><section class="panel glass ds-card"><div class="panel-head"><h3>Participant Consistency</h3></div><canvas id="dsConsistencyChart" height="230"></canvas></section></div>
-        <div class="grid ds-grid-3"><section class="panel glass ds-card"><div class="panel-head"><h3>Species Treemap</h3><span class="subtle">Anteil nach Fangzahl</span></div><div id="dsTreemap" class="ds-treemap"></div></section><section class="panel glass ds-card ds-wide"><div class="panel-head"><h3>Weekday × Hour Heatmap</h3><span class="subtle">wann es wirklich knallt</span></div><div id="dsHeatmap" class="ds-heatmap"></div></section></div>
-        <div class="grid ds-grid-3"><section class="panel glass ds-card ds-wide"><div class="panel-head"><h3>Spot × Bait Network</h3><span class="subtle">stärkste Kombinationen</span></div><div id="dsNetwork" class="ds-network"></div></section><section class="panel glass ds-card"><div class="panel-head"><h3>Outlier Detector</h3><span class="subtle">Top-Fänge & Ausreisser</span></div><div id="dsOutliers" class="stack-list"></div></section></div>
-      </section>
-
       
       <section id="screen-tournaments" class="screen">
         <div class="grid two-columns">
@@ -357,7 +338,6 @@
       <button data-screen="catches" class="nav-btn">Fänge</button>
       <button data-screen="map" class="nav-btn">Karte</button>
       <button data-screen="analytics" class="nav-btn">Analytics</button>
-      <button data-screen="datascience" class="nav-btn">Data Lab</button>
       <button data-screen="tournaments" class="nav-btn">Turniere</button>
       <button data-screen="participants" class="nav-btn">Team</button>
     </nav>
@@ -380,6 +360,6 @@
   console.log('Supabase erfolgreich verbunden');
 </script>
 
-<script src="app.js?v=122"></script>
+<script src="app.js?v=121"></script>
 </body>
 </html>
