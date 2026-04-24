@@ -1396,3 +1396,35 @@ function reopenTournament(tournamentId){
   persist();
   rerender();
 }
+
+
+// ===== ROBUST TOURNAMENT BONUS (FIX) =====
+function getTournamentBonusMap(){
+  const map = {};
+
+  const list = (typeof tournaments !== "undefined" && tournaments) 
+    || (typeof window !== "undefined" && window.tournaments) 
+    || [];
+
+  list.forEach(t=>{
+    if(!t || !t.finished || !t.winner) return;
+
+    const ids = t.winner.participantIds || [];
+    const names = t.winner.names || [];
+
+    if(ids.length){
+      ids.forEach(id=>{
+        if(!map[id]) map[id]=0;
+        map[id]+= (t.winnerPoints || 0);
+      });
+    } else {
+      names.forEach(n=>{
+        const clean = (n || "").replace(/[^a-zA-Z0-9 ]/g,"").trim();
+        if(!map[clean]) map[clean]=0;
+        map[clean]+= (t.winnerPoints || 0);
+      });
+    }
+  });
+
+  return map;
+}
