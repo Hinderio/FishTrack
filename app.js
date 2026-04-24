@@ -1272,3 +1272,29 @@ setTimeout(() => {
 
 }, 1000);
 
+
+
+
+// MOBILE MODE ADDON
+(function () {
+  const KEY = "mobileModeEnabled";
+
+  function applyMobileMode() {
+    const enabled = localStorage.getItem(KEY) === "true";
+    document.body.classList.toggle("mobile-mode", enabled);
+  }
+
+  function toggleMobileMode() {
+    const current = localStorage.getItem(KEY) === "true";
+    localStorage.setItem(KEY, (!current).toString());
+    applyMobileMode();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    applyMobileMode();
+    const btn = document.getElementById("mobileToggle");
+    if (btn) {
+      btn.addEventListener("click", toggleMobileMode);
+    }
+  });
+})();
