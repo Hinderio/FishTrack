@@ -1496,7 +1496,8 @@ function enhanceLeaderboardTournamentBonus(){
 
     const badge = document.createElement('span');
     badge.className = `tournament-bonus bonus-${tournamentBonusTier(bonus)}`;
-    badge.textContent = `🏆 +${bonus}`;
+    const trophyCount = Math.max(1, Math.floor(bonus / 25));
+badge.textContent = `🏆 x${trophyCount} +${bonus}`;
     pointsBadge.insertAdjacentElement('afterend', badge);
     row.dataset.tournamentBonusEnhanced = '1';
   });
