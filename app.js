@@ -1526,3 +1526,34 @@ badge.textContent = `🏆 x${trophyCount} +${bonus}`;
 const _bonusEnhancerTimer = setInterval(enhanceLeaderboardTournamentBonus, 1000);
 setTimeout(() => clearInterval(_bonusEnhancerTimer), 15000);
 
+
+
+function initMapFab() {
+  const fab = document.querySelector('.map-fab');
+  const mainBtn = document.getElementById('mapFabMain');
+  const weatherBtn = document.getElementById('weatherMapBtn');
+  const depthBtn = document.getElementById('depthMapBtn');
+
+  if (mainBtn && !mainBtn.dataset.bound) {
+    mainBtn.addEventListener('click', () => {
+      fab.classList.toggle('open');
+    });
+    mainBtn.dataset.bound = 'true';
+  }
+
+  if (weatherBtn && !weatherBtn.dataset.bound) {
+    weatherBtn.addEventListener('click', () => {
+      window.open('https://openweathermap.org/weathermap', '_blank');
+    });
+    weatherBtn.dataset.bound = 'true';
+  }
+
+  if (depthBtn && !depthBtn.dataset.bound) {
+    depthBtn.addEventListener('click', () => {
+      window.open('https://www.c-map.com/chartexplorer/?lat=56.8790044&long=14.8058522&map=Discover&defaultZoom=15', '_blank');
+    });
+    depthBtn.dataset.bound = 'true';
+  }
+}
+
+requestAnimationFrame(initMapFab);

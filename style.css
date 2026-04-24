@@ -1465,3 +1465,53 @@ body.mobile-mode canvas {
 
 .t-group-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
 .t-group-title{margin:10px 0;opacity:.8}
+
+
+.map-fab {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.map-fab-main {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), #4facfe);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+}
+
+.map-fab-menu {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: all 0.25s ease;
+}
+
+.map-fab.open .map-fab-menu {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.map-fab-item {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.12);
+  color: var(--text);
+  cursor: pointer;
+}
