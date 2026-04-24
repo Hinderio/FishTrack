@@ -1309,81 +1309,36 @@ setTimeout(() => {
 })();
 
 
-// ===== TOURNAMENT FINISH FEATURE =====
+// ===== TOURNAMENT FINISH UI FIX =====
 
+// inject button into tournament card header
 setTimeout(() => {
-    if (document.getElementById("finishTournamentBtn")) return;
 
-    const btn = document.createElement("button");
-    btn.id = "finishTournamentBtn";
-    btn.innerText = "🏁 Turnier abschliessen";
-    btn.style.position = "fixed";
-    btn.style.bottom = "20px";
-    btn.style.right = "20px";
-    btn.style.zIndex = "9999";
-    btn.style.padding = "10px 14px";
-    btn.style.borderRadius = "10px";
-    btn.style.background = "#1e3a4a";
-    btn.style.color = "white";
-    btn.style.border = "none";
-    btn.style.cursor = "pointer";
+    const cards = document.querySelectorAll(".panel.glass");
 
-    btn.onclick = () => finishTournament();
+    cards.forEach(card => {
+        if (card.innerText && card.innerText.toLowerCase().includes("teilnehmer")) {
 
-    document.body.appendChild(btn);
-}, 1000);
+            if (card.querySelector(".finish-btn")) return;
 
-function finishTournament() {
+            const btn = document.createElement("button");
+            btn.innerText = "🏁";
+            btn.className = "finish-btn";
+            btn.style.marginLeft = "8px";
+            btn.style.background = "transparent";
+            btn.style.border = "none";
+            btn.style.cursor = "pointer";
+            btn.style.fontSize = "18px";
 
-    if (!window.currentTournament) {
-        console.warn("Kein aktives Turnier gefunden");
-        return;
-    }
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                finishTournament();
+            };
 
-    const t = window.currentTournament;
-
-    if (t.finished) {
-        console.warn("Turnier bereits abgeschlossen");
-        return;
-    }
-
-    const catches = window.catches || window.allCatches || [];
-
-    const tCatches = catches.filter(c => c.tournamentId === t.id);
-
-    const totalCatches = tCatches.length;
-
-    const start = new Date(t.startDate || Date.now());
-    const end = new Date();
-    const durationDays = Math.max(1, Math.ceil((end - start)/(1000*60*60*24)));
-
-    const scores = {};
-    tCatches.forEach(c => {
-        if (!scores[c.angler]) scores[c.angler] = 0;
-        scores[c.angler] += 1;
+            const header = card.querySelector(".panel-head");
+            if (header) header.appendChild(btn);
+        }
     });
 
-    const sorted = Object.entries(scores)
-        .sort((a,b)=>b[1]-a[1]);
+}, 800);
 
-    if (!sorted.length) {
-        console.warn("Keine Fänge vorhanden");
-        return;
-    }
-
-    const winner = sorted[0];
-
-    const points = Math.round((totalCatches * 2) + (durationDays * 5));
-
-    t.finished = true;
-    t.finishedAt = new Date().toISOString();
-    t.winner = {
-        name: winner[0],
-        catches: winner[1]
-    };
-    t.winnerPoints = points;
-
-    console.log("🏆 Gewinner:", t.winner.name, "| Punkte:", points);
-
-    alert("🏆 Gewinner: " + t.winner.name + "\n🎯 +" + points + " Punkte");
-}
