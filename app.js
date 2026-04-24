@@ -85,12 +85,18 @@ if (typeof renderCharts === 'function') {
   renderCharts();
 }
 
-if (typeof window.renderSpeciesTimeline === "function") {
+if (typeof window.renderSpeciesTimeline === 'function') {
   try {
-    window.renderSpeciesTimeline(data);
+  if (typeof renderSpeciesTimeline === "function") {
+  try {
+    renderSpeciesTimeline();
   } catch (e) {
     console.warn("Timeline error:", e);
   }
+}
+} catch (e) {
+  console.warn("Timeline error:", e);
+}
 }
 
 hasLoadedFromSupabase = true;
@@ -538,7 +544,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.__timelineSourceCatches = matching;
         if (typeof renderSpeciesTimeline === 'function') {
-          window.try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
+          try {
+  if (typeof renderSpeciesTimeline === "function") {
+  try {
+    renderSpeciesTimeline();
+  } catch (e) {
+    console.warn("Timeline error:", e);
+  }
+}
+} catch (e) {
+  console.warn("Timeline error:", e);
+}
         }
       };
       charts.daily.update();
@@ -585,7 +601,13 @@ function refreshDashboardTournamentSelect(){
     if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
     if(typeof renderCharts === 'function') renderCharts();
     if(typeof renderMap === 'function') renderMap();
-    if(typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
+    if(typeof renderSpeciesTimeline === 'function') try{if (typeof renderSpeciesTimeline === "function") {
+  try {
+    renderSpeciesTimeline();
+  } catch (e) {
+    console.warn("Timeline error:", e);
+  }
+}}catch(e){console.error("Timeline crash:",e);}
   });
 }
 
@@ -760,7 +782,13 @@ setTimeout(() => {
     try {
       if (typeof renderDashboard === 'function') renderDashboard();
       if (typeof renderCharts === 'function') renderCharts();
-      if (typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
+      if (typeof renderSpeciesTimeline === 'function') try{if (typeof renderSpeciesTimeline === "function") {
+  try {
+    renderSpeciesTimeline();
+  } catch (e) {
+    console.warn("Timeline error:", e);
+  }
+}}catch(e){console.error("Timeline crash:",e);}
       if (typeof renderMap === 'function') renderMap();
     } finally {
       state.catches = original;
@@ -815,7 +843,13 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if (typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
+    if (typeof renderSpeciesTimeline === 'function') try{if (typeof renderSpeciesTimeline === "function") {
+  try {
+    renderSpeciesTimeline();
+  } catch (e) {
+    console.warn("Timeline error:", e);
+  }
+}}catch(e){console.error("Timeline crash:",e);}
   } finally {
     state.catches = original;
   }
@@ -911,7 +945,13 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if(typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
+    if(typeof renderSpeciesTimeline === 'function') try{if (typeof renderSpeciesTimeline === "function") {
+  try {
+    renderSpeciesTimeline();
+  } catch (e) {
+    console.warn("Timeline error:", e);
+  }
+}}catch(e){console.error("Timeline crash:",e);}
   } finally {
     state.catches = original;
   }
