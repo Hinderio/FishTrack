@@ -1345,27 +1345,32 @@ canvas + ul,
   to{transform:rotate(360deg)}
 }
 
-/* MOBILE BUTTON LIKE DARKMODE */
+/* FIXED MOBILE BUTTON (MATCH DARKMODE) */
 .mobile-toggle-btn {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background: #1e293b;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(6px);
   color: white;
-  border: none;
+  border: 1px solid rgba(255,255,255,0.1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  margin-left: 10px;
 }
 
-/* MOBILE MODE FIX */
-body.mobile-mode .dashboard,
-body.mobile-mode .row,
+/* MOBILE MODE REAL EFFECT */
+body.mobile-mode .app-shell,
+body.mobile-mode main,
+body.mobile-mode .content {
+  display: block !important;
+}
+
 body.mobile-mode .grid,
-body.mobile-mode .flex {
-  flex-direction: column !important;
+body.mobile-mode .grid.cards-4,
+body.mobile-mode .grid.two-columns {
+  grid-template-columns: 1fr !important;
 }
 
 body.mobile-mode canvas {

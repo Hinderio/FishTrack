@@ -1275,30 +1275,42 @@ setTimeout(() => {
 
 (function(){
  const KEY="mobileModeEnabled";
+
  function apply(){
   const en=localStorage.getItem(KEY)==="true";
   document.body.classList.toggle("mobile-mode",en);
  }
+
  function toggle(){
   const cur=localStorage.getItem(KEY)==="true";
   localStorage.setItem(KEY,(!cur).toString());
   apply();
  }
+
  document.addEventListener("DOMContentLoaded",()=>{
   apply();
-  const darkBtn=document.querySelector("button"); // approximate anchor
+
+  // FIND DARKMODE BUTTON (specific)
+  const header=document.querySelector(".topbar, header");
+  const existingBtns=header ? header.querySelectorAll("button") : [];
+
   const btn=document.createElement("button");
   btn.id="mobileToggle";
   btn.className="mobile-toggle-btn";
   btn.innerHTML="📱";
-  if(darkBtn && darkBtn.parentNode){
-    darkBtn.parentNode.appendChild(btn);
+
+  if(existingBtns.length>0){
+    existingBtns[existingBtns.length-1].after(btn);
+  } else if(header){
+    header.appendChild(btn);
   } else {
     document.body.appendChild(btn);
-    btn.style.position="fixed";
-    btn.style.top="20px";
-    btn.style.right="20px";
   }
-  btn.addEventListener("click",toggle);
+
+  btn.addEventListener("click",()=>{
+    toggle();
+    console.log("Mobile toggled");
+  });
+
  });
 })();
