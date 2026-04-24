@@ -421,9 +421,9 @@ async function init(){
   }
 
   document.getElementById('timestampInput').value =
-    new Date(Date.now()-new Date().getTimezoneOffset()*60000)
-      .toISOString()
-      .slice(0,16);
+  new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
 
   attachEvents();
   initLocationPicker();
