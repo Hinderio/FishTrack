@@ -1307,3 +1307,83 @@ setTimeout(() => {
   btn.addEventListener("click",toggle);
  });
 })();
+
+
+// ===== TOURNAMENT FINISH FEATURE =====
+
+setTimeout(() => {
+    if (document.getElementById("finishTournamentBtn")) return;
+
+    const btn = document.createElement("button");
+    btn.id = "finishTournamentBtn";
+    btn.innerText = "🏁 Turnier abschliessen";
+    btn.style.position = "fixed";
+    btn.style.bottom = "20px";
+    btn.style.right = "20px";
+    btn.style.zIndex = "9999";
+    btn.style.padding = "10px 14px";
+    btn.style.borderRadius = "10px";
+    btn.style.background = "#1e3a4a";
+    btn.style.color = "white";
+    btn.style.border = "none";
+    btn.style.cursor = "pointer";
+
+    btn.onclick = () => finishTournament();
+
+    document.body.appendChild(btn);
+}, 1000);
+
+function finishTournament() {
+
+    if (!window.currentTournament) {
+        console.warn("Kein aktives Turnier gefunden");
+        return;
+    }
+
+    const t = window.currentTournament;
+
+    if (t.finished) {
+        console.warn("Turnier bereits abgeschlossen");
+        return;
+    }
+
+    const catches = window.catches || window.allCatches || [];
+
+    const tCatches = catches.filter(c => c.tournamentId === t.id);
+
+    const totalCatches = tCatches.length;
+
+    const start = new Date(t.startDate || Date.now());
+    const end = new Date();
+    const durationDays = Math.max(1, Math.ceil((end - start)/(1000*60*60*24)));
+
+    const scores = {};
+    tCatches.forEach(c => {
+        if (!scores[c.angler]) scores[c.angler] = 0;
+        scores[c.angler] += 1;
+    });
+
+    const sorted = Object.entries(scores)
+        .sort((a,b)=>b[1]-a[1]);
+
+    if (!sorted.length) {
+        console.warn("Keine Fänge vorhanden");
+        return;
+    }
+
+    const winner = sorted[0];
+
+    const points = Math.round((totalCatches * 2) + (durationDays * 5));
+
+    t.finished = true;
+    t.finishedAt = new Date().toISOString();
+    t.winner = {
+        name: winner[0],
+        catches: winner[1]
+    };
+    t.winnerPoints = points;
+
+    console.log("🏆 Gewinner:", t.winner.name, "| Punkte:", points);
+
+    alert("🏆 Gewinner: " + t.winner.name + "\n🎯 +" + points + " Punkte");
+}
