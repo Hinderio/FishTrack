@@ -1345,7 +1345,7 @@ canvas + ul,
   to{transform:rotate(360deg)}
 }
 
-/* FIXED MOBILE BUTTON (MATCH DARKMODE) */
+/* MOBILE BUTTON */
 .mobile-toggle-btn {
   width: 42px;
   height: 42px;
@@ -1360,19 +1360,21 @@ canvas + ul,
   cursor: pointer;
 }
 
-/* MOBILE MODE REAL EFFECT */
-body.mobile-mode .app-shell,
-body.mobile-mode main,
-body.mobile-mode .content {
-  display: block !important;
-}
-
-body.mobile-mode .grid,
+/* MOBILE MODE WITH 2 COLUMNS */
 body.mobile-mode .grid.cards-4,
 body.mobile-mode .grid.two-columns {
-  grid-template-columns: 1fr !important;
+  grid-template-columns: repeat(2, 1fr) !important;
 }
 
+/* SMALLER PHONES fallback */
+@media (max-width: 480px) {
+  body.mobile-mode .grid.cards-4,
+  body.mobile-mode .grid.two-columns {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Charts full width */
 body.mobile-mode canvas {
   width: 100% !important;
   height: auto !important;

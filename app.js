@@ -1290,7 +1290,6 @@ setTimeout(() => {
  document.addEventListener("DOMContentLoaded",()=>{
   apply();
 
-  // FIND DARKMODE BUTTON (specific)
   const header=document.querySelector(".topbar, header");
   const existingBtns=header ? header.querySelectorAll("button") : [];
 
@@ -1303,14 +1302,8 @@ setTimeout(() => {
     existingBtns[existingBtns.length-1].after(btn);
   } else if(header){
     header.appendChild(btn);
-  } else {
-    document.body.appendChild(btn);
   }
 
-  btn.addEventListener("click",()=>{
-    toggle();
-    console.log("Mobile toggled");
-  });
-
+  btn.addEventListener("click",toggle);
  });
 })();
