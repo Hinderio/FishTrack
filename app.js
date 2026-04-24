@@ -85,8 +85,12 @@ if (typeof renderCharts === 'function') {
   renderCharts();
 }
 
-if (typeof window.renderSpeciesTimeline === 'function') {
-  window.try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
+if (typeof window.renderSpeciesTimeline === "function") {
+  try {
+    window.renderSpeciesTimeline(data);
+  } catch (e) {
+    console.warn("Timeline error:", e);
+  }
 }
 
 hasLoadedFromSupabase = true;
