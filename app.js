@@ -1,18 +1,44 @@
-
-
-// ===== TOURNAMENT BONUS AGGREGATION =====
 function getTournamentBonusMap(){
   const map = {};
-  (window.tournaments || []).forEach(t=>{
-    if(t.finished && t.winner && t.winner.names){
-      t.winner.names.forEach(name=>{
-        if(!map[name]) map[name]=0;
-        map[name]+= (t.winnerPoints || 0);
-      });
-    }
+  const list = window._tournaments || (typeof tournaments !== "undefined" ? tournaments : []) || [];
+
+  list.forEach(t => {
+    if (!t || !t.finished || !t.winner) return;
+
+    const names = Array.isArray(t.winner.names)
+      ? t.winner.names
+      : (t.winner.name ? [t.winner.name] : []);
+
+    const points = Number(t.winnerPoints ?? t.winner_points ?? 0);
+    if (!points || points <= 0) return;
+
+    names.forEach(name => {
+      const cleanName = String(name || "").replace(/[^a-zA-Z0-9 äöüÄÖÜß]/g, "").trim();
+      if (!cleanName) return;
+      map[cleanName] = (map[cleanName] || 0) + points;
+    });
+
+    const ids = Array.isArray(t.winner.participantIds) ? t.winner.participantIds : [];
+    ids.forEach(id => {
+      if (!id) return;
+      map[id] = (map[id] || 0) + points;
+    });
   });
+
   return map;
 }
+
+function tournamentBonusTier(points){
+  if(points >= 250) return 6;
+  if(points >= 200) return 5;
+  if(points >= 150) return 4;
+  if(points >= 100) return 3;
+  if(points >= 50) return 2;
+  return 1;
+}
+
+
+
 
 const STORAGE_KEY='fishtrack-norway-v2';const THEME_KEY='fishtrack-theme';const speciesPalette={'Barsch':'#8ff0a7','Hecht':'#ffb84d','Zander':'#66e7ff','Forelle':'#ff8ab4','Dorsch':'#b7a0ff','Andere':'#d4dbe3'};const RULESETS={all_fish:{id:'all_fish',name:'Jeder Fisch zählt',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:5,bonusLargestPerSpecies:3,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0},first_fish:{id:'first_fish',name:'Erster Fisch gewinnt',pointsPerFish:1,bonusFirstFish:10,bonusLargestFish:5,bonusLargestPerSpecies:0,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0},species_hunter:{id:'species_hunter',name:'Artenjäger',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:0,bonusLargestPerSpecies:5,bonusNewArea:0,bonusOver80cm:0,bonusOver100cm:0,bonusNewSpecies:3},trophy_hunter:{id:'trophy_hunter',name:'Trophy Hunter',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:10,bonusLargestPerSpecies:3,bonusNewArea:0,bonusOver80cm:2,bonusOver100cm:5},explorer:{id:'explorer',name:'Entschneidern / Spot Explorer',pointsPerFish:1,bonusFirstFish:0,bonusLargestFish:5,bonusLargestPerSpecies:0,bonusNewArea:5,bonusOver80cm:0,bonusOver100cm:0}};const defaultData={meta:{tripName:'Fish Battle / Global',tripSubtitle:'Fänge, Fangorte und Teilnehmer-Leaderboard'},participants:[{id:crypto.randomUUID(),name:'Nico',color:'#4ad7d1',avatar:'🎣'},{id:crypto.randomUUID(),name:'Dad',color:'#ffb84d',avatar:'🧢'}],catches:[],tournaments:[]};(()=>{const now=new Date(),p1=defaultData.participants[0].id,p2=defaultData.participants[1].id,baseLat=59.915,baseLng=10.78,demo=[['Hecht',91,6.8,p1,-6,6,'Gummifisch','Nordufer'],['Barsch',34,0.65,p2,-5,18,'Spinner','Steg'],['Zander',63,2.7,p1,-4,21,'Jig','Tiefenkante'],['Barsch',29,0.42,p1,-3,7,'Wobbler','Schilfkante'],['Hecht',78,4.9,p2,-2,9,'Jerkbait','Bucht Ost'],['Forelle',47,1.4,p1,-1,14,'Spinner','Zulauf'],['Zander',58,2.1,p2,0,20,'Jig','Tiefenkante']];defaultData.catches=demo.map((d,i)=>{const dt=new Date(now);dt.setDate(now.getDate()+d[4]);dt.setHours(d[5],20,0,0);return{id:crypto.randomUUID(),species:d[0],customSpecies:'',lengthCm:d[1],weightKg:d[2],participantId:d[3],timestamp:dt.toISOString(),bait:d[6],spotLabel:d[7],note:'',location:{lat:baseLat+((i%3)*0.015),lng:baseLng+((i%4)*0.02),label:d[7]},createdAt:new Date().toISOString()}})})();
 
@@ -1449,33 +1475,33 @@ function reopenTournament(tournamentId){
 }
 
 
-// ===== ROBUST TOURNAMENT BONUS (FIX) =====
-function getTournamentBonusMap(){
-  const map = {};
 
-  const list = window._tournaments || (typeof tournaments !== "undefined" && tournaments) 
-    || (typeof window !== "undefined" && window.tournaments) 
-    || [];
 
-  list.forEach(t=>{
-    if(!t || !t.finished || !t.winner) return;
+function enhanceLeaderboardTournamentBonus(){
+  const bonusMap = getTournamentBonusMap();
+  document.querySelectorAll('.leaderboard-card,.leaderboard-item,.list-card,.rank-card,article').forEach(row => {
+    if(row.dataset.tournamentBonusEnhanced === '1') return;
+    const text = row.innerText || '';
+    if(!text.includes('Punkte')) return;
 
-    const ids = t.winner.participantIds || [];
-    const names = t.winner.names || [];
+    const nameMatch = text.match(/#\d+\s+(.+?)\s+\d+\s+Punkte/);
+    if(!nameMatch) return;
 
-    if(ids.length){
-      ids.forEach(id=>{
-        if(!map[id]) map[id]=0;
-        map[id]+= (t.winnerPoints || 0);
-      });
-    } else {
-      names.forEach(n=>{
-        const clean = (n || "").replace(/[^a-zA-Z0-9 ]/g,"").trim();
-        if(!map[clean]) map[clean]=0;
-        map[clean]+= (t.winnerPoints || 0);
-      });
-    }
+    const cleanName = String(nameMatch[1] || '').replace(/[^a-zA-Z0-9 äöüÄÖÜß]/g, '').trim();
+    const bonus = bonusMap[cleanName] || 0;
+    if(!bonus || bonus <= 0) return;
+
+    const pointsBadge = Array.from(row.querySelectorAll('span,div')).find(el => /Punkte$/.test((el.innerText || '').trim()));
+    if(!pointsBadge) return;
+
+    const badge = document.createElement('span');
+    badge.className = `tournament-bonus bonus-${tournamentBonusTier(bonus)}`;
+    badge.textContent = `🏆 +${bonus}`;
+    pointsBadge.insertAdjacentElement('afterend', badge);
+    row.dataset.tournamentBonusEnhanced = '1';
   });
-
-  return map;
 }
+
+const _bonusEnhancerTimer = setInterval(enhanceLeaderboardTournamentBonus, 1000);
+setTimeout(() => clearInterval(_bonusEnhancerTimer), 15000);
+
