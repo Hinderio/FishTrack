@@ -554,7 +554,8 @@ story.innerHTML = buildTournamentStory(
 );
 
 // 👉 HIGHLIGHTS (optional aber war bei dir drin)
-highlights.innerHTML = '';
+highlights.innerHTML = cards.join('');
+}
 
 const cards = [];
 
