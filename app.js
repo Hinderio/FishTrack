@@ -557,17 +557,15 @@ function refreshDashboardTournamentSelect(){
 })();
 
 // Absolute override for Artenverteilung chart
-// Minimal-invasive Anpassung: gleicher Bar-Chart-Stil wie "Fänge pro Tag",
-// aber aggregiert nach Fang-Uhrzeit statt nach Datum.
 setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
   if (!canvas || typeof Chart === 'undefined') return;
 
   const catches = typeof getDashboardCatches === 'function'
     ? getDashboardCatches()
-    : (window.state?.catches || state?.catches || []);
+    : (window.state?.catches || []);
 
-  const signature = JSON.stringify(catches.map(c => [c.id, c.timestamp || c.createdAt]));
+  const signature = JSON.stringify(catches.map(c => [c.id, c.species, c.timestamp]));
   if (window.__speciesSignature === signature) return;
   window.__speciesSignature = signature;
 
@@ -575,44 +573,69 @@ setInterval(() => {
   if (existing) existing.destroy();
 
   const labels = Array.from({length:24}, (_,i)=>String(i).padStart(2,'0') + ':00');
-  const values = new Array(24).fill(0);
+  const defs = {
+    'Barsch':'#4FC3F7',
+    'Hecht':'#32D26E',
+    'Zander':'#FFD54F',
+    'Forelle':'#FFAA5B',
+    'Dorsch':'#A98BFF',
+    'Andere':'#B0BEC5'
+  };
 
-  catches.forEach(c => {
-    const rawDate = c.timestamp || c.createdAt;
-    if (!rawDate) return;
-    const d = new Date(rawDate);
-    if (Number.isNaN(d.getTime())) return;
-    values[d.getHours()] += 1;
+  const datasets = Object.entries(defs).map(([name,color]) => {
+    const arr = new Array(24).fill(0);
+
+    catches.forEach(c => {
+      const species = c.species || 'Andere';
+      if (species !== name) return;
+      const d = c.timestamp || c.createdAt;
+      if (!d) return;
+      arr[new Date(d).getHours()]++;
+    });
+
+    return {
+      label: name,
+      data: arr,
+      borderColor: color,
+      backgroundColor: color,
+      pointStyle: 'rect',
+      fill: false,
+      borderWidth: 2,
+      tension: 0.45,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      cubicInterpolationMode: 'monotone'
+    };
   });
 
   new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Fänge',
-        data: values,
-        backgroundColor: '#4ad7d1',
-        borderRadius: 12
-      }]
-    },
+    type: 'line',
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      aspectRatio: 1.9,
       animation: false,
+      plugins: {
+        legend: {
+          labels: {
+  color: '#d8e0e8',
+  usePointStyle: true,
+  padding: 18,
+  font: { size: 14, weight: '600' }
+}
+        }
+      },
       scales: {
         x: {
-          ticks: { color: css('--muted') || '#aab6c4', maxRotation: 0, autoSkip: true },
+          ticks: { color: '#aab6c4' },
           grid: { display: false }
         },
         y: {
           beginAtZero: true,
-          ticks: { stepSize: 1, color: css('--muted') || '#aab6c4' },
-          grid: { color: 'rgba(255,255,255,.08)' }
+          ticks: { stepSize: 1, color: '#aab6c4' },
+          grid: { display: false }
         }
-      },
-      plugins: {
-        legend: { display: false }
       }
     }
   });
@@ -621,7 +644,7 @@ setInterval(() => {
 
 setTimeout(() => {
   const speciesCanvas = document.getElementById('speciesTimelineChart');
-  const dailyCanvas = document.getElementById('dailyChart');
+  const dailyCanvas = document.getElementById('dailyCatchesChart');
 
   if (speciesCanvas && dailyCanvas) {
     const dailyContainer = dailyCanvas.parentElement;
@@ -1272,3 +1295,49 @@ setTimeout(() => {
 
 }, 1000);
 
+
+
+// === Stacked Chart Feature (minimal-invasive) ===
+let chartMode = { perDay: "total", perHour: "total" };
+
+function toggleChartMode(type) {
+    chartMode[type] = chartMode[type] === "total" ? "stacked" : "total";
+    if (typeof renderDashboard === "function") renderDashboard();
+}
+
+function aggregateStackedByHour(catches) {
+    const result = {};
+    catches.forEach(c => {
+        const hour = new Date(c.date).getHours();
+        const species = c.species || "Unbekannt";
+        if (!result[hour]) result[hour] = {};
+        if (!result[hour][species]) result[hour][species] = 0;
+        result[hour][species]++;
+    });
+    return result;
+}
+
+function renderStackedChart(ctx, data) {
+    const labels = Object.keys(data);
+    const speciesSet = new Set();
+    labels.forEach(l => Object.keys(data[l]).forEach(s => speciesSet.add(s)));
+
+    const datasets = Array.from(speciesSet).map(species => ({
+        label: species,
+        data: labels.map(l => data[l][species] || 0),
+        stack: 'stack1'
+    }));
+
+    return new Chart(ctx, {
+        type: 'bar',
+        data: { labels, datasets },
+        options: {
+            responsive: true,
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true }
+            }
+        }
+    });
+}
+// === END Feature ===
