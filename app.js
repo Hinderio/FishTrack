@@ -543,19 +543,28 @@ const topAreas = [...new Map(
   .sort((a,b) => b[1]-a[1])
   .slice(0,3);
 
-// 👉 STORY
-story.innerHTML = buildTournamentStory(
-  tournament,
-  result,
-  first,
-  biggest,
-  speciesWins,
-  topAreas
-);
+// 👉 HIER ERST cards!
+const cards = [];
 
-// 👉 HIGHLIGHTS (optional aber war bei dir drin)
-highlights.innerHTML = cards.join('');
+if (first) {
+  cards.push(`<article class="tournament-highlight">
+    <strong>Erster Fisch</strong>
+    <div class="meta">${speciesName(first)} von ${participantById(first.participantId)?.name || '–'}</div>
+  </article>`);
 }
+
+if (biggest) {
+  cards.push(`<article class="tournament-highlight">
+    <strong>Größter Fisch</strong>
+    <div class="meta">${speciesName(biggest)} · ${fmtKg(biggest.weightKg)}</div>
+  </article>`);
+}
+
+if (!cards.length) {
+  cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');
+}
+
+highlights.innerHTML = cards.join('');
 
 const cards = [];
 
