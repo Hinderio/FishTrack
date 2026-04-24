@@ -1379,3 +1379,20 @@ body.mobile-mode canvas {
   width: 100% !important;
   height: auto !important;
 }
+
+
+/* ===== TOURNAMENT BONUS STYLING ===== */
+.tournament-bonus{
+  margin-left:8px;
+  font-size:12px;
+  padding:4px 8px;
+  border-radius:999px;
+  font-weight:600;
+}
+
+/* dynamic tiers */
+.bonus-1{ background:#2c3e50; color:#ecf0f1; }
+.bonus-2{ background:#34495e; color:#ecf0f1; }
+.bonus-3{ background:#1abc9c; color:#022; }
+.bonus-4{ background:#3498db; color:#fff; }
+.bonus-5{ background:linear-gradient(135deg,#f1c40f,#f39c12); color:#000; }
