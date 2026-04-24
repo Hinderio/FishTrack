@@ -1290,15 +1290,13 @@ function renderParticipantTimeline(){
 }
 
 function renderSpeciesTimeline(){
-  const canvas = document.getElementById("speciesTimeline");
-  if(!canvas){
-    console.warn("SpeciesTimeline canvas fehlt → skip");
+  const canvas = document.getElementById('speciesTimelineBubbleChart') || document.getElementById('speciesTimelineBubble');
+  if(!canvas || typeof Chart === 'undefined') {
+    console.warn('SpeciesTimeline canvas fehlt → skip');
     return;
   }
 
-  const canvas=document.getElementById('speciesTimelineBubbleChart');
-  canvas.height=260;
-  if(!canvas||typeof Chart==='undefined') return;
+  canvas.height = 260;
 
   if(window.speciesTimelineBubbleChartInstance){
     window.speciesTimelineBubbleChartInstance.destroy();
@@ -1313,10 +1311,10 @@ function renderSpeciesTimeline(){
       .map(c=>({
         x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
         y:index+1,
-        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
+        r:Math.max(6,Math.min(18,Number(c.weightKg||c.weight||1)*2))
       })),
     borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
-    backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
+    backgroundColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
     borderWidth: 1.5
   }));
 
