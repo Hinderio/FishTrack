@@ -1462,3 +1462,6 @@ body.mobile-mode canvas {
   font-weight: 600;
   box-shadow: 0 0 10px rgba(255,215,0,0.2);
 }
+
+.t-group-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.t-group-title{margin:10px 0;opacity:.8}
