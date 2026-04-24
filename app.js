@@ -155,7 +155,7 @@ async function saveTournamentToSupabase(tournament) {
 
 
 let charts = {};
-let map;let markersLayer;let beforeInstallPromptEvent=null;let activeTournamentId=null;let weatherEnabled=false;let weatherControlAdded=false;let weatherControlEl=null;let weatherPopupRequestId=0;const WEATHER_CACHE_TTL=10*60*1000;const weatherCache=new Map();function formatWeatherValue(value,suffix=''){const n=Number(value);return Number.isFinite(n)?`${Math.round(n)}${suffix}`:'–'}function getWeatherCacheKey(lat,lon){return `${Number(lat).toFixed(3)},${Number(lon).toFixed(3)}`}async function getWeather(lat,lon){const key=getWeatherCacheKey(lat,lon),cached=weatherCache.get(key),now=Date.now();if(cached&&now-cached.timestamp<WEATHER_CACHE_TTL)return cached.data;const params=new URLSearchParams({latitude:String(lat),longitude:String(lon),current:['temperature_2m','relative_humidity_2m','apparent_temperature','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m','weather_code'].join(','),wind_speed_unit:'ms',timezone:'auto'});try{const res=await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);if(!res.ok) throw new Error(`Weather ${res.status}`);const data=await res.json();if(data?.current)weatherCache.set(key,{timestamp:now,data});return data}catch(err){console.error('Weather fetch failed',err);return null}}function weatherDescription(code){const map={0:'Klar',1:'Meist klar',2:'Teilweise bewölkt',3:'Bedeckt',45:'Neblig',48:'Raureifnebel',51:'Leichter Niesel',53:'Niesel',55:'Starker Niesel',56:'Leichter gefrierender Niesel',57:'Gefrierender Niesel',61:'Leichter Regen',63:'Regen',65:'Starker Regen',66:'Leichter gefrierender Regen',67:'Gefrierender Regen',71:'Leichter Schnee',73:'Schnee',75:'Starker Schneefall',77:'Schneekörner',80:'Leichte Regenschauer',81:'Regenschauer',82:'Starke Regenschauer',85:'Leichte Schneeschauer',86:'Schneeschauer',95:'Gewitter',96:'Gewitter mit Hagel',99:'Starkes Gewitter mit Hagel'};return map[code]||'Wetterdaten'}function buildWeatherPopupHtml(data){const current=data?.current;if(!current)return '<div class="weather-popup weather-popup--error">Keine Wetterdaten verfügbar.</div>';const updated=current.time?new Date(current.time).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'–';return `<div class="weather-popup"><div class="weather-popup__header">🌤️ <strong>${formatWeatherValue(current.temperature_2m,'°C')}</strong><span>${weatherDescription(current.weather_code)}</span></div><div class="weather-popup__grid"><div><span>Gefühlt</span><strong>${formatWeatherValue(current.apparent_temperature,'°C')}</strong></div><div><span>Wind</span><strong>${formatWeatherValue(current.wind_speed_10m,' m/s')}</strong></div><div><span>Wolken</span><strong>${formatWeatherValue(current.cloud_cover,'%')}</strong></div><div><span>Feuchte</span><strong>${formatWeatherValue(current.relative_humidity_2m,'%')}</strong></div><div><span>Niederschlag</span><strong>${Number.isFinite(Number(current.precipitation))?`${Number(current.precipitation).toFixed(1)} mm`:'–'}</strong></div><div><span>Aktualisiert</span><strong>${updated}</strong></div></div></div>`}function setWeatherControlState({loading=false}={}){if(!weatherControlEl)return;weatherControlEl.classList.toggle('active',weatherEnabled);weatherControlEl.classList.toggle('loading',loading);weatherControlEl.setAttribute('aria-pressed',weatherEnabled?'true':'false');weatherControlEl.setAttribute('title',weatherEnabled?'Wettermodus aktiv – Klick auf Karte für Wetterdaten':'Wettermodus aktivieren');weatherControlEl.innerHTML=loading?'<span class="weather-spinner" aria-hidden="true"></span>':'🌡️'}function initWeatherControl(){if(!map||weatherControlAdded||typeof L==="undefined")return;const control=L.control({position:"topright"});control.onAdd=function(){const div=L.DomUtil.create("button","leaflet-bar weather-control");div.type='button';div.setAttribute('aria-label','Wettermodus auf der Karte umschalten');div.innerHTML='🌡️';weatherControlEl=div;setWeatherControlState();L.DomEvent.disableClickPropagation(div);L.DomEvent.on(div,"click",(e)=>{L.DomEvent.stop(e);weatherEnabled=!weatherEnabled;setWeatherControlState();if(!weatherEnabled&&map)map.closePopup()});return div};control.addTo(map);weatherControlAdded=true;if(!map._weatherClickBound){map.on("click",async function(e){if(!weatherEnabled)return;const requestId=++weatherPopupRequestId;setWeatherControlState({loading:true});const loadingPopup=L.popup({closeButton:true,offset:[0,-8]}).setLatLng(e.latlng).setContent('<div class="weather-popup weather-popup--loading">Wetter wird geladen …</div>').openOn(map);const data=await getWeather(e.latlng.lat,e.latlng.lng);if(requestId!==weatherPopupRequestId)return;if(!weatherEnabled){setWeatherControlState();return}if(!data||!data.current){loadingPopup.setContent('<div class="weather-popup weather-popup--error">Open-Meteo konnte für diesen Punkt gerade keine Daten liefern.</div>');setWeatherControlState();return}loadingPopup.setContent(buildWeatherPopupHtml(data));setWeatherControlState()});map._weatherClickBound=true;}};function loadState(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultData);try{const data=JSON.parse(raw);return{meta:data.meta||structuredClone(defaultData.meta),participants:Array.isArray(data.participants)?data.participants:[],catches:Array.isArray(data.catches)?data.catches:[],tournaments:Array.isArray(data.tournaments)?data.tournaments:[]}}catch{return structuredClone(defaultData)}}
+let map;let markersLayer;let beforeInstallPromptEvent=null;let activeTournamentId=null;function loadState(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultData);try{const data=JSON.parse(raw);return{meta:data.meta||structuredClone(defaultData.meta),participants:Array.isArray(data.participants)?data.participants:[],catches:Array.isArray(data.catches)?data.catches:[],tournaments:Array.isArray(data.tournaments)?data.tournaments:[]}}catch{return structuredClone(defaultData)}}
 
 let isSyncing = false;
 
@@ -195,7 +195,7 @@ const unlucky=ratios.length>1?ratios[ratios.length-1]:null;
 if(lucky)insights.push({title:'Glückliche',body:`${lucky.name} holt durchschnittlich ${lucky.ratio.toFixed(1)} Punkte pro Fang.`});
 if(unlucky)insights.push({title:'Pechvogel',body:`${unlucky.name} holt durchschnittlich nur ${unlucky.ratio.toFixed(1)} Punkte pro Fang.`});
 
-if(leaderboard[0])insights.push({title:'Aktueller Leader',body:`${leaderboard[0].name} führt mit ${leaderboard[0].points} Punkten und ${leaderboard[0].count} Fängen.`});return insights}function getForecast(){const catches=state.catches;if(!catches.length)return{text:'Noch zu wenig Daten für eine sinnvolle Prognose.'};const dates=catches.map(c=>startOfDay(c.timestamp).getTime()),min=Math.min(...dates),max=Math.max(...dates),days=Math.max(1,Math.round((max-min)/86400000)+1),avgPerDay=catches.length/days,projected30=Math.round(avgPerDay*30),weightPerCatch=catches.reduce((s,c)=>s+Number(c.weightKg||0),0)/catches.length;return{text:`Wenn ihr dieses Tempo haltet, landet ihr in 30 Tagen bei etwa ${projected30} Fängen. Bei eurem aktuellen Schnitt entspricht das rund ${fmtKg(projected30*weightPerCatch)} Gesamtgewicht.`,avgPerDay,projected30}}function populateSelects(){const participantSelect=document.getElementById('participantSelect'),participantFilter=document.getElementById('participantFilter');participantSelect.innerHTML='';participantFilter.innerHTML='<option value="all">Alle Teilnehmer</option>';state.participants.forEach(p=>{participantSelect.insertAdjacentHTML('beforeend',`<option value="${p.id}">${p.avatar||'🎣'} ${p.name}</option>`);participantFilter.insertAdjacentHTML('beforeend',`<option value="${p.id}">${p.name}</option>`)});const speciesFilter=document.getElementById('speciesFilter');const speciesValues=[...new Set(state.catches.map(c=>speciesName(c)))];speciesFilter.innerHTML='<option value="all">Alle Fischarten</option>'+speciesValues.map(v=>`<option value="${v}">${v}</option>`).join('');const tournamentSelect=document.getElementById('tournamentSelect');if(tournamentSelect){tournamentSelect.innerHTML='<option value="">Kein Turnier</option>'+state.tournaments.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}renderTournamentParticipantPicks()}function renderDashboard(){const s=computeSummary();document.getElementById('tripTitle').textContent=state.meta.tripName;document.getElementById('tripSubtitle').textContent=state.meta.tripSubtitle;document.getElementById('totalCatches').textContent=s.totalCatches;document.getElementById('totalWeight').textContent=fmtKg(s.totalWeight);document.getElementById('biggestCatch').textContent=s.biggest?`${speciesName(s.biggest)} ${Number(s.biggest.lengthCm||0).toFixed(0)} cm`:'–';document.getElementById('todayCatches').textContent=s.todayCount;document.getElementById('currentLeader').textContent=s.leader?s.leader.name:'–';document.getElementById('avgWeight').textContent=fmtKg(s.avgWeight);document.getElementById('bestTimeSlot').textContent=s.bestHour.count?`${String(s.bestHour.hour).padStart(2,'0')}:00`:'–';const leaderboard=document.getElementById('leaderboardList');leaderboard.innerHTML='';s.leaderboard.forEach((p,i)=>leaderboard.insertAdjacentHTML('beforeend',`<article class="list-card"><div><div class="list-title-row"><strong>#${i+1} ${p.avatar||'🎣'} ${p.name}</strong><span class="badge" style="background:${p.color}">${p.points} Punkte</span></div><div class="meta">${p.count} Fänge · ${fmtKg(p.totalWeight)} Gesamtgewicht · Ø ${Math.round((p.avgLength||0))} cm</div></div><div class="meta">${p.heaviest?`Top: ${speciesName(p.heaviest)} ${fmtKg(p.heaviest.weightKg)}`:'Noch kein Fang'}</div></article>`));const recent=[...state.catches].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4),recentEl=document.getElementById('recentCatches');recentEl.replaceChildren();recentEl.innerHTML=recent.length?'':'<div class="meta">Noch keine Fänge vorhanden.</div>';recent.forEach(c=>{const p=participantById(c.participantId),bg=p?.color||'#4ad7d1';recentEl.insertAdjacentHTML('beforeend',`<article class="list-card"><div><div class="list-title-row"><strong>${speciesName(c)}</strong><span class="badge" style="background:${bg}">${p?.avatar||'🎣'} ${p?.name||'–'}</span></div><div class="meta">${c.lengthCm} cm · ${fmtKg(c.weightKg)} · ${fmtDateTime(c.timestamp)}</div><div class="note">${c.spotLabel||c.location?.label||'Kein Spot'}${c.bait?` · Köder: ${c.bait}`:''}</div></div></article>`)}) ;const insights=document.getElementById('insightsList');insights.innerHTML='';getInsights().forEach(item=>insights.insertAdjacentHTML('beforeend',`<article class="insight-card"><strong>${item.title}</strong><span>${item.body}</span></article>`));renderCharts()}function cleanup(key){if(charts[key])charts[key].destroy()}function css(name){return getComputedStyle(document.body).getPropertyValue(name).trim()}function renderCharts(){const daily=dailyBuckets();cleanup('daily');charts.daily=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:daily.map(x=>x[0].slice(5)),datasets:[{label:'Fänge',data:daily.map(x=>x[1]),backgroundColor:'#4ad7d1',borderRadius:12}]},options:{scales:{x:{ticks:{color:css('--muted')},grid:{display:false}},y:{ticks:{color:css('--muted')},grid:{color:'rgba(255,255,255,.08)'}}},plugins:{legend:{display:false}}}});const pStats=computeParticipantStats();cleanup('participants');charts.participants=new Chart(document.getElementById('participantChart'),{type:'bar',data:{labels:pStats.map(p=>p.name),datasets:[{label:'Fänge',data:pStats.map(p=>p.count),backgroundColor:'#4ad7d1',borderRadius:12},{label:'Punkte',data:pStats.map(p=>p.points),backgroundColor:'#ffb84d',borderRadius:12}]},options:{scales:{x:{ticks:{color:css('--muted')},grid:{display:false}},y:{ticks:{color:css('--muted')},grid:{color:'rgba(255,255,255,.08)'}}},plugins:{legend:{labels:{color:css('--text')}}}}})}function renderHistory(){const list=document.getElementById('catchHistoryList');const speciesFilter=document.getElementById('speciesFilter').value,participantFilter=document.getElementById('participantFilter').value,q=document.getElementById('searchCatch').value.trim().toLowerCase();let items=[...state.catches].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));if(speciesFilter!=='all')items=items.filter(c=>speciesName(c)===speciesFilter);if(participantFilter!=='all')items=items.filter(c=>c.participantId===participantFilter);if(q)items=items.filter(c=>[speciesName(c),c.spotLabel,c.bait,c.note].join(' ').toLowerCase().includes(q));list.innerHTML='';if(!items.length){list.innerHTML='<div class="meta">Keine Fänge für den aktuellen Filter.</div>';return}items.forEach(c=>{const p=participantById(c.participantId),wrap=document.createElement('article');wrap.className='list-card catch-item';wrap.innerHTML=`<div class="list-main"><div class="list-title-row"><strong>${speciesName(c)}</strong><span class="badge" style="background:${p?.color||'#4ad7d1'}">${p?.avatar||'🎣'} ${p?.name||'–'}</span></div><div class="meta">${c.lengthCm} cm · ${fmtKg(c.weightKg)} · ${fmtDateTime(c.timestamp)}</div><div class="note">${c.spotLabel||c.location?.label||'Kein Spot'}${c.bait?` · Köder: ${c.bait}`:''}${c.note?` · ${c.note}`:''}</div></div><div class="list-actions"><button class="icon-btn edit-btn">✎</button><button class="icon-btn delete-btn">✕</button></div>`;wrap.querySelector('.delete-btn').addEventListener('click',async()=>{if(!confirm('Diesen Fang wirklich löschen?'))return;state.catches=state.catches.filter(x=>x.id!==c.id);localStorage.setItem(STORAGE_KEY,JSON.stringify(state));rerender();if(db){const{error}=await db.from('catches').delete().eq('id',c.id);if(error)console.error('Delete fehlgeschlagen:',error)}});wrap.querySelector('.edit-btn').addEventListener('click',()=>loadCatchIntoForm(c));list.appendChild(wrap)})}function loadCatchIntoForm(c){showScreen('catches');const form=document.getElementById('catchForm');form.dataset.editingId=c.id;form.species.value=c.species;document.getElementById('speciesSelect').dispatchEvent(new Event('change'));form.customSpecies.value=c.customSpecies||'';form.participantId.value=c.participantId;if(form.tournamentId)form.tournamentId.value=c.tournamentId||'';form.lengthCm.value=c.lengthCm;form.weightKg.value=c.weightKg;form.timestamp.value=new Date(c.timestamp).toISOString().slice(0,16);form.bait.value=c.bait||'';form.spotLabel.value=c.spotLabel||'';form.note.value=c.note||'';form.lat.value=c.location?.lat||'';form.lng.value=c.location?.lng||'';if(c.location?.lat&&c.location?.lng&&window.updateCatchLocationPreview)window.updateCatchLocationPreview(c.location.lat,c.location.lng);window.scrollTo({top:0,behavior:'smooth'})}function renderParticipants(){const container=document.getElementById('participantsList');container.innerHTML='';computeParticipantStats().forEach(p=>{const article=document.createElement('article');article.className='list-card';article.innerHTML=`<div><div class="list-title-row"><strong>${p.avatar||'🎣'} ${p.name}</strong><span class="badge" style="background:${p.color}">${p.points} Punkte</span></div><div class="meta">${p.count} Fänge · ${fmtKg(p.totalWeight)} · Ø ${Math.round((p.avgLength||0))} cm</div></div><div class="list-actions"><button class="icon-btn edit-btn">✎</button><button class="icon-btn delete-btn">✕</button></div>`;article.querySelector('.edit-btn').addEventListener('click',()=>loadParticipantIntoForm(p));article.querySelector('.delete-btn').addEventListener('click',()=>{if(state.catches.some(c=>c.participantId===p.id)){alert('Dieser Teilnehmer hat bereits Fänge. Bitte zuerst Fänge löschen oder umhängen.');return}state.participants=state.participants.filter(x=>x.id!==p.id);persist();rerender()});container.appendChild(article)})}function loadParticipantIntoForm(p){showScreen('participants');const form=document.getElementById('participantForm');form.dataset.editingId=p.id;form.name.value=p.name||'';form.color.value=p.color||'#4ad7d1';form.avatar.value=p.avatar||'🎣';const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Teilnehmer speichern';window.scrollTo({top:0,behavior:'smooth'})}function renderRecords(){const list=document.getElementById('recordsList'),catches=[...state.catches],heaviest=catches.reduce((m,c)=>!m||c.weightKg>m.weightKg?c:m,null),longest=catches.reduce((m,c)=>!m||c.lengthCm>m.lengthCm?c:m,null),earliest=catches.reduce((m,c)=>!m||new Date(c.timestamp)<new Date(m.timestamp)?c:m,null),latest=catches.reduce((m,c)=>!m||new Date(c.timestamp)>new Date(m.timestamp)?c:m,null),entries=[heaviest&&`Schwerster Fisch: ${speciesName(heaviest)} mit ${fmtKg(heaviest.weightKg)} von ${participantById(heaviest.participantId)?.name||'–'}.`,longest&&`Längster Fisch: ${speciesName(longest)} mit ${longest.lengthCm} cm.`,earliest&&`Erster erfasster Fang: ${fmtDateTime(earliest.timestamp)} am Spot ${earliest.spotLabel||earliest.location?.label||'–'}.`,latest&&`Letzter erfasster Fang: ${fmtDateTime(latest.timestamp)}.`].filter(Boolean);list.innerHTML=entries.length?entries.map(t=>`<article class="list-card"><div>${t}</div></article>`).join(''):'<div class="meta">Noch keine Rekorde vorhanden.</div>'}function renderForecast(){document.getElementById('forecastBox').innerHTML=`<article class="insight-card"><strong>30-Tage-Prognose</strong><span>${getForecast().text}</span></article>`}function renderTimeHeatmap(){const grid=document.getElementById('timeHeatmap');grid.innerHTML='';const counts=Array.from({length:24},(_,h)=>state.catches.filter(c=>new Date(c.timestamp).getHours()===h).length),max=Math.max(1,...counts);counts.forEach((count,hour)=>{const opacity=.12+(count/max)*.88,cell=document.createElement('div');cell.className='time-cell';cell.style.background=`rgba(74,215,209,${opacity})`;cell.style.color=opacity>.45?'#00131c':css('--text');cell.innerHTML=`<strong>${String(hour).padStart(2,'0')}:00</strong><span>${count} Fang${count===1?'':'e'}</span>`;grid.appendChild(cell)})}function initMap(){if(map)return;map=L.map('map').setView([59.915,10.78],8);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(map);markersLayer=L.layerGroup().addTo(map);initWeatherControl()}function renderMap(){initMap();markersLayer.clearLayers();const points=state.catches.filter(c=>c.location?.lat&&c.location?.lng);const bounds=[];points.forEach(c=>{const p=participantById(c.participantId),species=speciesName(c),color=speciesPalette[species]||speciesPalette[c.species]||'#4ad7d1',marker=L.circleMarker([c.location.lat,c.location.lng],{radius:Math.max(7,Math.min(18,4+Number(c.weightKg||0)*1.5)),color,fillColor:color,fillOpacity:.65,weight:2}).bindPopup(`<strong>${species}</strong><br>${c.lengthCm} cm · ${fmtKg(c.weightKg)}<br>${p?.name||'–'} · ${fmtDateTime(c.timestamp)}<br>${c.spotLabel||c.location?.label||'Kein Spot'}`);marker.addTo(markersLayer);bounds.push([c.location.lat,c.location.lng])});if(bounds.length)map.fitBounds(bounds,{padding:[30,30]});const legend=document.getElementById('mapLegend'),uniqueSpecies=[...new Set(state.catches.map(c=>speciesName(c)))];legend.innerHTML=uniqueSpecies.map(s=>`<div class="legend-item"><span class="legend-color" style="background:${speciesPalette[s]||'#4ad7d1'}"></span><span>${s}</span></div>`).join('')||'<div class="meta">Noch keine Fangorte gespeichert.</div>';renderHeatmapGrid(points)}function renderHeatmapGrid(points){const container=document.getElementById('heatmapGrid');if(!points.length){container.innerHTML='<div class="meta">Noch keine Standortdaten vorhanden.</div>';return}const rows=5,cols=5;
+if(leaderboard[0])insights.push({title:'Aktueller Leader',body:`${leaderboard[0].name} führt mit ${leaderboard[0].points} Punkten und ${leaderboard[0].count} Fängen.`});return insights}function getForecast(){const catches=state.catches;if(!catches.length)return{text:'Noch zu wenig Daten für eine sinnvolle Prognose.'};const dates=catches.map(c=>startOfDay(c.timestamp).getTime()),min=Math.min(...dates),max=Math.max(...dates),days=Math.max(1,Math.round((max-min)/86400000)+1),avgPerDay=catches.length/days,projected30=Math.round(avgPerDay*30),weightPerCatch=catches.reduce((s,c)=>s+Number(c.weightKg||0),0)/catches.length;return{text:`Wenn ihr dieses Tempo haltet, landet ihr in 30 Tagen bei etwa ${projected30} Fängen. Bei eurem aktuellen Schnitt entspricht das rund ${fmtKg(projected30*weightPerCatch)} Gesamtgewicht.`,avgPerDay,projected30}}function populateSelects(){const participantSelect=document.getElementById('participantSelect'),participantFilter=document.getElementById('participantFilter');participantSelect.innerHTML='';participantFilter.innerHTML='<option value="all">Alle Teilnehmer</option>';state.participants.forEach(p=>{participantSelect.insertAdjacentHTML('beforeend',`<option value="${p.id}">${p.avatar||'🎣'} ${p.name}</option>`);participantFilter.insertAdjacentHTML('beforeend',`<option value="${p.id}">${p.name}</option>`)});const speciesFilter=document.getElementById('speciesFilter');const speciesValues=[...new Set(state.catches.map(c=>speciesName(c)))];speciesFilter.innerHTML='<option value="all">Alle Fischarten</option>'+speciesValues.map(v=>`<option value="${v}">${v}</option>`).join('');const tournamentSelect=document.getElementById('tournamentSelect');if(tournamentSelect){tournamentSelect.innerHTML='<option value="">Kein Turnier</option>'+state.tournaments.map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}renderTournamentParticipantPicks()}function renderDashboard(){const s=computeSummary();document.getElementById('tripTitle').textContent=state.meta.tripName;document.getElementById('tripSubtitle').textContent=state.meta.tripSubtitle;document.getElementById('totalCatches').textContent=s.totalCatches;document.getElementById('totalWeight').textContent=fmtKg(s.totalWeight);document.getElementById('biggestCatch').textContent=s.biggest?`${speciesName(s.biggest)} ${Number(s.biggest.lengthCm||0).toFixed(0)} cm`:'–';document.getElementById('todayCatches').textContent=s.todayCount;document.getElementById('currentLeader').textContent=s.leader?s.leader.name:'–';document.getElementById('avgWeight').textContent=fmtKg(s.avgWeight);document.getElementById('bestTimeSlot').textContent=s.bestHour.count?`${String(s.bestHour.hour).padStart(2,'0')}:00`:'–';const leaderboard=document.getElementById('leaderboardList');leaderboard.innerHTML='';s.leaderboard.forEach((p,i)=>leaderboard.insertAdjacentHTML('beforeend',`<article class="list-card"><div><div class="list-title-row"><strong>#${i+1} ${p.avatar||'🎣'} ${p.name}</strong><span class="badge" style="background:${p.color}">${p.points} Punkte</span></div><div class="meta">${p.count} Fänge · ${fmtKg(p.totalWeight)} Gesamtgewicht · Ø ${Math.round((p.avgLength||0))} cm</div></div><div class="meta">${p.heaviest?`Top: ${speciesName(p.heaviest)} ${fmtKg(p.heaviest.weightKg)}`:'Noch kein Fang'}</div></article>`));const recent=[...state.catches].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4),recentEl=document.getElementById('recentCatches');recentEl.replaceChildren();recentEl.innerHTML=recent.length?'':'<div class="meta">Noch keine Fänge vorhanden.</div>';recent.forEach(c=>{const p=participantById(c.participantId),bg=p?.color||'#4ad7d1';recentEl.insertAdjacentHTML('beforeend',`<article class="list-card"><div><div class="list-title-row"><strong>${speciesName(c)}</strong><span class="badge" style="background:${bg}">${p?.avatar||'🎣'} ${p?.name||'–'}</span></div><div class="meta">${c.lengthCm} cm · ${fmtKg(c.weightKg)} · ${fmtDateTime(c.timestamp)}</div><div class="note">${c.spotLabel||c.location?.label||'Kein Spot'}${c.bait?` · Köder: ${c.bait}`:''}</div></div></article>`)}) ;const insights=document.getElementById('insightsList');insights.innerHTML='';getInsights().forEach(item=>insights.insertAdjacentHTML('beforeend',`<article class="insight-card"><strong>${item.title}</strong><span>${item.body}</span></article>`));renderCharts()}function cleanup(key){if(charts[key])charts[key].destroy()}function css(name){return getComputedStyle(document.body).getPropertyValue(name).trim()}function renderCharts(){const daily=dailyBuckets();cleanup('daily');charts.daily=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:daily.map(x=>x[0].slice(5)),datasets:[{label:'Fänge',data:daily.map(x=>x[1]),backgroundColor:'#4ad7d1',borderRadius:12}]},options:{scales:{x:{ticks:{color:css('--muted')},grid:{display:false}},y:{ticks:{color:css('--muted')},grid:{color:'rgba(255,255,255,.08)'}}},plugins:{legend:{display:false}}}});const pStats=computeParticipantStats();cleanup('participants');charts.participants=new Chart(document.getElementById('participantChart'),{type:'bar',data:{labels:pStats.map(p=>p.name),datasets:[{label:'Fänge',data:pStats.map(p=>p.count),backgroundColor:'#4ad7d1',borderRadius:12},{label:'Punkte',data:pStats.map(p=>p.points),backgroundColor:'#ffb84d',borderRadius:12}]},options:{scales:{x:{ticks:{color:css('--muted')},grid:{display:false}},y:{ticks:{color:css('--muted')},grid:{color:'rgba(255,255,255,.08)'}}},plugins:{legend:{labels:{color:css('--text')}}}}})}function renderHistory(){const list=document.getElementById('catchHistoryList');const speciesFilter=document.getElementById('speciesFilter').value,participantFilter=document.getElementById('participantFilter').value,q=document.getElementById('searchCatch').value.trim().toLowerCase();let items=[...state.catches].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));if(speciesFilter!=='all')items=items.filter(c=>speciesName(c)===speciesFilter);if(participantFilter!=='all')items=items.filter(c=>c.participantId===participantFilter);if(q)items=items.filter(c=>[speciesName(c),c.spotLabel,c.bait,c.note].join(' ').toLowerCase().includes(q));list.innerHTML='';if(!items.length){list.innerHTML='<div class="meta">Keine Fänge für den aktuellen Filter.</div>';return}items.forEach(c=>{const p=participantById(c.participantId),wrap=document.createElement('article');wrap.className='list-card catch-item';wrap.innerHTML=`<div class="list-main"><div class="list-title-row"><strong>${speciesName(c)}</strong><span class="badge" style="background:${p?.color||'#4ad7d1'}">${p?.avatar||'🎣'} ${p?.name||'–'}</span></div><div class="meta">${c.lengthCm} cm · ${fmtKg(c.weightKg)} · ${fmtDateTime(c.timestamp)}</div><div class="note">${c.spotLabel||c.location?.label||'Kein Spot'}${c.bait?` · Köder: ${c.bait}`:''}${c.note?` · ${c.note}`:''}</div></div><div class="list-actions"><button class="icon-btn edit-btn">✎</button><button class="icon-btn delete-btn">✕</button></div>`;wrap.querySelector('.delete-btn').addEventListener('click',async()=>{if(!confirm('Diesen Fang wirklich löschen?'))return;state.catches=state.catches.filter(x=>x.id!==c.id);localStorage.setItem(STORAGE_KEY,JSON.stringify(state));rerender();if(db){const{error}=await db.from('catches').delete().eq('id',c.id);if(error)console.error('Delete fehlgeschlagen:',error)}});wrap.querySelector('.edit-btn').addEventListener('click',()=>loadCatchIntoForm(c));list.appendChild(wrap)})}function loadCatchIntoForm(c){showScreen('catches');const form=document.getElementById('catchForm');form.dataset.editingId=c.id;form.species.value=c.species;document.getElementById('speciesSelect').dispatchEvent(new Event('change'));form.customSpecies.value=c.customSpecies||'';form.participantId.value=c.participantId;if(form.tournamentId)form.tournamentId.value=c.tournamentId||'';form.lengthCm.value=c.lengthCm;form.weightKg.value=c.weightKg;form.timestamp.value=new Date(c.timestamp).toISOString().slice(0,16);form.bait.value=c.bait||'';form.spotLabel.value=c.spotLabel||'';form.note.value=c.note||'';form.lat.value=c.location?.lat||'';form.lng.value=c.location?.lng||'';if(c.location?.lat&&c.location?.lng&&window.updateCatchLocationPreview)window.updateCatchLocationPreview(c.location.lat,c.location.lng);window.scrollTo({top:0,behavior:'smooth'})}function renderParticipants(){const container=document.getElementById('participantsList');container.innerHTML='';computeParticipantStats().forEach(p=>{const article=document.createElement('article');article.className='list-card';article.innerHTML=`<div><div class="list-title-row"><strong>${p.avatar||'🎣'} ${p.name}</strong><span class="badge" style="background:${p.color}">${p.points} Punkte</span></div><div class="meta">${p.count} Fänge · ${fmtKg(p.totalWeight)} · Ø ${Math.round((p.avgLength||0))} cm</div></div><div class="list-actions"><button class="icon-btn edit-btn">✎</button><button class="icon-btn delete-btn">✕</button></div>`;article.querySelector('.edit-btn').addEventListener('click',()=>loadParticipantIntoForm(p));article.querySelector('.delete-btn').addEventListener('click',()=>{if(state.catches.some(c=>c.participantId===p.id)){alert('Dieser Teilnehmer hat bereits Fänge. Bitte zuerst Fänge löschen oder umhängen.');return}state.participants=state.participants.filter(x=>x.id!==p.id);persist();rerender()});container.appendChild(article)})}function loadParticipantIntoForm(p){showScreen('participants');const form=document.getElementById('participantForm');form.dataset.editingId=p.id;form.name.value=p.name||'';form.color.value=p.color||'#4ad7d1';form.avatar.value=p.avatar||'🎣';const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Teilnehmer speichern';window.scrollTo({top:0,behavior:'smooth'})}function renderRecords(){const list=document.getElementById('recordsList'),catches=[...state.catches],heaviest=catches.reduce((m,c)=>!m||c.weightKg>m.weightKg?c:m,null),longest=catches.reduce((m,c)=>!m||c.lengthCm>m.lengthCm?c:m,null),earliest=catches.reduce((m,c)=>!m||new Date(c.timestamp)<new Date(m.timestamp)?c:m,null),latest=catches.reduce((m,c)=>!m||new Date(c.timestamp)>new Date(m.timestamp)?c:m,null),entries=[heaviest&&`Schwerster Fisch: ${speciesName(heaviest)} mit ${fmtKg(heaviest.weightKg)} von ${participantById(heaviest.participantId)?.name||'–'}.`,longest&&`Längster Fisch: ${speciesName(longest)} mit ${longest.lengthCm} cm.`,earliest&&`Erster erfasster Fang: ${fmtDateTime(earliest.timestamp)} am Spot ${earliest.spotLabel||earliest.location?.label||'–'}.`,latest&&`Letzter erfasster Fang: ${fmtDateTime(latest.timestamp)}.`].filter(Boolean);list.innerHTML=entries.length?entries.map(t=>`<article class="list-card"><div>${t}</div></article>`).join(''):'<div class="meta">Noch keine Rekorde vorhanden.</div>'}function renderForecast(){document.getElementById('forecastBox').innerHTML=`<article class="insight-card"><strong>30-Tage-Prognose</strong><span>${getForecast().text}</span></article>`}function renderTimeHeatmap(){const grid=document.getElementById('timeHeatmap');grid.innerHTML='';const counts=Array.from({length:24},(_,h)=>state.catches.filter(c=>new Date(c.timestamp).getHours()===h).length),max=Math.max(1,...counts);counts.forEach((count,hour)=>{const opacity=.12+(count/max)*.88,cell=document.createElement('div');cell.className='time-cell';cell.style.background=`rgba(74,215,209,${opacity})`;cell.style.color=opacity>.45?'#00131c':css('--text');cell.innerHTML=`<strong>${String(hour).padStart(2,'0')}:00</strong><span>${count} Fang${count===1?'':'e'}</span>`;grid.appendChild(cell)})}function initMap(){if(map)return;map=L.map('map').setView([59.915,10.78],8);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; OpenStreetMap'}).addTo(map);markersLayer=L.layerGroup().addTo(map)}function renderMap(){initMap();markersLayer.clearLayers();const points=state.catches.filter(c=>c.location?.lat&&c.location?.lng);const bounds=[];points.forEach(c=>{const p=participantById(c.participantId),species=speciesName(c),color=speciesPalette[species]||speciesPalette[c.species]||'#4ad7d1',marker=L.circleMarker([c.location.lat,c.location.lng],{radius:Math.max(7,Math.min(18,4+Number(c.weightKg||0)*1.5)),color,fillColor:color,fillOpacity:.65,weight:2}).bindPopup(`<strong>${species}</strong><br>${c.lengthCm} cm · ${fmtKg(c.weightKg)}<br>${p?.name||'–'} · ${fmtDateTime(c.timestamp)}<br>${c.spotLabel||c.location?.label||'Kein Spot'}`);marker.addTo(markersLayer);bounds.push([c.location.lat,c.location.lng])});if(bounds.length)map.fitBounds(bounds,{padding:[30,30]});const legend=document.getElementById('mapLegend'),uniqueSpecies=[...new Set(state.catches.map(c=>speciesName(c)))];legend.innerHTML=uniqueSpecies.map(s=>`<div class="legend-item"><span class="legend-color" style="background:${speciesPalette[s]||'#4ad7d1'}"></span><span>${s}</span></div>`).join('')||'<div class="meta">Noch keine Fangorte gespeichert.</div>';renderHeatmapGrid(points)}function renderHeatmapGrid(points){const container=document.getElementById('heatmapGrid');if(!points.length){container.innerHTML='<div class="meta">Noch keine Standortdaten vorhanden.</div>';return}const rows=5,cols=5;
 // feste Europa-/Skandinavien-Grenzen statt dynamischer Verschiebung
 const minLat=54,maxLat=72,minLng=4,maxLng=32;
 const grid=Array.from({length:rows*cols},()=>0);
@@ -217,66 +217,7 @@ function renderTournamentParticipantPicks(){const box=document.getElementById('t
 function getTournamentRules(t){if(t?.rulesetId==='custom'&&t.customRules)return {...t.customRules,name:'Eigenes Regelwerk'};return RULESETS[t?.rulesetId]||RULESETS.all_fish}
 function computeTournamentScores(tournament){const catches=state.catches.filter(c=>c.tournamentId===tournament.id).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));const rules=getTournamentRules(tournament);const allowed=tournament.participantIds?.length?tournament.participantIds:state.participants.map(p=>p.id);const scoreMap=new Map(allowed.map(id=>[id,{participant:participantById(id),points:0,catches:0,totalWeight:0,bonuses:[],species:new Set()}]));const add=(id,pts,label)=>{if(!scoreMap.has(id))scoreMap.set(id,{participant:participantById(id),points:0,catches:0,totalWeight:0,bonuses:[],species:new Set()});const row=scoreMap.get(id);row.points+=pts;if(label)row.bonuses.push(label)};catches.forEach((c,i)=>{const row=scoreMap.get(c.participantId);if(!row)return;row.catches+=1;row.totalWeight+=Number(c.weightKg||0);row.points+=rules.pointsPerFish||0;if((rules.bonusNewSpecies||0)>0){const s=speciesName(c);if(!row.species.has(s)){row.species.add(s);row.points+=rules.bonusNewSpecies;row.bonuses.push(`Neue Art: ${s} +${rules.bonusNewSpecies}`)}}if((rules.bonusOver80cm||0)>0&&Number(c.lengthCm||0)>=80){row.points+=rules.bonusOver80cm;row.bonuses.push(`>80 cm +${rules.bonusOver80cm}`)}if((rules.bonusOver100cm||0)>0&&Number(c.lengthCm||0)>=100){row.points+=rules.bonusOver100cm;row.bonuses.push(`>100 cm +${rules.bonusOver100cm}`)}if((rules.bonusNewArea||0)>0){const grid=gridIdFromCatch(c);const seenBefore=catches.slice(0,i).some(x=>gridIdFromCatch(x)===grid);if(!seenBefore&&grid!=='unknown'){row.points+=rules.bonusNewArea;row.bonuses.push(`Entschneidert +${rules.bonusNewArea}`)}}});if(catches[0]&&(rules.bonusFirstFish||0)>0)add(catches[0].participantId,rules.bonusFirstFish,`Erster Fisch +${rules.bonusFirstFish}`);if((rules.bonusLargestFish||0)>0&&catches.length){const biggest=[...catches].reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);if(biggest)add(biggest.participantId,rules.bonusLargestFish,`Größter Fisch +${rules.bonusLargestFish}`)}if((rules.bonusLargestPerSpecies||0)>0&&catches.length){const bySpecies={};catches.forEach(c=>{const s=speciesName(c);if(!bySpecies[s]||Number(c.weightKg||0)>Number(bySpecies[s].weightKg||0))bySpecies[s]=c});Object.values(bySpecies).forEach(c=>add(c.participantId,rules.bonusLargestPerSpecies,`Größter ${speciesName(c)} +${rules.bonusLargestPerSpecies}`))}return{rules,catches,rows:[...scoreMap.values()].sort((a,b)=>b.points-a.points||b.totalWeight-a.totalWeight)}}
 function loadTournamentIntoForm(t){showScreen('tournaments');const form=document.getElementById('tournamentForm');if(!form)return;form.dataset.editingId=t.id;const nameField=form.querySelector('[name="name"]');const startField=form.querySelector('[name="start"]');const endField=form.querySelector('[name="end"]');if(nameField)nameField.value=t.name||'';if(startField)startField.value=t.start||'';if(endField)endField.value=t.end||'';const ruleset=document.getElementById('rulesetSelect');if(ruleset)ruleset.value=t.rulesetId==='custom'?'all_fish':(t.rulesetId||'all_fish');const customToggle=document.getElementById('enableCustomRules');if(customToggle)customToggle.checked=t.rulesetId==='custom';const rules=t.customRules||{};['pointsPerFish','bonusFirstFish','bonusLargestFish','bonusLargestPerSpecies','bonusNewArea','bonusOver80cm','bonusOver100cm'].forEach(key=>{const el=document.getElementById('rule_'+key);if(el)el.value=rules[key] ?? el.value ?? 0});document.querySelectorAll('#tournamentParticipants input[type="checkbox"]').forEach(cb=>{cb.checked=(t.participantIds||[]).includes(cb.value)});const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Turnier speichern';if(typeof updateRulesPreview==='function')updateRulesPreview();window.scrollTo({top:0,behavior:'smooth'})}
-
-
-function storyPick(list, seed){
-  return list[Math.abs(seed)%list.length];
-}
-
-function buildTournamentStory(tournament,result,first,biggest,speciesWins,topAreas){
-  if(!result||!result.catches?.length){
-    return `<p>Noch ist ${tournament?.name||'dieses Turnier'} eher ein sehr ambitioniertes Briefing als ein Angel-Drama. Sobald Fänge zugeordnet sind, erzähle ich hier die ganze Geschichte – inklusive Heldenmoment, Ehrenrunde und sanfter Stichelei.</p>`;
-  }
-
-  const leader=result.rows[0]||null;
-  const runnerUp=result.rows[1]||null;
-  const last=result.rows[result.rows.length-1]||null;
-  const total=result.catches.length;
-  const totalWeight=result.catches.reduce((sum,c)=>sum+Number(c.weightKg||0),0);
-  const speciesCounts={};
-  const baitCounts={};
-  result.catches.forEach(c=>{
-    const s=speciesName(c);
-    speciesCounts[s]=(speciesCounts[s]||0)+1;
-    const bait=c.bait||'Unbekannt';
-    baitCounts[bait]=(baitCounts[bait]||0)+1;
-  });
-  const topSpecies=Object.entries(speciesCounts).sort((a,b)=>b[1]-a[1])[0]||null;
-  const topBait=Object.entries(baitCounts).sort((a,b)=>b[1]-a[1])[0]||null;
-  const leadText=leader
-    ? `${leader.participant?.avatar||'🎣'} ${leader.participant?.name||'–'} führt aktuell mit ${leader.points} Punkten`
-    : `Noch niemand konnte sich entscheidend absetzen`;
-  const duelText=(leader&&runnerUp)
-    ? `Der Vorsprung auf ${runnerUp.participant?.name||'–'} ist mit ${Math.max(0,leader.points-runnerUp.points)} Punkten ${leader.points===runnerUp.points?'komplett pulverisiert':'noch nicht gemütlich'}.`
-    : `Die Bühne gehört aktuell eher dem Solisten als dem Verfolgerfeld.`;
-  const openerText=first
-    ? `Der erste Treffer kam durch ${participantById(first.participantId)?.name||'–'}: ${speciesName(first)} um ${fmtDateTime(first.timestamp)}.`
-    : `Der Startschuss fiel bisher eher theoretisch.`;
-  const biggestText=biggest
-    ? `Den dicksten Mic-Drop lieferte ${participantById(biggest.participantId)?.name||'–'} mit einem ${speciesName(biggest)} von ${fmtKg(biggest.weightKg)} und ${biggest.lengthCm} cm.`
-    : `Der richtig große Show-Fisch lässt noch auf sich warten.`;
-  const baitText=topBait
-    ? `Taktisch wirkt aktuell ${topBait[0]} wie der heimliche Co-Trainer – damit kamen ${topBait[1]} Fänge rein.`
-    : `Köderseitig ist das bisher noch kreative Feldforschung.`;
-  const areaText=topAreas.length
-    ? `Hotspot des Turniers ist bisher Raster ${String(topAreas[0][0]).replace('grid_','')} mit ${topAreas[0][1]} Aktionen – quasi VIP-Lounge mit Flossenanschluss.`
-    : `Einen echten Hotspot traut sich das Wasser noch nicht zu verraten.`;
-  const speciesText=topSpecies
-    ? `${topSpecies[0]} ist bislang die Headliner-Art mit ${topSpecies[1]} Fängen.`
-    : `Artentechnisch läuft noch Understatement.`;
-  const finaleText=(last&&total>2)
-    ? `${last.participant?.avatar||'🎣'} ${last.participant?.name||'–'} liegt zwar hinten, aber genau das ist klassisches Comeback-Material. In Angelturnieren kippt die Stimmung bekanntlich schneller als ein Bier im Boot.`
-    : `Noch ist alles drin – ein guter Fisch und das Narrativ schreibt sich komplett neu.`;
-
-  return [
-    `<p><strong>${tournament?.name||'Dieses Turnier'}</strong> entwickelt sich zu einer Mischung aus Präzisionsarbeit, Zufallsglück und freundlicher Eskalation. ${leadText}. ${duelText}</p>`,
-    `<p>${openerText} ${biggestText}</p>`,
-    `<p>${speciesText} ${baitText} ${areaText}</p>`,
-    `<p>In Summe liegen ${total} zugeordnete Fänge mit rund ${fmtKg(totalWeight)} auf dem Scoreboard. ${finaleText}</p>`
-  ].join('');
-}
-
-function renderTournaments(){const list=document.getElementById('tournamentList');const title=document.getElementById('activeTournamentTitle');const meta=document.getElementById('activeTournamentMeta');const leaderboard=document.getElementById('tournamentLeaderboard');const highlights=document.getElementById('tournamentHighlights');const story=document.getElementById('tournamentStory');if(!list||!title||!meta||!leaderboard||!highlights||!story)return;list.innerHTML='';if(!state.tournaments.length){list.innerHTML='<div class="meta">Noch keine Turniere angelegt.</div>';title.textContent='Turnierauswertung';meta.textContent='Noch kein Turnier ausgewählt';leaderboard.innerHTML='';story.innerHTML='<div class="meta">Sobald ein Turnier aktiv ist, erzähle ich hier die Story dazu.</div>';highlights.innerHTML='<div class="meta">Lege zuerst ein Turnier an.</div>';return}if(!activeTournamentId||!tournamentById(activeTournamentId))activeTournamentId=state.tournaments[0].id;state.tournaments.forEach(t=>{const rules=getTournamentRules(t);const article=document.createElement('article');article.className='list-card tournament-card'+(t.id===activeTournamentId?' active':'');article.innerHTML=`<div><div class="list-title-row"><strong>${t.name}</strong><span class="badge">${rules.name}</span></div><div class="meta">${t.start||'–'} bis ${t.end||'–'} · ${(t.participantIds||[]).length||state.participants.length} Teilnehmer</div><div class="tournament-rule">Fänge müssen beim Eintragen dem Turnier zugeordnet werden.</div></div><div class="list-actions"><button class="icon-btn edit-btn">✎</button><button class="icon-btn open-btn">↗</button><button class="icon-btn delete-btn">✕</button></div>`;article.querySelector('.edit-btn').addEventListener('click',()=>loadTournamentIntoForm(t));article.querySelector('.open-btn').addEventListener('click',()=>{activeTournamentId=t.id;renderTournaments();showScreen('tournaments')});article.querySelector('.delete-btn').addEventListener('click',()=>{if(!confirm('Dieses Turnier löschen? Zugeordnete Fänge bleiben bestehen, verlieren aber die Zuordnung.'))return;state.catches=state.catches.map(c=>c.tournamentId===t.id?{...c,tournamentId:''}:c);state.tournaments=state.tournaments.filter(x=>x.id!==t.id);if(activeTournamentId===t.id)activeTournamentId=state.tournaments[0]?.id||null;persist();rerender()});list.appendChild(article)});const tournament=tournamentById(activeTournamentId);const result=computeTournamentScores(tournament);title.textContent=tournament.name;meta.textContent=`${getTournamentRules(tournament).name} · ${result.catches.length} zugeordnete Fänge`;leaderboard.innerHTML='';result.rows.forEach((row,i)=>{leaderboard.insertAdjacentHTML('beforeend',`<article class="list-card"><div><div class="list-title-row"><strong>#${i+1} ${row.participant?.avatar||'🎣'} ${row.participant?.name||'–'}</strong><span class="badge" style="background:${row.participant?.color||'#4ad7d1'}">${row.points} Punkte</span></div><div class="meta">${row.catches} Fänge · ${fmtKg(row.totalWeight)}</div></div><div class="meta">${row.bonuses.slice(0,3).join(' · ')||'Nur Basiswertung'}</div></article>`)});const biggest=result.catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);const first=result.catches[0]||null;const speciesWins={};result.catches.forEach(c=>{const s=speciesName(c);if(!speciesWins[s]||Number(c.weightKg||0)>Number(speciesWins[s].weightKg||0))speciesWins[s]=c});const topAreas=[...new Map(result.catches.map(c=>[gridIdFromCatch(c), (result.catches.filter(x=>gridIdFromCatch(x)===gridIdFromCatch(c)).length)])).entries()].filter(x=>x[0]!=='unknown').sort((a,b)=>b[1]-a[1]).slice(0,3);story.innerHTML=buildTournamentStory(tournament,result,first,biggest,speciesWins,topAreas);highlights.innerHTML='';const cards=[];if(first)cards.push(`<article class="tournament-highlight"><strong>Erster Fisch</strong><div class="meta">${speciesName(first)} von ${participantById(first.participantId)?.name||'–'} um ${fmtDateTime(first.timestamp)}</div></article>`);if(biggest)cards.push(`<article class="tournament-highlight"><strong>Größter Fisch</strong><div class="meta">${speciesName(biggest)} · ${fmtKg(biggest.weightKg)} · ${biggest.lengthCm} cm</div></article>`);Object.values(speciesWins).slice(0,4).forEach(c=>cards.push(`<article class="tournament-highlight"><strong>Artensieger ${speciesName(c)}</strong><div class="meta">${participantById(c.participantId)?.name||'–'} · ${fmtKg(c.weightKg)}</div></article>`));if(topAreas.length)cards.push(`<article class="tournament-highlight"><strong>Beste Raster</strong><div class="meta">${topAreas.map(([id,count])=>`${id.replace('grid_','')}: ${count}`).join(' · ')}</div></article>`);if(!cards.length)cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');highlights.innerHTML=cards.join('')}
+function renderTournaments(){const list=document.getElementById('tournamentList');const title=document.getElementById('activeTournamentTitle');const meta=document.getElementById('activeTournamentMeta');const leaderboard=document.getElementById('tournamentLeaderboard');const highlights=document.getElementById('tournamentHighlights');if(!list||!title||!meta||!leaderboard||!highlights)return;list.innerHTML='';if(!state.tournaments.length){list.innerHTML='<div class="meta">Noch keine Turniere angelegt.</div>';title.textContent='Turnierauswertung';meta.textContent='Noch kein Turnier ausgewählt';leaderboard.innerHTML='';highlights.innerHTML='<div class="meta">Lege zuerst ein Turnier an.</div>';return}if(!activeTournamentId||!tournamentById(activeTournamentId))activeTournamentId=state.tournaments[0].id;state.tournaments.forEach(t=>{const rules=getTournamentRules(t);const article=document.createElement('article');article.className='list-card tournament-card'+(t.id===activeTournamentId?' active':'');article.innerHTML=`<div><div class="list-title-row"><strong>${t.name}</strong><span class="badge">${rules.name}</span></div><div class="meta">${t.start||'–'} bis ${t.end||'–'} · ${(t.participantIds||[]).length||state.participants.length} Teilnehmer</div><div class="tournament-rule">Fänge müssen beim Eintragen dem Turnier zugeordnet werden.</div></div><div class="list-actions"><button class="icon-btn edit-btn">✎</button><button class="icon-btn open-btn">↗</button><button class="icon-btn delete-btn">✕</button></div>`;article.querySelector('.edit-btn').addEventListener('click',()=>loadTournamentIntoForm(t));article.querySelector('.open-btn').addEventListener('click',()=>{activeTournamentId=t.id;renderTournaments();showScreen('tournaments')});article.querySelector('.delete-btn').addEventListener('click',()=>{if(!confirm('Dieses Turnier löschen? Zugeordnete Fänge bleiben bestehen, verlieren aber die Zuordnung.'))return;state.catches=state.catches.map(c=>c.tournamentId===t.id?{...c,tournamentId:''}:c);state.tournaments=state.tournaments.filter(x=>x.id!==t.id);if(activeTournamentId===t.id)activeTournamentId=state.tournaments[0]?.id||null;persist();rerender()});list.appendChild(article)});const tournament=tournamentById(activeTournamentId);const result=computeTournamentScores(tournament);title.textContent=tournament.name;meta.textContent=`${getTournamentRules(tournament).name} · ${result.catches.length} zugeordnete Fänge`;leaderboard.innerHTML='';result.rows.forEach((row,i)=>{leaderboard.insertAdjacentHTML('beforeend',`<article class="list-card"><div><div class="list-title-row"><strong>#${i+1} ${row.participant?.avatar||'🎣'} ${row.participant?.name||'–'}</strong><span class="badge" style="background:${row.participant?.color||'#4ad7d1'}">${row.points} Punkte</span></div><div class="meta">${row.catches} Fänge · ${fmtKg(row.totalWeight)}</div></div><div class="meta">${row.bonuses.slice(0,3).join(' · ')||'Nur Basiswertung'}</div></article>`)});const biggest=result.catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);const first=result.catches[0]||null;const speciesWins={};result.catches.forEach(c=>{const s=speciesName(c);if(!speciesWins[s]||Number(c.weightKg||0)>Number(speciesWins[s].weightKg||0))speciesWins[s]=c});const topAreas=[...new Map(result.catches.map(c=>[gridIdFromCatch(c), (result.catches.filter(x=>gridIdFromCatch(x)===gridIdFromCatch(c)).length)])).entries()].filter(x=>x[0]!=='unknown').sort((a,b)=>b[1]-a[1]).slice(0,3);highlights.innerHTML='';const cards=[];if(first)cards.push(`<article class="tournament-highlight"><strong>Erster Fisch</strong><div class="meta">${speciesName(first)} von ${participantById(first.participantId)?.name||'–'} um ${fmtDateTime(first.timestamp)}</div></article>`);if(biggest)cards.push(`<article class="tournament-highlight"><strong>Größter Fisch</strong><div class="meta">${speciesName(biggest)} · ${fmtKg(biggest.weightKg)} · ${biggest.lengthCm} cm</div></article>`);Object.values(speciesWins).slice(0,4).forEach(c=>cards.push(`<article class="tournament-highlight"><strong>Artensieger ${speciesName(c)}</strong><div class="meta">${participantById(c.participantId)?.name||'–'} · ${fmtKg(c.weightKg)}</div></article>`));if(topAreas.length)cards.push(`<article class="tournament-highlight"><strong>Beste Raster</strong><div class="meta">${topAreas.map(([id,count])=>`${id.replace('grid_','')}: ${count}`).join(' · ')}</div></article>`);if(!cards.length)cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');highlights.innerHTML=cards.join('')}
 function initLocationPicker(){const previewEl=document.getElementById('locationPreviewMap');const modal=document.getElementById('mapPickerModal');const openBtn=document.getElementById('pickOnMap');const closeBtn=document.getElementById('closeMapPicker');const confirmBtn=document.getElementById('confirmMapLocation');const latInput=document.querySelector('[name="lat"]');const lngInput=document.querySelector('[name="lng"]');if(!previewEl||!modal||!openBtn||!closeBtn||!confirmBtn||!latInput||!lngInput||typeof L==='undefined')return;let previewMap=L.map(previewEl,{zoomControl:false,attributionControl:false}).setView([59.442773,11.654906],8);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(previewMap);let previewMarker=null;window.updateCatchLocationPreview=(lat,lng)=>{previewMap.invalidateSize();previewMap.setView([lat,lng],11);if(previewMarker)previewMarker.setLatLng([lat,lng]);else previewMarker=L.marker([lat,lng]).addTo(previewMap)};let pickerMap=null;let pickerMarker=null;let selected=null;const syncFromInputs=()=>{const lat=parseFloat(latInput.value),lng=parseFloat(lngInput.value);if(!isNaN(lat)&&!isNaN(lng))window.updateCatchLocationPreview(lat,lng)};latInput.addEventListener('input',syncFromInputs);lngInput.addEventListener('input',syncFromInputs);syncFromInputs();openBtn.addEventListener('click',()=>{modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');setTimeout(()=>{if(!pickerMap){pickerMap=L.map('mapPicker').setView([59.442773,11.654906],9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(pickerMap);pickerMap.on('click',e=>{selected=e.latlng;if(pickerMarker){pickerMarker.setLatLng(selected)}else{pickerMarker=L.marker(selected,{draggable:true}).addTo(pickerMap);pickerMarker.on('dragend',()=>{selected=pickerMarker.getLatLng()})}})}const lat=parseFloat(latInput.value),lng=parseFloat(lngInput.value);if(!isNaN(lat)&&!isNaN(lng)){selected={lat,lng};pickerMap.setView([lat,lng],11);if(pickerMarker){pickerMarker.setLatLng([lat,lng])}else{pickerMarker=L.marker([lat,lng],{draggable:true}).addTo(pickerMap);pickerMarker.on('dragend',()=>{selected=pickerMarker.getLatLng()})}}pickerMap.invalidateSize()},80)});const closeModal=()=>{modal.classList.add('hidden');modal.setAttribute('aria-hidden','true')};closeBtn.addEventListener('click',closeModal);modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});confirmBtn.addEventListener('click',()=>{if(!selected)return;latInput.value=Number(selected.lat).toFixed(6);lngInput.value=Number(selected.lng).toFixed(6);window.updateCatchLocationPreview(selected.lat,selected.lng);closeModal()})}
 async function init(){
   if(localStorage.getItem(THEME_KEY)==='light') {
@@ -557,17 +498,15 @@ function refreshDashboardTournamentSelect(){
 })();
 
 // Absolute override for Artenverteilung chart
-// Minimal-invasive Anpassung: gleicher Bar-Chart-Stil wie "Fänge pro Tag",
-// aber aggregiert nach Fang-Uhrzeit statt nach Datum.
 setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
   if (!canvas || typeof Chart === 'undefined') return;
 
   const catches = typeof getDashboardCatches === 'function'
     ? getDashboardCatches()
-    : (window.state?.catches || state?.catches || []);
+    : (window.state?.catches || []);
 
-  const signature = JSON.stringify(catches.map(c => [c.id, c.timestamp || c.createdAt]));
+  const signature = JSON.stringify(catches.map(c => [c.id, c.species, c.timestamp]));
   if (window.__speciesSignature === signature) return;
   window.__speciesSignature = signature;
 
@@ -575,44 +514,69 @@ setInterval(() => {
   if (existing) existing.destroy();
 
   const labels = Array.from({length:24}, (_,i)=>String(i).padStart(2,'0') + ':00');
-  const values = new Array(24).fill(0);
+  const defs = {
+    'Barsch':'#4FC3F7',
+    'Hecht':'#32D26E',
+    'Zander':'#FFD54F',
+    'Forelle':'#FFAA5B',
+    'Dorsch':'#A98BFF',
+    'Andere':'#B0BEC5'
+  };
 
-  catches.forEach(c => {
-    const rawDate = c.timestamp || c.createdAt;
-    if (!rawDate) return;
-    const d = new Date(rawDate);
-    if (Number.isNaN(d.getTime())) return;
-    values[d.getHours()] += 1;
+  const datasets = Object.entries(defs).map(([name,color]) => {
+    const arr = new Array(24).fill(0);
+
+    catches.forEach(c => {
+      const species = c.species || 'Andere';
+      if (species !== name) return;
+      const d = c.timestamp || c.createdAt;
+      if (!d) return;
+      arr[new Date(d).getHours()]++;
+    });
+
+    return {
+      label: name,
+      data: arr,
+      borderColor: color,
+      backgroundColor: color,
+      pointStyle: 'rect',
+      fill: false,
+      borderWidth: 2,
+      tension: 0.45,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      cubicInterpolationMode: 'monotone'
+    };
   });
 
   new Chart(canvas.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Fänge',
-        data: values,
-        backgroundColor: '#4ad7d1',
-        borderRadius: 12
-      }]
-    },
+    type: 'line',
+    data: { labels, datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      aspectRatio: 1.9,
       animation: false,
+      plugins: {
+        legend: {
+          labels: {
+  color: '#d8e0e8',
+  usePointStyle: true,
+  padding: 18,
+  font: { size: 14, weight: '600' }
+}
+        }
+      },
       scales: {
         x: {
-          ticks: { color: css('--muted') || '#aab6c4', maxRotation: 0, autoSkip: true },
+          ticks: { color: '#aab6c4' },
           grid: { display: false }
         },
         y: {
           beginAtZero: true,
-          ticks: { stepSize: 1, color: css('--muted') || '#aab6c4' },
-          grid: { color: 'rgba(255,255,255,.08)' }
+          ticks: { stepSize: 1, color: '#aab6c4' },
+          grid: { display: false }
         }
-      },
-      plugins: {
-        legend: { display: false }
       }
     }
   });
@@ -621,7 +585,7 @@ setInterval(() => {
 
 setTimeout(() => {
   const speciesCanvas = document.getElementById('speciesTimelineChart');
-  const dailyCanvas = document.getElementById('dailyChart');
+  const dailyCanvas = document.getElementById('dailyCatchesChart');
 
   if (speciesCanvas && dailyCanvas) {
     const dailyContainer = dailyCanvas.parentElement;
@@ -848,32 +812,13 @@ function getAnalyticsCatches(){
   return state.catches.filter(c => (c.tournamentId || '') === window.analyticsTournamentFilter);
 }
 
-function rerenderAnalyticsView(){
-  if(typeof refreshAnalyticsTournamentSelect === 'function'){
-    refreshAnalyticsTournamentSelect();
-  }
-
+function rerenderAnalyticsCharts(){
   const originalCatches = state.catches;
   state.catches = getAnalyticsCatches();
 
   try{
     if(typeof renderCharts === 'function'){
       renderCharts();
-    }
-    if(typeof renderTimeHeatmap === 'function'){
-      renderTimeHeatmap();
-    }
-    if(typeof renderRecords === 'function'){
-      renderRecords();
-    }
-    if(typeof renderForecast === 'function'){
-      renderForecast();
-    }
-    if(typeof renderSpotBaitMatrix === 'function'){
-      renderSpotBaitMatrix();
-    }
-    if(typeof renderParticipantTimeline === 'function'){
-      renderParticipantTimeline();
     }
   } finally {
     state.catches = originalCatches;
@@ -899,52 +844,27 @@ function refreshAnalyticsTournamentSelect(){
 
   select.addEventListener('change', () => {
     window.analyticsTournamentFilter = select.value;
-    rerenderAnalyticsView();
+    rerenderAnalyticsCharts();
   });
-}
-
-function withAnalyticsFilter(fn){
-  if(typeof fn !== 'function') return fn;
-
-  return function(){
-    const analyticsScreen = document.getElementById('screen-analytics');
-    const shouldFilter = analyticsScreen?.classList.contains('active');
-
-    if(!shouldFilter){
-      return fn.apply(this, arguments);
-    }
-
-    const originalCatches = state.catches;
-    state.catches = getAnalyticsCatches();
-
-    try{
-      return fn.apply(this, arguments);
-    } finally {
-      state.catches = originalCatches;
-    }
-  };
 }
 
 document.addEventListener('DOMContentLoaded', refreshAnalyticsTournamentSelect);
 window.addEventListener('load', () => setTimeout(refreshAnalyticsTournamentSelect, 50));
 
-renderCharts = withAnalyticsFilter(renderCharts);
-renderTimeHeatmap = withAnalyticsFilter(renderTimeHeatmap);
-renderRecords = withAnalyticsFilter(renderRecords);
-renderForecast = withAnalyticsFilter(renderForecast);
+const originalRenderChartsForAnalyticsFilter = renderCharts;
+renderCharts = function(){
+  const originalCatches = state.catches;
 
-const originalShowScreenForAnalyticsFilter = showScreen;
-showScreen = function(name){
-  const result = originalShowScreenForAnalyticsFilter.apply(this, arguments);
-
-  if(name === 'analytics'){
-    setTimeout(() => {
-      refreshAnalyticsTournamentSelect();
-      rerenderAnalyticsView();
-    }, 0);
+  if(document.getElementById('screen-analytics')?.classList.contains('active')){
+    state.catches = getAnalyticsCatches();
   }
 
-  return result;
+  try{
+    return originalRenderChartsForAnalyticsFilter.apply(this, arguments);
+  } finally {
+    state.catches = originalCatches;
+    refreshAnalyticsTournamentSelect();
+  }
 }
 
 
@@ -1099,231 +1019,3 @@ function ensureCatchDropdownFields(){
 document.addEventListener('DOMContentLoaded',()=>{ensureCatchDropdownFields()});
 
 
-
-
-function renderSpotBaitMatrix(){
-  const container=document.getElementById('spotBaitMatrix');
-  if(!container) return;
-
-  const catches=[...state.catches];
-  const spots=[...new Set(catches.map(c=>c.spotLabel||'Unbekannt'))].slice(0,6);
-  const baits=[...new Set(catches.map(c=>c.bait||'Unbekannt'))].slice(0,6);
-
-  if(!spots.length||!baits.length){
-    container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';
-    return;
-  }
-
-  const max=Math.max(1,...spots.flatMap(spot=>baits.map(bait=>catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length)));
-
-  container.innerHTML=
-    '<div class="matrix-header"><div class="matrix-label">Spot \/ Köder</div>'+baits.map(b=>`<div class="matrix-label">${b}</div>`).join('')+'</div>'+
-    spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+spot+'</div>'+baits.map(bait=>{
-      const count=catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length;
-      const opacity=.12+(count/max)*.88;
-      return `<div class="matrix-cell" style="background:rgba(74,215,209,${opacity})"><strong>${count}</strong><span>Fänge</span></div>`;
-    }).join('')+'</div>').join('');
-}
-
-function renderParticipantTimeline(){
-  const canvas=document.getElementById('timelineBubbleChart');
-  canvas.height=260;
-  if(!canvas||typeof Chart==='undefined') return;
-
-  if(window.timelineBubbleChartInstance){
-    window.timelineBubbleChartInstance.destroy();
-  }
-
-  const participants=[...new Set(state.catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
-
-  const datasets=participants.map((name,index)=>({
-    label:name,
-    data:state.catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({
-      x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
-      y:index+1,
-      r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
-    }))
-  }));
-
-  window.timelineBubbleChartInstance=new Chart(canvas,{
-    type:'bubble',
-    data:{datasets},
-    options:{
-      plugins:{
-        legend:{
-          labels:{
-            color:css('--text'),
-            usePointStyle:true,
-            pointStyle:'circle',
-            boxWidth:8,
-            boxHeight:8,
-            padding:14
-          }
-        }
-      },
-      scales:{
-        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>participants[v-1]||''},grid:{display:false}}
-      }
-    }
-  });
-}
-
-function renderSpeciesTimeline(){
-  const canvas=document.getElementById('speciesTimelineBubbleChart');
-  canvas.height=260;
-  if(!canvas||typeof Chart==='undefined') return;
-
-  if(window.speciesTimelineBubbleChartInstance){
-    window.speciesTimelineBubbleChartInstance.destroy();
-  }
-
-  const species=[...new Set(state.catches.map(c=>c.species||c.customSpecies||'Andere').filter(Boolean))];
-
-  const datasets=species.map((name,index)=>({
-    label:name,
-    data:state.catches
-      .filter(c=>(c.species||c.customSpecies||'Andere')===name)
-      .map(c=>({
-        x:new Date(c.timestamp).getHours()+new Date(c.timestamp).getMinutes()/60,
-        y:index+1,
-        r:Math.max(6,Math.min(18,Number(c.weightKg||1)*2))
-      })),
-    borderColor: speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`,
-    backgroundColor: (speciesPalette[name] || `hsl(${(index*67)%360} 75% 60%)`).replace('rgb(','rgba(').replace(')',',0.45)'),
-    borderWidth: 1.5
-  }));
-
-  window.speciesTimelineBubbleChartInstance=new Chart(canvas,{
-    type:'bubble',
-    data:{datasets},
-    options:{
-      plugins:{
-        legend:{
-          labels:{
-            color:css('--text'),
-            usePointStyle:true,
-            pointStyle:'circle',
-            boxWidth:8,
-            boxHeight:8,
-            padding:14
-          }
-        }
-      },
-      scales:{
-        x:{min:0,max:24,ticks:{color:css('--muted'),callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.08)'}},
-        y:{ticks:{color:css('--muted'),callback:v=>species[v-1]||''},grid:{display:false}}
-      }
-    }
-  });
-}
-
-
-// ===== TOPO CONTROL (VISIBLE FIX) =====
-setTimeout(() => {
-
-    const topoLayer = L.tileLayer(
-        "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-        {
-            maxZoom: 17,
-            attribution: "© OpenTopoMap"
-        }
-    );
-
-    let isTopo = false;
-    let baseLayer = null;
-
-    map.eachLayer(l=>{
-        if(l instanceof L.TileLayer && !baseLayer){
-            baseLayer = l;
-        }
-    });
-
-    const topoControl = L.control({ position: "topright" });
-
-    topoControl.onAdd = function () {
-        const btn = L.DomUtil.create("button", "leaflet-bar");
-        btn.innerHTML = "⛰";
-        btn.style.width = "40px";
-        btn.style.height = "40px";
-        btn.style.cursor = "pointer";
-
-        L.DomEvent.on(btn, "click", function (e) {
-            L.DomEvent.stopPropagation(e);
-            L.DomEvent.preventDefault(e);
-
-            console.log("TOPO CLICK", isTopo);
-
-            if (!isTopo) {
-                if (baseLayer) map.removeLayer(baseLayer);
-                topoLayer.addTo(map);
-                isTopo = true;
-            } else {
-                map.removeLayer(topoLayer);
-                if (baseLayer) baseLayer.addTo(map);
-                isTopo = false;
-            }
-        });
-
-        return btn;
-    };
-
-    topoControl.addTo(map);
-
-}, 1000);
-
-
-
-// === FINAL TOGGLE FEATURE ===
-let chartMode = { perDay: "total", perHour: "total" };
-
-function toggleChartMode(type){
-    chartMode[type] = chartMode[type] === "total" ? "stacked" : "total";
-    renderDashboard();
-}
-
-function aggregateStackedByHour(catches){
-    const r={};
-    catches.forEach(c=>{
-        const h=new Date(c.date).getHours();
-        const s=c.species||"Unbekannt";
-        if(!r[h]) r[h]={};
-        if(!r[h][s]) r[h][s]=0;
-        r[h][s]++;
-    });
-    return r;
-}
-
-function aggregateStackedByDay(catches){
-    const r={};
-    catches.forEach(c=>{
-        const d=new Date(c.date).toLocaleDateString();
-        const s=c.species||"Unbekannt";
-        if(!r[d]) r[d]={};
-        if(!r[d][s]) r[d][s]=0;
-        r[d][s]++;
-    });
-    return r;
-}
-
-function renderStackedChart(id,data){
-    const c=document.getElementById(id);
-    if(!c) return;
-    const ctx=c.getContext("2d");
-
-    const labels=Object.keys(data);
-    const set=new Set();
-    labels.forEach(l=>Object.keys(data[l]).forEach(s=>set.add(s)));
-
-    const datasets=[...set].map(s=>({
-        label:s,
-        data:labels.map(l=>data[l][s]||0),
-        stack:"s1"
-    }));
-
-    new Chart(ctx,{
-        type:"bar",
-        data:{labels,datasets},
-        options:{scales:{x:{stacked:true},y:{stacked:true}}}
-    });
-}
