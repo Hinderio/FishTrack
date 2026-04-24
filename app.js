@@ -1631,8 +1631,7 @@ setTimeout(() => clearInterval(_bonusEnhancerTimer), 15000);
     return r;
   };
   document.addEventListener('DOMContentLoaded', refreshDsTournamentSelect);
-  window.addEventListener('resize', () => {
-    if(document.getElementById('screen-datascience')?.classList.contains('active')) Object.values(dsCharts).forEach(c=>c.resize());
+  // removed resize listener (handled safely)
   });
 })();
 

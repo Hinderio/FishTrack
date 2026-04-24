@@ -1497,3 +1497,5 @@ body.mobile-mode #screen-datascience .ds-wide{grid-column:span 2}
 .data-lab-chart{height:320px;min-height:320px;max-height:320px}
 .data-lab-chart.placeholder{opacity:.15;border:1px dashed rgba(255,255,255,.1)}
 @media(max-width:768px){.data-lab-grid{grid-template-columns:1fr}}
+
+.data-lab-chart{height:320px!important;min-height:320px!important;max-height:320px!important;}
