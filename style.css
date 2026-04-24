@@ -1424,3 +1424,41 @@ body.mobile-mode canvas {
 .bonus-4{background:linear-gradient(135deg,#7c6dff,#3fa7ff);color:white;}
 .bonus-5{background:linear-gradient(135deg,#ff9f43,#ffcc4d);color:#241400;}
 .bonus-6{background:linear-gradient(135deg,#fff1a8,#ffcc33 45%,#ff7a18);color:#261200;}
+
+.list-card {
+  position: relative;
+  padding: 16px;
+  border-radius: 18px;
+}
+
+.card-header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.card-stats {
+  margin-top: 6px;
+  opacity: 0.8;
+  font-size: 13px;
+}
+
+.card-top {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.tournament-bonus {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  font-size: 13px;
+  background: rgba(255,215,0,0.15);
+  color: #ffd700;
+  padding: 5px 12px;
+  border-radius: 14px;
+  font-weight: 600;
+  box-shadow: 0 0 10px rgba(255,215,0,0.2);
+}
