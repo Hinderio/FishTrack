@@ -556,8 +556,8 @@ function refreshDashboardTournamentSelect(){
   window.addEventListener('load', () => setTimeout(refreshDashboardTournamentSelect, 50));
 })();
 
-// Absolute override for Artenverteilung <button onclick="toggleChartMode('perHour')">Arten</button> chart
-// Minimal-invasive Anpassung: gleicher Bar-Chart-Stil wie "Fänge pro Tag <button onclick="toggleChartMode('perDay')">Arten</button>",
+// Absolute override for Artenverteilung chart
+// Minimal-invasive Anpassung: gleicher Bar-Chart-Stil wie "Fänge pro Tag",
 // aber aggregiert nach Fang-Uhrzeit statt nach Datum.
 setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
@@ -1274,59 +1274,56 @@ setTimeout(() => {
 
 
 
-// ===== STACKED FEATURE SAFE =====
+// === FINAL TOGGLE FEATURE ===
 let chartMode = { perDay: "total", perHour: "total" };
 
-function toggleChartMode(type) {
+function toggleChartMode(type){
     chartMode[type] = chartMode[type] === "total" ? "stacked" : "total";
-    if (typeof renderDashboard === "function") renderDashboard();
+    renderDashboard();
 }
 
-function aggregateStackedByHour(catches) {
-    const result = {};
-    catches.forEach(c => {
-        const h = new Date(c.date).getHours();
-        const s = c.species || "Unbekannt";
-        if (!result[h]) result[h] = {};
-        if (!result[h][s]) result[h][s] = 0;
-        result[h][s]++;
+function aggregateStackedByHour(catches){
+    const r={};
+    catches.forEach(c=>{
+        const h=new Date(c.date).getHours();
+        const s=c.species||"Unbekannt";
+        if(!r[h]) r[h]={};
+        if(!r[h][s]) r[h][s]=0;
+        r[h][s]++;
     });
-    return result;
+    return r;
 }
 
-function aggregateStackedByDay(catches) {
-    const result = {};
-    catches.forEach(c => {
-        const d = new Date(c.date).toLocaleDateString();
-        const s = c.species || "Unbekannt";
-        if (!result[d]) result[d] = {};
-        if (!result[d][s]) result[d][s] = 0;
-        result[d][s]++;
+function aggregateStackedByDay(catches){
+    const r={};
+    catches.forEach(c=>{
+        const d=new Date(c.date).toLocaleDateString();
+        const s=c.species||"Unbekannt";
+        if(!r[d]) r[d]={};
+        if(!r[d][s]) r[d][s]=0;
+        r[d][s]++;
     });
-    return result;
+    return r;
 }
 
-function renderStackedChart(id, data) {
-    const canvas = document.getElementById(id);
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+function renderStackedChart(id,data){
+    const c=document.getElementById(id);
+    if(!c) return;
+    const ctx=c.getContext("2d");
 
-    const labels = Object.keys(data);
-    const speciesSet = new Set();
-    labels.forEach(l => Object.keys(data[l]).forEach(s => speciesSet.add(s)));
+    const labels=Object.keys(data);
+    const set=new Set();
+    labels.forEach(l=>Object.keys(data[l]).forEach(s=>set.add(s)));
 
-    const datasets = Array.from(speciesSet).map(s => ({
-        label: s,
-        data: labels.map(l => data[l][s] || 0),
-        stack: "stack1"
+    const datasets=[...set].map(s=>({
+        label:s,
+        data:labels.map(l=>data[l][s]||0),
+        stack:"s1"
     }));
 
-    new Chart(ctx, {
-        type: "bar",
-        data: { labels, datasets },
-        options: {
-            scales: { x: { stacked: true }, y: { stacked: true } }
-        }
+    new Chart(ctx,{
+        type:"bar",
+        data:{labels,datasets},
+        options:{scales:{x:{stacked:true},y:{stacked:true}}}
     });
 }
-// ===== END =====

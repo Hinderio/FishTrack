@@ -81,13 +81,13 @@
 
         <div class="grid two-columns">
           <section class="panel glass species-distribution-card" id="speciesDistributionCard">
-            <div class="panel-head"><h3>Artenverteilung</h3></div>
+            <div class="panel-head"><h3>Artenverteilung <button onclick="toggleChartMode('perHour')" style="margin-left:10px;">Arten</button></h3></div>
             <div class="timeline-chart-wrap">
               
               <div id="speciesTimelineLegend" class="species-icon-legend"></div><canvas id="speciesTimelineChart"></canvas>
             </div>
           </section>
-          <section class="panel glass"><div class="panel-head"><h3>Fänge pro Tag</h3></div><canvas id="dailyChart" height="210"></canvas></section>
+          <section class="panel glass"><div class="panel-head"><h3>Fänge pro Tag <button onclick="toggleChartMode('perDay')" style="margin-left:10px;">Arten</button></h3></div><canvas id="dailyChart" height="210"></canvas></section>
         </div>
 
         <section class="panel glass">
