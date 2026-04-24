@@ -557,15 +557,17 @@ function refreshDashboardTournamentSelect(){
 })();
 
 // Absolute override for Artenverteilung chart
+// Minimal-invasive Anpassung: gleicher Bar-Chart-Stil wie "Fänge pro Tag",
+// aber aggregiert nach Fang-Uhrzeit statt nach Datum.
 setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
   if (!canvas || typeof Chart === 'undefined') return;
 
   const catches = typeof getDashboardCatches === 'function'
     ? getDashboardCatches()
-    : (window.state?.catches || []);
+    : (window.state?.catches || state?.catches || []);
 
-  const signature = JSON.stringify(catches.map(c => [c.id, c.species, c.timestamp]));
+  const signature = JSON.stringify(catches.map(c => [c.id, c.timestamp || c.createdAt]));
   if (window.__speciesSignature === signature) return;
   window.__speciesSignature = signature;
 
@@ -573,69 +575,44 @@ setInterval(() => {
   if (existing) existing.destroy();
 
   const labels = Array.from({length:24}, (_,i)=>String(i).padStart(2,'0') + ':00');
-  const defs = {
-    'Barsch':'#4FC3F7',
-    'Hecht':'#32D26E',
-    'Zander':'#FFD54F',
-    'Forelle':'#FFAA5B',
-    'Dorsch':'#A98BFF',
-    'Andere':'#B0BEC5'
-  };
+  const values = new Array(24).fill(0);
 
-  const datasets = Object.entries(defs).map(([name,color]) => {
-    const arr = new Array(24).fill(0);
-
-    catches.forEach(c => {
-      const species = c.species || 'Andere';
-      if (species !== name) return;
-      const d = c.timestamp || c.createdAt;
-      if (!d) return;
-      arr[new Date(d).getHours()]++;
-    });
-
-    return {
-      label: name,
-      data: arr,
-      borderColor: color,
-      backgroundColor: color,
-      pointStyle: 'rect',
-      fill: false,
-      borderWidth: 2,
-      tension: 0.45,
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      cubicInterpolationMode: 'monotone'
-    };
+  catches.forEach(c => {
+    const rawDate = c.timestamp || c.createdAt;
+    if (!rawDate) return;
+    const d = new Date(rawDate);
+    if (Number.isNaN(d.getTime())) return;
+    values[d.getHours()] += 1;
   });
 
   new Chart(canvas.getContext('2d'), {
-    type: 'line',
-    data: { labels, datasets },
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Fänge',
+        data: values,
+        backgroundColor: '#4ad7d1',
+        borderRadius: 12
+      }]
+    },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      aspectRatio: 1.9,
       animation: false,
-      plugins: {
-        legend: {
-          labels: {
-  color: '#d8e0e8',
-  usePointStyle: true,
-  padding: 18,
-  font: { size: 14, weight: '600' }
-}
-        }
-      },
       scales: {
         x: {
-          ticks: { color: '#aab6c4' },
+          ticks: { color: css('--muted') || '#aab6c4', maxRotation: 0, autoSkip: true },
           grid: { display: false }
         },
         y: {
           beginAtZero: true,
-          ticks: { stepSize: 1, color: '#aab6c4' },
-          grid: { display: false }
+          ticks: { stepSize: 1, color: css('--muted') || '#aab6c4' },
+          grid: { color: 'rgba(255,255,255,.08)' }
         }
+      },
+      plugins: {
+        legend: { display: false }
       }
     }
   });
@@ -644,7 +621,7 @@ setInterval(() => {
 
 setTimeout(() => {
   const speciesCanvas = document.getElementById('speciesTimelineChart');
-  const dailyCanvas = document.getElementById('dailyCatchesChart');
+  const dailyCanvas = document.getElementById('dailyChart');
 
   if (speciesCanvas && dailyCanvas) {
     const dailyContainer = dailyCanvas.parentElement;
