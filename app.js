@@ -86,7 +86,7 @@ if (typeof renderCharts === 'function') {
 }
 
 if (typeof window.renderSpeciesTimeline === 'function') {
-  window.renderSpeciesTimeline();
+  window.try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
 }
 
 hasLoadedFromSupabase = true;
@@ -534,7 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.__timelineSourceCatches = matching;
         if (typeof renderSpeciesTimeline === 'function') {
-          window.renderSpeciesTimeline();
+          window.try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
         }
       };
       charts.daily.update();
@@ -581,7 +581,7 @@ function refreshDashboardTournamentSelect(){
     if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
     if(typeof renderCharts === 'function') renderCharts();
     if(typeof renderMap === 'function') renderMap();
-    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if(typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
   });
 }
 
@@ -756,7 +756,7 @@ setTimeout(() => {
     try {
       if (typeof renderDashboard === 'function') renderDashboard();
       if (typeof renderCharts === 'function') renderCharts();
-      if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+      if (typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
       if (typeof renderMap === 'function') renderMap();
     } finally {
       state.catches = original;
@@ -811,7 +811,7 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if (typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
   } finally {
     state.catches = original;
   }
@@ -907,7 +907,7 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if(typeof renderSpeciesTimeline === 'function') try{renderSpeciesTimeline();}catch(e){console.error("Timeline crash:",e);}
   } finally {
     state.catches = original;
   }
@@ -1246,6 +1246,12 @@ function renderParticipantTimeline(){
 }
 
 function renderSpeciesTimeline(){
+  const canvas = document.getElementById("speciesTimeline");
+  if(!canvas){
+    console.warn("SpeciesTimeline canvas fehlt → skip");
+    return;
+  }
+
   const canvas=document.getElementById('speciesTimelineBubbleChart');
   canvas.height=260;
   if(!canvas||typeof Chart==='undefined') return;
