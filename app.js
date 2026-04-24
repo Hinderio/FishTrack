@@ -1274,59 +1274,59 @@ setTimeout(() => {
 
 
 
-// === SAFE STACKED FEATURE ===
+// ===== STACKED FEATURE SAFE =====
 let chartMode = { perDay: "total", perHour: "total" };
 
-function toggleChartMode(type){
+function toggleChartMode(type) {
     chartMode[type] = chartMode[type] === "total" ? "stacked" : "total";
-    if(typeof renderDashboard === "function") renderDashboard();
+    if (typeof renderDashboard === "function") renderDashboard();
 }
 
-function aggregateStackedByDay(catches){
-    const res = {};
-    catches.forEach(c=>{
-        const d = new Date(c.date).toLocaleDateString();
-        const s = c.species || "Unbekannt";
-        if(!res[d]) res[d]={};
-        if(!res[d][s]) res[d][s]=0;
-        res[d][s]++;
-    });
-    return res;
-}
-
-function aggregateStackedByHour(catches){
-    const res = {};
-    catches.forEach(c=>{
+function aggregateStackedByHour(catches) {
+    const result = {};
+    catches.forEach(c => {
         const h = new Date(c.date).getHours();
         const s = c.species || "Unbekannt";
-        if(!res[h]) res[h]={};
-        if(!res[h][s]) res[h][s]=0;
-        res[h][s]++;
+        if (!result[h]) result[h] = {};
+        if (!result[h][s]) result[h][s] = 0;
+        result[h][s]++;
     });
-    return res;
+    return result;
 }
 
-function renderStackedChart(canvasId, data){
-    const canvas = document.getElementById(canvasId);
-    if(!canvas) return;
+function aggregateStackedByDay(catches) {
+    const result = {};
+    catches.forEach(c => {
+        const d = new Date(c.date).toLocaleDateString();
+        const s = c.species || "Unbekannt";
+        if (!result[d]) result[d] = {};
+        if (!result[d][s]) result[d][s] = 0;
+        result[d][s]++;
+    });
+    return result;
+}
+
+function renderStackedChart(id, data) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
     const labels = Object.keys(data);
-    const species = new Set();
-    labels.forEach(l=>Object.keys(data[l]).forEach(s=>species.add(s)));
+    const speciesSet = new Set();
+    labels.forEach(l => Object.keys(data[l]).forEach(s => speciesSet.add(s)));
 
-    const datasets = Array.from(species).map(s=>({
-        label:s,
-        data:labels.map(l=>data[l][s]||0),
-        stack:"stack1"
+    const datasets = Array.from(speciesSet).map(s => ({
+        label: s,
+        data: labels.map(l => data[l][s] || 0),
+        stack: "stack1"
     }));
 
-    new Chart(ctx,{
-        type:"bar",
-        data:{labels,datasets},
-        options:{
-            scales:{x:{stacked:true},y:{stacked:true}}
+    new Chart(ctx, {
+        type: "bar",
+        data: { labels, datasets },
+        options: {
+            scales: { x: { stacked: true }, y: { stacked: true } }
         }
     });
 }
-// === END FEATURE ===
+// ===== END =====
