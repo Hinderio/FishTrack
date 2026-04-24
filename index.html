@@ -194,7 +194,16 @@
               <button id="show-all-catches-btn" class="map-action-btn">Alle Fänge zeigen</button>
               <button id="toggle-grid-btn" class="map-action-btn">Raster an/aus</button>
             </div>
-            <div id="map"></div>
+            <div id="map">
+
+<div class="map-fab">
+  <button id="mapFabMain" class="map-fab-main">☰</button>
+  <div id="mapFabMenu" class="map-fab-menu">
+    <button id="weatherMapBtn" class="map-fab-item" title="Wetterkarte">☁️</button>
+    <button id="depthMapBtn" class="map-fab-item" title="Tiefenkarte">🌊</button>
+  </div>
+</div>
+</div>
           </section>
           <section class="panel glass"><div class="panel-head"><h3>Heatmap / Spots</h3></div><div id="mapLegend" class="legend-box"></div><div id="heatmapGrid" class="heatmap-grid"></div></section>
         </div>
@@ -361,14 +370,5 @@
 </script>
 
 <script src="app.js?v=121"></script>
-
-<div class="map-fab">
-  <button id="mapFabMain" class="map-fab-main">☰</button>
-  <div id="mapFabMenu" class="map-fab-menu">
-    <button id="weatherMapBtn" class="map-fab-item" title="Wetterkarte">☁️</button>
-    <button id="depthMapBtn" class="map-fab-item" title="Tiefenkarte">🌊</button>
-  </div>
-</div>
-
 </body>
 </html>
