@@ -420,7 +420,6 @@ function renderTournaments() {
     const article = document.createElement('article');
     article.className = 'list-card tournament-card' + (t.id === activeTournamentId ? ' active' : '');
 
-    // ✅ CARD CLICK (sauber)
     article.addEventListener('click', (e) => {
       if (e.target.closest('.list-actions')) return;
       activeTournamentId = t.id;
@@ -452,7 +451,6 @@ function renderTournaments() {
       </div>
     `;
 
-    // BUTTON EVENTS
     article.querySelector('.finish-btn').addEventListener('click', e => {
       e.stopPropagation();
       finishTournament(t.id);
@@ -486,12 +484,40 @@ function renderTournaments() {
       rerender();
     });
 
-    // 👉 RICHTIGE ZUORDNUNG (war dein Crash!)
     if (t.finished) {
       closedContainer.appendChild(article);
     } else {
       openContainer.appendChild(article);
     }
+  });
+
+  // 👉 FEHLENDER TEIL (war dein Bug)
+  const tournament = tournamentById(activeTournamentId);
+  if (!tournament) return;
+
+  const result = computeTournamentScores(tournament);
+
+  title.textContent = tournament.name;
+
+  meta.textContent = tournament.finished && tournament.winner
+    ? `${getTournamentRules(tournament).name} · abgeschlossen · 🏆 ${Array.isArray(tournament.winner.names) ? tournament.winner.names.join(' & ') : (tournament.winner.name || '–')} · +${tournament.winnerPoints || 0} Punkte`
+    : `${getTournamentRules(tournament).name} · ${result.catches.length} zugeordnete Fänge`;
+
+  leaderboard.innerHTML = '';
+
+  result.rows.forEach((row, i) => {
+    leaderboard.insertAdjacentHTML('beforeend', `
+      <article class="list-card">
+        <div>
+          <div class="list-title-row">
+            <strong>#${i+1} ${row.participant?.avatar || '🎣'} ${row.participant?.name || '–'}</strong>
+            <span class="badge" style="background:${row.participant?.color || '#4ad7d1'}">${row.points} Punkte</span>
+          </div>
+          <div class="meta">${row.catches} Fänge · ${fmtKg(row.totalWeight)}</div>
+        </div>
+        <div class="meta">${row.bonuses.slice(0,3).join(' · ') || 'Nur Basiswertung'}</div>
+      </article>
+    `);
   });
 }
 
