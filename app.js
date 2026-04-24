@@ -556,7 +556,7 @@ function refreshDashboardTournamentSelect(){
   window.addEventListener('load', () => setTimeout(refreshDashboardTournamentSelect, 50));
 })();
 
-// Absolute override for Artenverteilung chart
+// Absolute override for Artenverteilung <button onclick="toggleChartMode('perHour')">Arten</button> chart
 setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
   if (!canvas || typeof Chart === 'undefined') return;
@@ -1297,12 +1297,25 @@ setTimeout(() => {
 
 
 
-// === Stacked Chart Feature (minimal-invasive) ===
+
+// === Stacked Chart Toggle (integrated, minimal-invasive) ===
 let chartMode = { perDay: "total", perHour: "total" };
 
 function toggleChartMode(type) {
     chartMode[type] = chartMode[type] === "total" ? "stacked" : "total";
     if (typeof renderDashboard === "function") renderDashboard();
+}
+
+function aggregateStackedByDay(catches) {
+    const result = {};
+    catches.forEach(c => {
+        const date = new Date(c.date).toLocaleDateString();
+        const species = c.species || "Unbekannt";
+        if (!result[date]) result[date] = {};
+        if (!result[date][species]) result[date][species] = 0;
+        result[date][species]++;
+    });
+    return result;
 }
 
 function aggregateStackedByHour(catches) {
@@ -1317,8 +1330,16 @@ function aggregateStackedByHour(catches) {
     return result;
 }
 
-function renderStackedChart(ctx, data) {
-    const labels = Object.keys(data);
+let __chartInstances = {};
+function destroyChart(key){
+    if(__chartInstances[key]){
+        try { __chartInstances[key].destroy(); } catch(e){}
+        __chartInstances[key] = null;
+    }
+}
+
+function renderStackedChart(ctx, data, key) {
+    const labels = Object.keys(data).sort((a,b)=> (''+a).localeCompare(''+b, undefined, {numeric:true}));
     const speciesSet = new Set();
     labels.forEach(l => Object.keys(data[l]).forEach(s => speciesSet.add(s)));
 
@@ -1328,7 +1349,8 @@ function renderStackedChart(ctx, data) {
         stack: 'stack1'
     }));
 
-    return new Chart(ctx, {
+    destroyChart(key);
+    __chartInstances[key] = new Chart(ctx, {
         type: 'bar',
         data: { labels, datasets },
         options: {
@@ -1340,4 +1362,4 @@ function renderStackedChart(ctx, data) {
         }
     });
 }
-// === END Feature ===
+// === END Stacked Chart Toggle ===
