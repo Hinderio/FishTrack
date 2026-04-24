@@ -1345,46 +1345,30 @@ canvas + ul,
   to{transform:rotate(360deg)}
 }
 
-
-
-/* MOBILE MODE */
+/* MOBILE BUTTON LIKE DARKMODE */
 .mobile-toggle-btn {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 999;
-  background: #1e1e1e;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #1e293b;
   color: white;
   border: none;
-  padding: 8px 10px;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  margin-left: 10px;
 }
 
-body.mobile-mode .dashboard-row {
+/* MOBILE MODE FIX */
+body.mobile-mode .dashboard,
+body.mobile-mode .row,
+body.mobile-mode .grid,
+body.mobile-mode .flex {
   flex-direction: column !important;
 }
 
-body.mobile-mode .chart-container {
+body.mobile-mode canvas {
   width: 100% !important;
-}
-
-body.mobile-mode .card {
-  width: 100% !important;
-}
-
-body.mobile-mode .table-wrapper {
-  overflow-x: auto;
-}
-
-@media (max-width: 768px) {
-  .dashboard-row {
-    flex-direction: column !important;
-  }
-  .chart-container {
-    width: 100% !important;
-  }
-  .card {
-    width: 100% !important;
-  }
+  height: auto !important;
 }

@@ -1273,28 +1273,32 @@ setTimeout(() => {
 }, 1000);
 
 
-
-
-// MOBILE MODE ADDON
-(function () {
-  const KEY = "mobileModeEnabled";
-
-  function applyMobileMode() {
-    const enabled = localStorage.getItem(KEY) === "true";
-    document.body.classList.toggle("mobile-mode", enabled);
+(function(){
+ const KEY="mobileModeEnabled";
+ function apply(){
+  const en=localStorage.getItem(KEY)==="true";
+  document.body.classList.toggle("mobile-mode",en);
+ }
+ function toggle(){
+  const cur=localStorage.getItem(KEY)==="true";
+  localStorage.setItem(KEY,(!cur).toString());
+  apply();
+ }
+ document.addEventListener("DOMContentLoaded",()=>{
+  apply();
+  const darkBtn=document.querySelector("button"); // approximate anchor
+  const btn=document.createElement("button");
+  btn.id="mobileToggle";
+  btn.className="mobile-toggle-btn";
+  btn.innerHTML="📱";
+  if(darkBtn && darkBtn.parentNode){
+    darkBtn.parentNode.appendChild(btn);
+  } else {
+    document.body.appendChild(btn);
+    btn.style.position="fixed";
+    btn.style.top="20px";
+    btn.style.right="20px";
   }
-
-  function toggleMobileMode() {
-    const current = localStorage.getItem(KEY) === "true";
-    localStorage.setItem(KEY, (!current).toString());
-    applyMobileMode();
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    applyMobileMode();
-    const btn = document.getElementById("mobileToggle");
-    if (btn) {
-      btn.addEventListener("click", toggleMobileMode);
-    }
-  });
+  btn.addEventListener("click",toggle);
+ });
 })();
