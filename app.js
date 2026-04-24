@@ -415,16 +415,19 @@ function renderTournaments() {
     activeTournamentId = state.tournaments[0].id;
   }
 
+  // ===== LIST =====
   state.tournaments.forEach(t => {
     const rules = getTournamentRules(t);
     const article = document.createElement('article');
-    article.className = 'list-card tournament-card' + (t.id === activeTournamentId ? ' active' : '');
+
+    article.className =
+      'list-card tournament-card' +
+      (t.id === activeTournamentId ? ' active' : '');
 
     article.addEventListener('click', (e) => {
       if (e.target.closest('.list-actions')) return;
       activeTournamentId = t.id;
       renderTournaments();
-      showScreen('tournaments');
     });
 
     article.innerHTML = `
@@ -434,55 +437,10 @@ function renderTournaments() {
           <span class="badge">${rules.name}</span>
         </div>
         <div class="meta">
-          ${t.start || '–'} bis ${t.end || '–'} · ${(t.participantIds || []).length || state.participants.length} Teilnehmer
+          ${t.start || '–'} bis ${t.end || '–'}
         </div>
-        <div class="tournament-rule">
-          ${t.finished && t.winner
-            ? `🏆 Gewinner: ${Array.isArray(t.winner.names) ? t.winner.names.join(' & ') : (t.winner.name || '–')} · +${t.winnerPoints || 0} Punkte`
-            : 'Fänge müssen beim Eintragen dem Turnier zugeordnet werden.'}
-        </div>
-      </div>
-
-      <div class="list-actions">
-        <button class="icon-btn finish-btn">${t.finished ? '🏆' : '🏁'}</button>
-        <button class="icon-btn reopen-btn">↺</button>
-        <button class="icon-btn edit-btn">✎</button>
-        <button class="icon-btn delete-btn">✕</button>
       </div>
     `;
-
-    article.querySelector('.finish-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      finishTournament(t.id);
-    });
-
-    article.querySelector('.reopen-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      reopenTournament(t.id);
-    });
-
-    article.querySelector('.edit-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      loadTournamentIntoForm(t);
-    });
-
-    article.querySelector('.delete-btn').addEventListener('click', e => {
-      e.stopPropagation();
-      if (!confirm('Dieses Turnier löschen?')) return;
-
-      state.catches = state.catches.map(c =>
-        c.tournamentId === t.id ? { ...c, tournamentId: '' } : c
-      );
-
-      state.tournaments = state.tournaments.filter(x => x.id !== t.id);
-
-      if (activeTournamentId === t.id) {
-        activeTournamentId = state.tournaments[0]?.id || null;
-      }
-
-      persist();
-      rerender();
-    });
 
     if (t.finished) {
       closedContainer.appendChild(article);
@@ -491,7 +449,7 @@ function renderTournaments() {
     }
   });
 
-  // 👉 FEHLENDER TEIL (war dein Bug)
+  // ===== ACTIVE TOURNAMENT =====
   const tournament = tournamentById(activeTournamentId);
   if (!tournament) return;
 
@@ -499,94 +457,82 @@ function renderTournaments() {
 
   title.textContent = tournament.name;
 
-  meta.textContent = tournament.finished && tournament.winner
-    ? `${getTournamentRules(tournament).name} · abgeschlossen · 🏆 ${Array.isArray(tournament.winner.names) ? tournament.winner.names.join(' & ') : (tournament.winner.name || '–')} · +${tournament.winnerPoints || 0} Punkte`
-    : `${getTournamentRules(tournament).name} · ${result.catches.length} zugeordnete Fänge`;
+  meta.textContent = `${getTournamentRules(tournament).name} · ${result.catches.length} Fänge`;
 
+  // ===== LEADERBOARD =====
   leaderboard.innerHTML = '';
 
-result.rows.forEach((row, i) => {
-  leaderboard.insertAdjacentHTML('beforeend', `
-    <article class="list-card">
-      <div>
-        <div class="list-title-row">
-          <strong>#${i+1} ${row.participant?.avatar || '🎣'} ${row.participant?.name || '–'}</strong>
-          <span class="badge" style="background:${row.participant?.color || '#4ad7d1'}">${row.points} Punkte</span>
+  result.rows.forEach((row, i) => {
+    leaderboard.insertAdjacentHTML('beforeend', `
+      <article class="list-card">
+        <div>
+          <div class="list-title-row">
+            <strong>#${i + 1} ${row.participant?.name || '–'}</strong>
+            <span class="badge">${row.points} Punkte</span>
+          </div>
+          <div class="meta">${row.catches} Fänge · ${fmtKg(row.totalWeight)}</div>
         </div>
-        <div class="meta">${row.catches} Fänge · ${fmtKg(row.totalWeight)}</div>
-      </div>
-      <div class="meta">${row.bonuses.slice(0,3).join(' · ') || 'Nur Basiswertung'}</div>
-    </article>
-  `);
-});
+      </article>
+    `);
+  });
 
-const biggest = result.catches.reduce((m,c)=>
-  !m || Number(c.weightKg||0) > Number(m.weightKg||0) ? c : m, null);
+  // ===== DATA =====
+  const biggest = result.catches.reduce((m, c) =>
+    !m || Number(c.weightKg || 0) > Number(m.weightKg || 0) ? c : m, null);
 
-const first = result.catches[0] || null;
+  const first = result.catches[0] || null;
 
-const speciesWins = {};
-result.catches.forEach(c => {
-  const s = speciesName(c);
-  if (!speciesWins[s] || Number(c.weightKg||0) > Number(speciesWins[s].weightKg||0)) {
-    speciesWins[s] = c;
+  const speciesWins = {};
+  result.catches.forEach(c => {
+    const s = speciesName(c);
+    if (!speciesWins[s] || Number(c.weightKg || 0) > Number(speciesWins[s].weightKg || 0)) {
+      speciesWins[s] = c;
+    }
+  });
+
+  const topAreas = [...new Map(
+    result.catches.map(c => [
+      gridIdFromCatch(c),
+      result.catches.filter(x => gridIdFromCatch(x) === gridIdFromCatch(c)).length
+    ])
+  ).entries()]
+    .filter(x => x[0] !== 'unknown')
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
+  // ===== HIGHLIGHTS =====
+  const cards = [];
+
+  if (first) {
+    cards.push(`<article class="tournament-highlight">
+      <strong>Erster Fisch</strong>
+      <div class="meta">${speciesName(first)} von ${participantById(first.participantId)?.name || '–'}</div>
+    </article>`);
   }
-});
 
-const topAreas = [...new Map(
-  result.catches.map(c => [
-    gridIdFromCatch(c),
-    result.catches.filter(x => gridIdFromCatch(x) === gridIdFromCatch(c)).length
-  ])
-).entries()]
-  .filter(x => x[0] !== 'unknown')
-  .sort((a,b) => b[1]-a[1])
-  .slice(0,3);
+  if (biggest) {
+    cards.push(`<article class="tournament-highlight">
+      <strong>Größter Fisch</strong>
+      <div class="meta">${speciesName(biggest)} · ${fmtKg(biggest.weightKg)}</div>
+    </article>`);
+  }
 
-// 👉 HIER ERST cards!
-const cards = [];
+  if (!cards.length) {
+    cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');
+  }
 
-if (first) {
-  cards.push(`<article class="tournament-highlight">
-    <strong>Erster Fisch</strong>
-    <div class="meta">${speciesName(first)} von ${participantById(first.participantId)?.name || '–'}</div>
-  </article>`);
+  highlights.innerHTML = cards.join('');
+
+  // ===== STORY (FIX) =====
+  story.innerHTML = buildTournamentStory(
+    tournament,
+    result,
+    first,
+    biggest,
+    speciesWins,
+    topAreas
+  );
 }
-
-if (biggest) {
-  cards.push(`<article class="tournament-highlight">
-    <strong>Größter Fisch</strong>
-    <div class="meta">${speciesName(biggest)} · ${fmtKg(biggest.weightKg)}</div>
-  </article>`);
-}
-
-if (!cards.length) {
-  cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');
-}
-
-highlights.innerHTML = cards.join('');
-
-const cards = [];
-
-if (first) {
-  cards.push(`<article class="tournament-highlight">
-    <strong>Erster Fisch</strong>
-    <div class="meta">${speciesName(first)} von ${participantById(first.participantId)?.name || '–'}</div>
-  </article>`);
-}
-
-if (biggest) {
-  cards.push(`<article class="tournament-highlight">
-    <strong>Größter Fisch</strong>
-    <div class="meta">${speciesName(biggest)} · ${fmtKg(biggest.weightKg)}</div>
-  </article>`);
-}
-
-if (!cards.length) {
-  cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');
-}
-
-highlights.innerHTML = cards.join('');
 
 function initLocationPicker(){const previewEl=document.getElementById('locationPreviewMap');const modal=document.getElementById('mapPickerModal');const openBtn=document.getElementById('pickOnMap');const closeBtn=document.getElementById('closeMapPicker');const confirmBtn=document.getElementById('confirmMapLocation');const latInput=document.querySelector('[name="lat"]');const lngInput=document.querySelector('[name="lng"]');if(!previewEl||!modal||!openBtn||!closeBtn||!confirmBtn||!latInput||!lngInput||typeof L==='undefined')return;let previewMap=L.map(previewEl,{zoomControl:false,attributionControl:false}).setView([59.442773,11.654906],8);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(previewMap);let previewMarker=null;window.updateCatchLocationPreview=(lat,lng)=>{previewMap.invalidateSize();previewMap.setView([lat,lng],11);if(previewMarker)previewMarker.setLatLng([lat,lng]);else previewMarker=L.marker([lat,lng]).addTo(previewMap)};let pickerMap=null;let pickerMarker=null;let selected=null;const syncFromInputs=()=>{const lat=parseFloat(latInput.value),lng=parseFloat(lngInput.value);if(!isNaN(lat)&&!isNaN(lng))window.updateCatchLocationPreview(lat,lng)};latInput.addEventListener('input',syncFromInputs);lngInput.addEventListener('input',syncFromInputs);syncFromInputs();openBtn.addEventListener('click',()=>{modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');setTimeout(()=>{if(!pickerMap){pickerMap=L.map('mapPicker').setView([59.442773,11.654906],9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(pickerMap);pickerMap.on('click',e=>{selected=e.latlng;if(pickerMarker){pickerMarker.setLatLng(selected)}else{pickerMarker=L.marker(selected,{draggable:true}).addTo(pickerMap);pickerMarker.on('dragend',()=>{selected=pickerMarker.getLatLng()})}})}const lat=parseFloat(latInput.value),lng=parseFloat(lngInput.value);if(!isNaN(lat)&&!isNaN(lng)){selected={lat,lng};pickerMap.setView([lat,lng],11);if(pickerMarker){pickerMarker.setLatLng([lat,lng])}else{pickerMarker=L.marker([lat,lng],{draggable:true}).addTo(pickerMap);pickerMarker.on('dragend',()=>{selected=pickerMarker.getLatLng()})}}pickerMap.invalidateSize()},80)});const closeModal=()=>{modal.classList.add('hidden');modal.setAttribute('aria-hidden','true')};closeBtn.addEventListener('click',closeModal);modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});confirmBtn.addEventListener('click',()=>{if(!selected)return;latInput.value=Number(selected.lat).toFixed(6);lngInput.value=Number(selected.lng).toFixed(6);window.updateCatchLocationPreview(selected.lat,selected.lng);closeModal()})}
 async function init(){
