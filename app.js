@@ -65,7 +65,11 @@ if (typeof renderCharts === 'function') {
 }
 
 if (typeof window.renderSpeciesTimeline === 'function') {
-  window.renderSpeciesTimeline();
+  window.if(chartMode.perHour==="total"){
+    renderSpeciesTimeline();
+}else{
+    renderStackedChartById("speciesTimelineChart", aggregateStackedByHour());
+}
 }
 
 hasLoadedFromSupabase = true;
@@ -458,7 +462,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.__timelineSourceCatches = matching;
         if (typeof renderSpeciesTimeline === 'function') {
-          window.renderSpeciesTimeline();
+          window.if(chartMode.perHour==="total"){
+    renderSpeciesTimeline();
+}else{
+    renderStackedChartById("speciesTimelineChart", aggregateStackedByHour());
+}
         }
       };
       charts.daily.update();
@@ -505,7 +513,11 @@ function refreshDashboardTournamentSelect(){
     if(typeof renderTimeHeatmap === 'function') renderTimeHeatmap();
     if(typeof renderCharts === 'function') renderCharts();
     if(typeof renderMap === 'function') renderMap();
-    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if(typeof renderSpeciesTimeline === 'function') if(chartMode.perHour==="total"){
+    renderSpeciesTimeline();
+}else{
+    renderStackedChartById("speciesTimelineChart", aggregateStackedByHour());
+}
   });
 }
 
@@ -703,7 +715,11 @@ setTimeout(() => {
     try {
       if (typeof renderDashboard === 'function') renderDashboard();
       if (typeof renderCharts === 'function') renderCharts();
-      if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+      if (typeof renderSpeciesTimeline === 'function') if(chartMode.perHour==="total"){
+    renderSpeciesTimeline();
+}else{
+    renderStackedChartById("speciesTimelineChart", aggregateStackedByHour());
+}
       if (typeof renderMap === 'function') renderMap();
     } finally {
       state.catches = original;
@@ -758,7 +774,11 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if (typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if (typeof renderSpeciesTimeline === 'function') if(chartMode.perHour==="total"){
+    renderSpeciesTimeline();
+}else{
+    renderStackedChartById("speciesTimelineChart", aggregateStackedByHour());
+}
   } finally {
     state.catches = original;
   }
@@ -854,7 +874,11 @@ document.addEventListener('click', (e) => {
     renderCharts();
     renderTimeHeatmap();
     renderMap();
-    if(typeof renderSpeciesTimeline === 'function') renderSpeciesTimeline();
+    if(typeof renderSpeciesTimeline === 'function') if(chartMode.perHour==="total"){
+    renderSpeciesTimeline();
+}else{
+    renderStackedChartById("speciesTimelineChart", aggregateStackedByHour());
+}
   } finally {
     state.catches = original;
   }
@@ -1297,69 +1321,65 @@ setTimeout(() => {
 
 
 
-
-// === Stacked Chart Toggle (integrated, minimal-invasive) ===
+// === SAFE STACKED FEATURE ===
 let chartMode = { perDay: "total", perHour: "total" };
 
-function toggleChartMode(type) {
+function toggleChartMode(type){
     chartMode[type] = chartMode[type] === "total" ? "stacked" : "total";
-    if (typeof renderDashboard === "function") renderDashboard();
+    if(typeof renderDashboard === "function") renderDashboard();
 }
 
-function aggregateStackedByDay(catches) {
-    const result = {};
-    catches.forEach(c => {
-        const date = new Date(c.date).toLocaleDateString();
-        const species = c.species || "Unbekannt";
-        if (!result[date]) result[date] = {};
-        if (!result[date][species]) result[date][species] = 0;
-        result[date][species]++;
+function getSafeCtx(id){
+    const canvas = document.getElementById(id);
+    if(!canvas) return null;
+    return canvas.getContext("2d");
+}
+
+function aggregateStackedByHour(catches){
+    const res = {};
+    catches.forEach(c=>{
+        const h = new Date(c.date).getHours();
+        const s = c.species || "Unbekannt";
+        if(!res[h]) res[h]={};
+        if(!res[h][s]) res[h][s]=0;
+        res[h][s]++;
     });
-    return result;
+    return res;
 }
 
-function aggregateStackedByHour(catches) {
-    const result = {};
-    catches.forEach(c => {
-        const hour = new Date(c.date).getHours();
-        const species = c.species || "Unbekannt";
-        if (!result[hour]) result[hour] = {};
-        if (!result[hour][species]) result[hour][species] = 0;
-        result[hour][species]++;
+function aggregateStackedByDay(catches){
+    const res = {};
+    catches.forEach(c=>{
+        const d = new Date(c.date).toLocaleDateString();
+        const s = c.species || "Unbekannt";
+        if(!res[d]) res[d]={};
+        if(!res[d][s]) res[d][s]=0;
+        res[d][s]++;
     });
-    return result;
+    return res;
 }
 
-let __chartInstances = {};
-function destroyChart(key){
-    if(__chartInstances[key]){
-        try { __chartInstances[key].destroy(); } catch(e){}
-        __chartInstances[key] = null;
-    }
-}
+function renderStackedChartById(id, data){
+    const ctx = getSafeCtx(id);
+    if(!ctx) return;
 
-function renderStackedChart(ctx, data, key) {
-    const labels = Object.keys(data).sort((a,b)=> (''+a).localeCompare(''+b, undefined, {numeric:true}));
-    const speciesSet = new Set();
-    labels.forEach(l => Object.keys(data[l]).forEach(s => speciesSet.add(s)));
+    const labels = Object.keys(data);
+    const species = new Set();
+    labels.forEach(l=>Object.keys(data[l]).forEach(s=>species.add(s)));
 
-    const datasets = Array.from(speciesSet).map(species => ({
-        label: species,
-        data: labels.map(l => data[l][species] || 0),
-        stack: 'stack1'
+    const datasets = Array.from(species).map(s=>({
+        label:s,
+        data:labels.map(l=>data[l][s]||0),
+        stack:'stack1'
     }));
 
-    destroyChart(key);
-    __chartInstances[key] = new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets },
-        options: {
-            responsive: true,
-            scales: {
-                x: { stacked: true },
-                y: { stacked: true }
-            }
+    new Chart(ctx,{
+        type:'bar',
+        data:{labels,datasets},
+        options:{
+            responsive:true,
+            scales:{x:{stacked:true},y:{stacked:true}}
         }
     });
 }
-// === END Stacked Chart Toggle ===
+// === END ===
