@@ -1515,3 +1515,6 @@ body.light .tournament-group{background:rgba(255,255,255,.45)}
 .t-group-title{margin:0 0 12px;opacity:.9;font-size:15px;letter-spacing:.02em}
 .t-empty{padding:12px;border:1px dashed var(--card-border);border-radius:16px}
 @media (max-width: 900px){#tournamentList{grid-template-columns:1fr}.tournament-fab{width:44px;height:44px;font-size:28px}}
+
+/* FIX: stack tournament sections vertically */
+.tournament-columns{display:flex!important;flex-direction:column!important;gap:20px}
