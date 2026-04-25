@@ -1585,3 +1585,7 @@ body.light .participant-detail-head{background:linear-gradient(180deg,var(--card
   text-align:center;
   width:100%;
 }
+
+.leaderboard-card .details-btn {
+  font-size: 0;
+}
