@@ -2243,7 +2243,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const ctx=this._canvas.getContext('2d');
         ctx.setTransform(ratio,0,0,ratio,0,0);
         ctx.clearRect(0,0,size.x,size.y);
-        ctx.globalCompositeOperation='source-over;
+        ctx.globalCompositeOperation='source-over';
         const zoom=this._map.getZoom();
         const radius = 120;
         const maxWeight=Math.max(1,...this._data.map(p=>p.weight||1));
