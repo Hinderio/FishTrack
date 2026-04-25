@@ -1671,3 +1671,22 @@ body.light .seniority-badge{border-color:rgba(17,36,58,.10);box-shadow:inset 0 1
 body.light .participant-game-main,body.light .participant-awards,body.light .micro-award{border-color:rgba(17,36,58,.08);background:rgba(255,255,255,.62)}
 body.light .seniority-progress__track{background:rgba(17,36,58,.09)}
 @media (max-width:760px){.participant-game-panel{grid-template-columns:1fr}.participant-game-title,.seniority-progress__head{align-items:flex-start;flex-direction:column}.seniority-progress__head strong{text-align:left}.micro-award{border-radius:16px}.micro-award small{max-width:190px}}
+
+/* Participant detail tournament performance: read-only, additive UI */
+.participant-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.participant-section-head h3{margin:2px 0 0}
+.participant-tournament-panel{margin-bottom:14px;background:linear-gradient(135deg,rgba(74,215,209,.08),rgba(143,240,167,.035))}
+.participant-tournament-status{max-width:46%;padding:7px 10px;border-radius:999px;background:rgba(74,215,209,.10);border:1px solid rgba(74,215,209,.18);color:var(--text);font-size:.78rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.participant-tournament-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.participant-tournament-kpis article{padding:12px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.055)}
+.participant-tournament-kpis span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.participant-tournament-kpis strong{display:block;font-size:1.32rem;line-height:1.1}
+.participant-tournament-kpis small{color:var(--muted)}
+.participant-tournament-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.participant-tournament-list article{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:11px 12px;border-radius:17px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.045)}
+.participant-tournament-list strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.participant-tournament-list small{display:block;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.participant-tournament-list span{color:var(--primary);font-weight:900}
+.participant-tournament-list b{font-size:.86rem;color:var(--accent);white-space:nowrap}
+body.light .participant-tournament-panel,body.light .participant-tournament-kpis article,body.light .participant-tournament-list article{border-color:rgba(17,36,58,.08);background:rgba(255,255,255,.58)}
+@media (max-width:760px){.participant-section-head{flex-direction:column}.participant-tournament-status{max-width:100%;width:100%}.participant-tournament-kpis,.participant-tournament-list{grid-template-columns:1fr}.participant-tournament-list article{grid-template-columns:minmax(0,1fr) auto auto}}
