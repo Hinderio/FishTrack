@@ -2254,40 +2254,52 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     }, 80);
   };
 
-  // SAFER HOOK (keine bestehenden Funktionen überschreiben)
-  function wrap(){
-    if(window.__behaviourHeatmapWrapped) return;
-    window.__behaviourHeatmapWrapped = true;
+// SAFER HOOK (keine bestehenden Funktionen überschreiben)
+function wrap(){
+  if(window.__behaviourHeatmapWrapped) return;
+  window.__behaviourHeatmapWrapped = true;
 
-    const rerender = window.rerenderAnalyticsView;
-    if(typeof rerender === 'function'){
-      window.rerenderAnalyticsView = function(){
-        const r = rerender.apply(this, arguments);
-        window.renderBehaviourCatchHeatmap();
-        return r;
-      };
-    }
-
-    const show = window.showScreen;
-    if(typeof show === 'function'){
-      window.showScreen = function(name){
-        const r = show.apply(this, arguments);
-        if(name === 'analytics'){
-          setTimeout(window.renderBehaviourCatchHeatmap, 120);
-        }
-        return r;
-      };
-    }
+  const rerender = window.rerenderAnalyticsView;
+  if(typeof rerender === 'function'){
+    window.rerenderAnalyticsView = function(){
+      const r = rerender.apply(this, arguments);
+      window.renderBehaviourCatchHeatmap();
+      return r;
+    };
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    wrap();
-    setTimeout(window.renderBehaviourCatchHeatmap, 150);
-  });
+  const show = window.showScreen;
+  if(typeof show === 'function'){
+    window.showScreen = function(name){
+      const r = show.apply(this, arguments);
 
-  window.addEventListener('load', () => {
-    wrap();
-    setTimeout(window.renderBehaviourCatchHeatmap, 220);
-  });
+      if(name === 'analytics'){
+        // 🔥 wartet bis DOM sichtbar ist
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            window.renderBehaviourCatchHeatmap();
+          }, 80);
+        });
+      }
+
+      return r;
+    };
+  }
+}
+
+// INIT – stabil & sauber
+document.addEventListener('DOMContentLoaded', () => {
+  wrap();
+  setTimeout(() => {
+    window.renderBehaviourCatchHeatmap();
+  }, 150);
+});
+
+window.addEventListener('load', () => {
+  wrap();
+  setTimeout(() => {
+    window.renderBehaviourCatchHeatmap();
+  }, 220);
+});
 
 })();
