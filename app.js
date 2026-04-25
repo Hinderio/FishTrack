@@ -65,10 +65,7 @@ async function loadFromSupabase() {
     const { data: catches, error: catchesError } = await db
   .from('catches')
   .select('*')
-  .order('caught_at', { ascending: true });
-    
-console.log("RAW DIRECT:", JSON.stringify(catches[0], null, 2));
-console.log("KEYS:", Object.keys(catches[0]));
+  .order('caught_at', { ascending: true });    
     
     if (participantsError) throw participantsError;
     if (tournamentsError) throw tournamentsError;
@@ -2272,7 +2269,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     const points=validHeatmapPoints();
     setHeatmapEmpty(container,!points.length);
     if(!analyticsHeatmapMap){
-      analyticsHeatmapMap=L.map(container,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,preferCanvas:true}).setView([59.915,10.78],8);
+      analyticsHeatmapMap = L.map(container,{
+        zoomControl:false,
+        attributionControl:false,
+        scrollWheelZoom:false,
+        preferCanvas:true
+      });
       analyticsHeatmapTileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true});
       analyticsHeatmapTileLayer.addTo(analyticsHeatmapMap);
       const HeatLayer=createCanvasHeatLayer(points);
