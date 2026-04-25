@@ -2103,102 +2103,11 @@ function renderAnalyticsPerformanceCharts(){
     charts.performanceDistribution=new Chart(distribution,{type:'radar',data:{labels,datasets:[{label:'Punkte',data:pStats.map(p=>p.points||0),borderColor:'#4ad7d1',backgroundColor:'rgba(74,215,209,.16)',pointBackgroundColor:'#4ad7d1',borderWidth:2},{label:'Fänge',data:pStats.map(p=>p.count||0),borderColor:'#8ff0a7',backgroundColor:'rgba(143,240,167,.10)',pointBackgroundColor:'#8ff0a7',borderWidth:2},{label:'Ø Länge',data:pStats.map(p=>Math.round(p.avgLength||0)),borderColor:'#ffb84d',backgroundColor:'rgba(255,184,77,.08)',pointBackgroundColor:'#ffb84d',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:true,labels:{color:css('--muted'),usePointStyle:true,boxWidth:8,boxHeight:8,font:{size:11,weight:'800'}}},tooltip:{backgroundColor:'rgba(7,17,26,.95)',titleColor:css('--text'),bodyColor:css('--muted'),borderColor:'rgba(255,255,255,.12)',borderWidth:1,padding:12}},scales:{r:{beginAtZero:true,angleLines:{color:'rgba(255,255,255,.08)'},grid:{color:'rgba(255,255,255,.08)'},pointLabels:{color:css('--muted'),font:{size:11,weight:'800'}},ticks:{display:false}}}}});
   }
 }
-
-
-/* Isolated Analytics Catch Density Heatmap – own Leaflet instance, no existing map mutation */
-function analyticsValidGeoCatch(c){
-  const lat=Number(c?.location?.lat),lng=Number(c?.location?.lng);
-  return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
-}
-const AnalyticsDensityCanvasLayer=L&&L.Layer?L.Layer.extend({
-  initialize(points,options){this.points=points||[];L.setOptions(this,options||{});},
-  onAdd(mapInstance){
-    this._map=mapInstance;
-    this._canvas=L.DomUtil.create('canvas','analytics-density-canvas');
-    this._canvas.style.position='absolute';
-    this._canvas.style.inset='0';
-    this._canvas.style.pointerEvents='none';
-    this._ctx=this._canvas.getContext('2d');
-    mapInstance.getPanes().overlayPane.appendChild(this._canvas);
-    mapInstance.on('moveend zoomend resize',this._reset,this);
-    this._reset();
-  },
-  onRemove(mapInstance){
-    mapInstance.off('moveend zoomend resize',this._reset,this);
-    if(this._canvas&&this._canvas.parentNode)this._canvas.parentNode.removeChild(this._canvas);
-  },
-  setPoints(points){this.points=points||[];this._reset();},
-  _reset(){
-    if(!this._map||!this._canvas)return;
-    const size=this._map.getSize();
-    const dpr=Math.min(window.devicePixelRatio||1,2);
-    this._canvas.width=size.x*dpr;this._canvas.height=size.y*dpr;
-    this._canvas.style.width=size.x+'px';this._canvas.style.height=size.y+'px';
-    this._ctx.setTransform(dpr,0,0,dpr,0,0);
-    this._draw(size);
-  },
-  _draw(size){
-    const ctx=this._ctx;
-    ctx.clearRect(0,0,size.x,size.y);
-    if(!this.points.length)return;
-    ctx.save();
-    ctx.globalCompositeOperation='lighter';
-    const radius=Math.max(34,Math.min(86,size.x/11));
-    this.points.forEach(p=>{
-      const pt=this._map.latLngToContainerPoint([p.lat,p.lng]);
-      const weight=Math.max(.55,Math.min(1.7,p.weight||1));
-      const r=radius*weight;
-      const g=ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,r);
-      g.addColorStop(0,'rgba(178,255,236,.72)');
-      g.addColorStop(.22,'rgba(74,215,209,.54)');
-      g.addColorStop(.54,'rgba(20,126,132,.30)');
-      g.addColorStop(1,'rgba(4,34,42,0)');
-      ctx.fillStyle=g;
-      ctx.beginPath();ctx.arc(pt.x,pt.y,r,0,Math.PI*2);ctx.fill();
-    });
-    ctx.restore();
-  }
-}):null;
-function renderAnalyticsCatchDensityHeatmap(){
-  const el=document.getElementById('analyticsCatchDensityMap');
-  if(!el||typeof L==='undefined'||!AnalyticsDensityCanvasLayer)return;
-  const catches=(state.catches||[]).filter(analyticsValidGeoCatch);
-  if(!catches.length){
-    if(window.analyticsCatchDensityMap){window.analyticsCatchDensityMap.remove();window.analyticsCatchDensityMap=null;window.analyticsCatchDensityLayer=null;}
-    el.classList.remove('leaflet-container');
-    el.innerHTML='<div class="analytics-density-empty">Noch keine Fangkoordinaten für die Heatmap vorhanden.</div>';
-    return;
-  }
-  const points=catches.map(c=>({lat:Number(c.location.lat),lng:Number(c.location.lng),weight:Math.max(.65,Math.min(1.55,1+Number(c.weightKg||0)/9))}));
-  if(!window.analyticsCatchDensityMap){
-    el.innerHTML='';
-    const densityMap=L.map(el,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:false,dragging:true});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,opacity:.38}).addTo(densityMap);
-    window.analyticsCatchDensityLayer=new AnalyticsDensityCanvasLayer(points).addTo(densityMap);
-    window.analyticsCatchDensityMap=densityMap;
-    const legend=document.createElement('div');
-    legend.className='analytics-density-legend';
-    legend.innerHTML='<span>niedrig</span><span></span><span>hoch</span>';
-    el.appendChild(legend);
-  }else{
-    window.analyticsCatchDensityLayer.setPoints(points);
-  }
-  const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lng]));
-  setTimeout(()=>{
-    try{
-      window.analyticsCatchDensityMap.invalidateSize();
-      if(bounds.isValid())window.analyticsCatchDensityMap.fitBounds(bounds,{padding:[44,44],maxZoom:13});
-      window.analyticsCatchDensityLayer.setPoints(points);
-    }catch(e){}
-  },80);
-}
-
 const analyticsPreviousRenderCharts=renderCharts;
 renderCharts=function(){
   analyticsPreviousRenderCharts.apply(this,arguments);
   renderAnalyticsBehaviourCharts();
   renderAnalyticsPerformanceCharts();
-  renderAnalyticsCatchDensityHeatmap();
 };
 const analyticsPreviousRenderTimeHeatmap=renderTimeHeatmap;
 renderTimeHeatmap=function(){
