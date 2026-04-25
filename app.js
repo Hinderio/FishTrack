@@ -101,8 +101,13 @@ state.catches = (catches || []).map(c => ({
   note: c.note || '',
   createdAt: c.createdAt || c.created_at || c.caught_at || new Date().toISOString(),
   location: {
-    lat: c.location?.lat != null ? Number(c.location.lat) : (c.latitude != null ? Number(c.latitude) : null),
-    lng: c.location?.lng != null ? Number(c.location.lng) : (c.longitude != null ? Number(c.longitude) : null),
+    lat: c.latitude != null 
+      ? Number(c.latitude) 
+      : (c.location?.lat != null ? Number(c.location.lat) : null),
+    
+    lng: c.longitude != null 
+      ? Number(c.longitude) 
+      : (c.location?.lng != null ? Number(c.location.lng) : null),
     label: c.location?.label || c.spotLabel || c.spot_label || ''
   }
 }));
