@@ -2176,7 +2176,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     return (state?.catches || [])
       .map(c => {
         const lat = Number(c.location?.lat);
-        const lat = Number(c.location?.lat);
+        const lng = Number(c.location?.lng);
   
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   
