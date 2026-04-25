@@ -1488,7 +1488,7 @@ body.mobile-mode canvas {
   opacity: 0.85;
 }
 
-.list-card .list-title-row span:not(.badge){
-  color: var(--primary);
-  font-weight: 600;
+.tournament-rule,
+.subtle-inline{
+  color: var(--primary) !important;
 }
