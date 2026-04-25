@@ -2117,3 +2117,22 @@ renderSpotBaitMatrix=function(){
 
 // MATRIX SCALING PATCH
 function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');const c=document.querySelector('.matrix-content');if(!w||!c)return;c.style.transform='translate(-50%,-50%) scale(1)';const s=Math.min(w.clientWidth/c.scrollWidth,w.clientHeight/c.scrollHeight,1);c.style.transform=`translate(-50%,-50%) scale(${s})`;}window.addEventListener('resize',scaleWholeMatrix);requestAnimationFrame(scaleWholeMatrix);
+
+
+// SPOT ICON MAP (non-breaking)
+const spotIcons = {
+  'Schilfkante': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M6 22V8M12 22V4M18 22V10"/></svg>',
+  'Krautkante': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M4 20c4-6 12-6 16 0M8 20c2-4 6-4 8 0"/></svg>',
+  'Totholz': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M3 12h18M6 6l12 12"/></svg>',
+  'Steilkante': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M4 20l8-16 8 16"/></svg>',
+  'Flachwasser': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M2 14c4-2 8-2 12 0s8 2 8 2"/></svg>',
+  'Einlauf': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M12 2v20M5 9l7-7 7 7"/></svg>'
+};
+
+// safe enhancement (does not overwrite existing render)
+document.querySelectorAll('.matrix-row-label').forEach(el=>{
+  const txt = el.textContent.trim();
+  if(spotIcons[txt] && !el.querySelector('svg')){
+    el.innerHTML = `<div class="spot-header">${spotIcons[txt]}<span>${txt}</span></div>`;
+  }
+});

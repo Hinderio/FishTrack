@@ -2288,3 +2288,17 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
     --matrix-gap-fit:6px;
   }
 }
+
+
+/* SPOT ICONS (minimal-invasive) */
+.spot-header {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0.25rem;
+}
+.spot-icon {
+  width:1.2em;
+  height:1.2em;
+  opacity:0.8;
+}
