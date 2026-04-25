@@ -2320,3 +2320,35 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     setTimeout(window.renderBehaviourCatchHeatmap, 260);
   });
 })();
+
+
+// HEATMAP START (Leaflet.heat – isolated)
+function initBehaviourHeatmap(map, catches){
+    try{
+        if(!map || !window.L || !L.heatLayer) return;
+
+        const heatPoints = (catches || [])
+            .filter(c => isFinite(c.lat) && isFinite(c.lng))
+            .map(c => [Number(c.lat), Number(c.lng), 0.7]);
+
+        if(!heatPoints.length) return;
+
+        const heatLayer = L.heatLayer(heatPoints, {
+            radius: 25,
+            blur: 20,
+            maxZoom: 17,
+            gradient: {
+                0.2: '#0d2f33',
+                0.4: '#1f7a7a',
+                0.6: '#4ad7d1',
+                0.8: '#6fe8d8',
+                1.0: '#8ff0a7'
+            }
+        });
+
+        heatLayer.addTo(map);
+    }catch(e){
+        console.warn("Heatmap init failed:", e);
+    }
+}
+// HEATMAP END
