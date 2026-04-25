@@ -67,7 +67,8 @@ async function loadFromSupabase() {
   .select('*')
   .order('caught_at', { ascending: true });
     
-console.log("RAW CATCH FROM DB:", catches?.[0]);
+console.log("RAW DIRECT:", JSON.stringify(catches[0], null, 2));
+console.log("KEYS:", Object.keys(catches[0]));
     
     if (participantsError) throw participantsError;
     if (tournamentsError) throw tournamentsError;
