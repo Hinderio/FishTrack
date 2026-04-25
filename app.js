@@ -2012,3 +2012,89 @@ function renderParticipantTimeline(){
     }
   })});
 }
+
+/* Analytics anti-clipping premium visual layer – read-only, additive override */
+function analyticsPremiumPalette(index){
+  const palette=['#4ad7d1','#8ff0a7','#ffb84d','#66e7ff','#b7a0ff','#ff8ab4'];
+  return palette[index % palette.length];
+}
+function analyticsGetCanvas(id){
+  const el=document.getElementById(id);
+  return el && el.getContext ? el : null;
+}
+function analyticsDestroy(key){
+  if(charts && charts[key]){charts[key].destroy();delete charts[key];}
+}
+function analyticsPremiumOptions(extra={}){
+  const base=analyticsFixedChartOptions ? analyticsFixedChartOptions() : dashboardChartOptions();
+  base.maintainAspectRatio=false;
+  base.layout={padding:{top:16,right:18,bottom:8,left:8}};
+  base.plugins={...(base.plugins||{}),legend:{display:false},tooltip:{backgroundColor:'rgba(7,17,26,.95)',titleColor:css('--text'),bodyColor:css('--muted'),borderColor:'rgba(255,255,255,.12)',borderWidth:1,padding:12,displayColors:true}};
+  return {...base,...extra,plugins:{...base.plugins,...(extra.plugins||{})},scales:{...(base.scales||{}),...(extra.scales||{})}};
+}
+function analyticsHourModel(){
+  const hours=Array.from({length:24},(_,hour)=>({hour,count:0,weight:0,length:0}));
+  (state.catches||[]).forEach(c=>{const d=new Date(c.timestamp||c.createdAt);if(Number.isNaN(d.getTime()))return;const h=d.getHours();hours[h].count+=1;hours[h].weight+=Number(c.weightKg||0);hours[h].length+=Number(c.lengthCm||0);});
+  return hours.map(h=>({...h,avgWeight:h.count?h.weight/h.count:0,avgLength:h.count?h.length/h.count:0}));
+}
+function analyticsCombinationModel(){
+  const combos=new Map();
+  (state.catches||[]).forEach(c=>{
+    const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';
+    const bait=c.bait||'Unbekannter Köder';
+    const key=spot+' × '+bait;
+    const item=combos.get(key)||{key,spot,bait,count:0,weight:0,length:0};
+    item.count+=1;item.weight+=Number(c.weightKg||0);item.length+=Number(c.lengthCm||0);combos.set(key,item);
+  });
+  return [...combos.values()].sort((a,b)=>b.count-a.count||b.weight-a.weight).slice(0,12).map((x,i)=>({...x,index:i+1,avgWeight:x.count?x.weight/x.count:0,avgLength:x.count?x.length/x.count:0}));
+}
+function renderAnalyticsBehaviourCharts(){
+  const rhythm=analyticsGetCanvas('behaviourRhythmChart');
+  if(rhythm){
+    const h=analyticsHourModel();
+    analyticsDestroy('behaviourRhythm');
+    charts.behaviourRhythm=new Chart(rhythm,{type:'line',data:{labels:h.map(x=>String(x.hour).padStart(2,'0')+':00'),datasets:[{label:'Fänge',data:h.map(x=>x.count),borderColor:'#4ad7d1',backgroundColor:'rgba(74,215,209,.18)',fill:true,tension:.42,pointRadius:h.map(x=>x.count?4:2),pointHoverRadius:6,borderWidth:2.5},{label:'Ø Gewicht',data:h.map(x=>Number(x.avgWeight.toFixed(2))),borderColor:'#8ff0a7',backgroundColor:'rgba(143,240,167,.12)',fill:false,tension:.42,pointRadius:3,borderWidth:2,yAxisID:'y1'}]},options:analyticsPremiumOptions({plugins:{legend:{display:true,labels:{color:css('--muted'),usePointStyle:true,boxWidth:8,boxHeight:8,font:{size:11,weight:'800'}}}},scales:{x:{ticks:{color:css('--muted'),maxRotation:0,autoSkip:true},grid:{display:false}},y:{beginAtZero:true,afterFit(axis){axis.width=54},title:{display:true,text:'Fänge',color:css('--muted')},ticks:{precision:0,color:css('--muted')},grid:{color:'rgba(255,255,255,.075)'}},y1:{beginAtZero:true,position:'right',title:{display:true,text:'Ø kg',color:css('--muted')},ticks:{color:css('--muted')},grid:{display:false}}}})});
+  }
+  const density=analyticsGetCanvas('behaviourDensityChart');
+  if(density){
+    const combos=analyticsCombinationModel();
+    analyticsDestroy('behaviourDensity');
+    charts.behaviourDensity=new Chart(density,{type:'bubble',data:{datasets:[{label:'Spot-Köder-Dichte',data:combos.map((c,i)=>({x:c.count,y:Number(c.avgWeight.toFixed(2)),r:Math.max(8,Math.min(28,8+c.count*4)),label:c.key,avgLength:c.avgLength})),backgroundColor:combos.map((_,i)=>analyticsPremiumPalette(i)+'cc'),borderColor:combos.map((_,i)=>analyticsPremiumPalette(i)),borderWidth:2}]},options:analyticsPremiumOptions({scales:{x:{beginAtZero:true,title:{display:true,text:'Treffer je Kombination',color:css('--muted')},ticks:{precision:0,color:css('--muted')},grid:{color:'rgba(255,255,255,.075)'}},y:{beginAtZero:true,afterFit(axis){axis.width=58},title:{display:true,text:'Ø Gewicht',color:css('--muted')},ticks:{color:css('--muted')},grid:{color:'rgba(255,255,255,.075)'}}},plugins:{tooltip:{callbacks:{label(ctx){const r=ctx.raw;return `${r.label}: ${r.x} Fänge · ${r.y} kg Ø · ${Math.round(r.avgLength||0)} cm Ø`;}}}}})});
+  }
+}
+function renderAnalyticsPerformanceCharts(){
+  const pStats=computeParticipantStats();
+  const efficiency=analyticsGetCanvas('performanceEfficiencyChart');
+  if(efficiency){
+    const data=[...pStats].filter(p=>p.count>0).sort((a,b)=>(b.points/b.count)-(a.points/a.count));
+    analyticsDestroy('performanceEfficiency');
+    charts.performanceEfficiency=new Chart(efficiency,{type:'line',data:{labels:data.map(p=>p.name),datasets:[{label:'Punkte pro Fang',data:data.map(p=>Number((p.points/p.count).toFixed(2))),borderColor:'#4ad7d1',backgroundColor:'rgba(74,215,209,.18)',fill:true,tension:.35,pointRadius:data.map(p=>Math.max(5,Math.min(13,4+p.count*1.4))),pointHoverRadius:15,borderWidth:2.5}]},options:analyticsPremiumOptions({plugins:{tooltip:{callbacks:{label(ctx){const p=data[ctx.dataIndex];return `${p.name}: ${(p.points/p.count).toFixed(1)} P/Fang · ${p.count} Fänge · ${p.points} Punkte`;}}}},scales:{x:{ticks:{color:css('--muted'),maxRotation:0},grid:{display:false}},y:{beginAtZero:true,afterFit(axis){axis.width=58},title:{display:true,text:'Punkte/Fang',color:css('--muted')},ticks:{color:css('--muted')},grid:{color:'rgba(255,255,255,.075)'}}}})});
+  }
+  const distribution=analyticsGetCanvas('performanceDistributionChart');
+  if(distribution){
+    const labels=pStats.map(p=>p.name);
+    analyticsDestroy('performanceDistribution');
+    charts.performanceDistribution=new Chart(distribution,{type:'radar',data:{labels,datasets:[{label:'Punkte',data:pStats.map(p=>p.points||0),borderColor:'#4ad7d1',backgroundColor:'rgba(74,215,209,.16)',pointBackgroundColor:'#4ad7d1',borderWidth:2},{label:'Fänge',data:pStats.map(p=>p.count||0),borderColor:'#8ff0a7',backgroundColor:'rgba(143,240,167,.10)',pointBackgroundColor:'#8ff0a7',borderWidth:2},{label:'Ø Länge',data:pStats.map(p=>Math.round(p.avgLength||0)),borderColor:'#ffb84d',backgroundColor:'rgba(255,184,77,.08)',pointBackgroundColor:'#ffb84d',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:true,labels:{color:css('--muted'),usePointStyle:true,boxWidth:8,boxHeight:8,font:{size:11,weight:'800'}}},tooltip:{backgroundColor:'rgba(7,17,26,.95)',titleColor:css('--text'),bodyColor:css('--muted'),borderColor:'rgba(255,255,255,.12)',borderWidth:1,padding:12}},scales:{r:{beginAtZero:true,angleLines:{color:'rgba(255,255,255,.08)'},grid:{color:'rgba(255,255,255,.08)'},pointLabels:{color:css('--muted'),font:{size:11,weight:'800'}},ticks:{display:false}}}}});
+  }
+}
+const analyticsPreviousRenderCharts=renderCharts;
+renderCharts=function(){
+  analyticsPreviousRenderCharts.apply(this,arguments);
+  renderAnalyticsBehaviourCharts();
+  renderAnalyticsPerformanceCharts();
+};
+const analyticsPreviousRenderTimeHeatmap=renderTimeHeatmap;
+renderTimeHeatmap=function(){
+  analyticsPreviousRenderTimeHeatmap.apply(this,arguments);
+  const grid=document.getElementById('timeHeatmap');
+  if(grid) grid.setAttribute('aria-label','Uhrzeit-Heatmap mit 24 vollständig sichtbaren Stundenkacheln');
+};
+const analyticsPreviousRenderSpotBaitMatrix=renderSpotBaitMatrix;
+renderSpotBaitMatrix=function(){
+  analyticsPreviousRenderSpotBaitMatrix.apply(this,arguments);
+  const container=document.getElementById('spotBaitMatrix');
+  if(!container)return;
+  container.setAttribute('role','region');
+  container.setAttribute('aria-label','Vollständig horizontal scrollbar Spot Köder Matrix');
+  container.querySelectorAll('.matrix-cell').forEach(cell=>cell.classList.add('analytics-affinity-cell'));
+};

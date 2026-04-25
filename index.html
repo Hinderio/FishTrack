@@ -238,12 +238,16 @@
         <div class="grid two-columns analytics-behaviour-grid">
           <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Uhrzeit-Heatmap</h3><span class="meta">Aktivität nach Tageszeit</span></div><div id="timeHeatmap" class="time-grid"></div></section>
           <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Spot × Köder Matrix</h3><span class="meta">Effektivität pro Kombination</span></div><div id="spotBaitMatrix" class="matrix-grid"></div></section>
+          <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Tagesrhythmus-Trend</h3><span class="meta">Fänge und Ø-Gewicht pro Stunde</span></div><div class="analytics-canvas-wrap"><canvas id="behaviourRhythmChart" height="260"></canvas></div></section>
+          <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Spot-Köder-Dichte</h3><span class="meta">Cluster nach Kombination und Gewicht</span></div><div class="analytics-canvas-wrap"><canvas id="behaviourDensityChart" height="260"></canvas></div></section>
         </div>
 
         <div class="analytics-layer-title"><span>03</span><div><h3>Performance Layer</h3><p class="meta">Teilnehmer, Punkte und Fangvolumen im Vergleich.</p></div></div>
         <div class="grid two-columns analytics-performance-grid">
-          <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Teilnehmervergleich</h3><span class="meta">Fänge vs. Punkte</span></div><canvas id="participantChart" height="220"></canvas></section>
-          <section class="panel glass analytics-chart-panel"><div class="panel-head panel-head-split"><div><h3 id="timelineSwitchTitle">Fang-Zeitstrahl nach Teilnehmer</h3><span class="meta">Umschalten per Button zwischen Teilnehmern und Fischarten</span></div><button id="timelineSwitchButton" class="timeline-switch-btn" type="button">Zu Fischarten wechseln</button></div><canvas id="timelineBubbleChart" height="260"></canvas></section>
+          <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Teilnehmervergleich</h3><span class="meta">Fänge vs. Punkte</span></div><div class="analytics-canvas-wrap"><canvas id="participantChart" height="260"></canvas></div></section>
+          <section class="panel glass analytics-chart-panel"><div class="panel-head panel-head-split"><div><h3 id="timelineSwitchTitle">Fang-Zeitstrahl nach Teilnehmer</h3><span class="meta">Umschalten per Button zwischen Teilnehmern und Fischarten</span></div><button id="timelineSwitchButton" class="timeline-switch-btn" type="button">Zu Fischarten wechseln</button></div><div class="analytics-canvas-wrap"><canvas id="timelineBubbleChart" height="260"></canvas></div></section>
+          <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Effizienzprofil</h3><span class="meta">Punkte pro Fang mit Fangvolumen</span></div><div class="analytics-canvas-wrap"><canvas id="performanceEfficiencyChart" height="260"></canvas></div></section>
+          <section class="panel glass analytics-chart-panel"><div class="panel-head"><h3>Performance-Verteilung</h3><span class="meta">Gewicht, Länge und Punkte im Profil</span></div><div class="analytics-canvas-wrap"><canvas id="performanceDistributionChart" height="260"></canvas></div></section>
         </div>
 
         <div class="analytics-layer-title"><span>04</span><div><h3>Intelligence Layer</h3><p class="meta">Automatisch abgeleitete Muster aus bestehenden Daten.</p></div></div>
