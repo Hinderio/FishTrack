@@ -1611,3 +1611,45 @@ body.light .participant-detail-head{background:linear-gradient(180deg,var(--card
   border: 1px solid rgba(143,240,167,0.35);
   font-weight: 600;
 }
+
+/* Seniority badge: read-only leaderboard decorator */
+.seniority-row{
+  margin-top:8px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.seniority-badge{
+  --seniority-a: rgba(74,215,209,.24);
+  --seniority-b: rgba(143,240,167,.14);
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  width:max-content;
+  max-width:100%;
+  padding:5px 9px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(135deg,var(--seniority-a),var(--seniority-b));
+  color:var(--text);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+  font-size:.78rem;
+  line-height:1;
+  letter-spacing:.01em;
+  white-space:nowrap;
+}
+.seniority-badge strong{font-weight:800}
+.seniority-badge small{
+  color:var(--muted);
+  font-weight:800;
+  font-size:.68rem;
+  padding-left:2px;
+}
+.seniority-badge--rookie{--seniority-a:rgba(157,176,195,.20);--seniority-b:rgba(255,255,255,.05)}
+.seniority-badge--angler{--seniority-a:rgba(74,215,209,.24);--seniority-b:rgba(143,240,167,.12)}
+.seniority-badge--pro{--seniority-a:rgba(102,231,255,.22);--seniority-b:rgba(183,160,255,.13)}
+.seniority-badge--champion{--seniority-a:rgba(255,184,77,.28);--seniority-b:rgba(255,255,255,.06)}
+.seniority-badge--legend{--seniority-a:rgba(255,138,180,.25);--seniority-b:rgba(255,184,77,.18)}
+body.light .seniority-badge{border-color:rgba(17,36,58,.10);box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+@media (max-width:760px){.seniority-row{margin-top:7px}.seniority-badge{font-size:.74rem;padding:5px 8px}}
