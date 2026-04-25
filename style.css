@@ -1589,3 +1589,13 @@ body.light .participant-detail-head{background:linear-gradient(180deg,var(--card
 .leaderboard-card .details-btn {
   font-size: 0;
 }
+
+/* Dashboard recent-catch map focus (minimal-invasive extension) */
+.recent-catch-card{cursor:pointer;align-items:center;transition:.2s transform ease,.2s border-color ease,.2s background ease}
+.recent-catch-card:hover,.recent-catch-card:focus-visible{transform:translateY(-1px);border-color:rgba(74,215,209,.35);background:rgba(74,215,209,.08);outline:none}
+.recent-catch-map-hint{flex:0 0 auto;color:var(--primary);font-weight:800;font-size:.82rem;white-space:nowrap;opacity:.82}
+.selected-catch-map-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border-radius:20px;background:rgba(74,215,209,.11);border:1px solid rgba(74,215,209,.28);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+.selected-catch-map-panel>div{display:flex;flex-direction:column;gap:3px}.selected-catch-map-panel strong{font-size:1.02rem}.selected-catch-map-panel small{color:var(--muted);line-height:1.35}
+.catch-marker-selected{filter:drop-shadow(0 0 12px rgba(74,215,209,.9));animation:catchMarkerPulse 1.25s ease-in-out infinite}
+@keyframes catchMarkerPulse{0%,100%{stroke-opacity:1;transform:scale(1)}50%{stroke-opacity:.55;transform:scale(1.08)}}
+@media (max-width:760px){.recent-catch-card{align-items:flex-start}.recent-catch-map-hint{font-size:.78rem}.selected-catch-map-panel{align-items:flex-start}.selected-catch-map-panel .icon-btn{width:38px;height:38px}}
