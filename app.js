@@ -2219,11 +2219,11 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const zoom = this._map.getZoom();
         const radius = Math.max(34, Math.min(86, 18 + zoom * 4.5));
         ctx.globalCompositeOperation = 'screen';
-        ctx.filter = 'blur(1.2px)';
+        
 
-        this._points.forEach(point => {
+        this._points.forEach(point => { if(!isFinite(point.lat)||!isFinite(point.lng)) return;
           const p = this._map.latLngToContainerPoint([point.lat, point.lng]);
-          const intensity = Math.min(1, 0.34 + Math.log1p(point.weight) / 4.2);
+          const intensity = 0.6;
           const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
           gradient.addColorStop(0, `rgba(192, 255, 235, ${0.52 * intensity})`);
           gradient.addColorStop(0.34, `rgba(74, 215, 209, ${0.34 * intensity})`);
@@ -2238,7 +2238,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.filter = 'none';
         ctx.globalCompositeOperation = 'source-over';
         ctx.fillStyle = 'rgba(191, 255, 236, .80)';
-        this._points.forEach(point => {
+        this._points.forEach(point => { if(!isFinite(point.lat)||!isFinite(point.lng)) return;
           const p = this._map.latLngToContainerPoint([point.lat, point.lng]);
           ctx.beginPath();
           ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2);
