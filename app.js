@@ -2183,7 +2183,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         return {
           lat,
           lng,
-          weight: Number.isFinite(Number(c.weight_kg)) ? Number(c.weight_kg) : 0.5
+          weight: 1
         };
       })
       .filter(Boolean);
@@ -2242,12 +2242,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.clearRect(0,0,size.x,size.y);
         ctx.globalCompositeOperation='lighter';
         const zoom=this._map.getZoom();
-        const radius=Math.max(34,Math.min(92,30+zoom*4));
+        const radius = Math.max(60, Math.min(140, 50 + zoom * 6));
         const maxWeight=Math.max(1,...this._data.map(p=>p.weight||1));
         this._data.forEach(p=>{
           const pt=this._map.latLngToContainerPoint([p.lat,p.lng]);
           if(pt.x<-radius||pt.y<-radius||pt.x>size.x+radius||pt.y>size.y+radius)return;
-          const power=.34+Math.min(.46,(p.weight||1)/maxWeight*.46);
+          const power = 0.6;
           const gradient=ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,radius);
           gradient.addColorStop(0,`rgba(174,255,230,${power})`);
           gradient.addColorStop(.26,`rgba(87,236,220,${power*.72})`);
