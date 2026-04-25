@@ -1509,8 +1509,9 @@ body.mobile-mode canvas {
 .tournament-fab:hover{transform:translateY(-2px) scale(1.04);filter:brightness(1.05)}
 .save-toast{margin:0 0 14px;padding:12px 14px;border-radius:18px;background:rgba(143,240,167,.16);border:1px solid rgba(143,240,167,.35);color:var(--text);font-weight:700}
 #tournamentList{
-  display:flex;
-  flex-direction:column;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:start;
   gap:16px;
 }
 
@@ -1518,10 +1519,10 @@ body.mobile-mode canvas {
   grid-column: 1 / -1;
 }
 
-/* Responsive wie Dashboard */
+/* Turniere: Mobile bleibt 1 Spalte, grosse Screens nutzen 2 gleich breite Spalten */
 @media (max-width: 900px){
   #tournamentList{
-    grid-template-columns: 1fr;
+    grid-template-columns:1fr;
   }
 }
 
