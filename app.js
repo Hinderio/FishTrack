@@ -2156,3 +2156,146 @@ renderSpotBaitMatrix=function(){
 
 // MATRIX SCALING PATCH
 function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');const c=document.querySelector('.matrix-content');if(!w||!c)return;c.style.transform='translate(-50%,-50%) scale(1)';const s=Math.min(w.clientWidth/c.scrollWidth,w.clientHeight/c.scrollHeight,1);c.style.transform=`translate(-50%,-50%) scale(${s})`;}window.addEventListener('resize',scaleWholeMatrix);requestAnimationFrame(scaleWholeMatrix);
+
+/* Isolated Analytics catch-density map heatmap
+ * Additive only: creates a separate Leaflet map inside the Analytics Behaviour Layer.
+ * It reads the current state.catches collection and never touches the original catch map,
+ * marker layer, filters, or map controls.
+ */
+(function(){
+  let analyticsHeatmapMap=null;
+  let analyticsHeatmapLayer=null;
+  let analyticsHeatmapTileLayer=null;
+
+  function validHeatmapPoints(){
+    return (state?.catches||[])
+      .filter(c=>Number.isFinite(Number(c?.location?.lat))&&Number.isFinite(Number(c?.location?.lng)))
+      .map(c=>({lat:Number(c.location.lat),lng:Number(c.location.lng),weight:Math.max(1,Number(c.weightKg||1))}));
+  }
+
+  function setHeatmapEmpty(container,visible){
+    if(!container)return;
+    let empty=container.querySelector('.analytics-heatmap-empty');
+    if(visible&&!empty){
+      empty=document.createElement('div');
+      empty.className='analytics-heatmap-empty';
+      empty.textContent='Noch keine Fangorte für die Heatmap vorhanden.';
+      container.appendChild(empty);
+    }else if(!visible&&empty){
+      empty.remove();
+    }
+  }
+
+  function createCanvasHeatLayer(points){
+    return L.Layer.extend({
+      initialize(data){this._data=data||[];this._frame=null;},
+      setData(data){this._data=data||[];this._scheduleDraw();return this;},
+      onAdd(mapInstance){
+        this._map=mapInstance;
+        this._canvas=L.DomUtil.create('canvas','analytics-catch-heatmap-canvas leaflet-zoom-animated');
+        this._canvas.style.position='absolute';
+        this._canvas.style.pointerEvents='none';
+        this._canvas.style.mixBlendMode='screen';
+        this._canvas.style.zIndex='420';
+        mapInstance.getPanes().overlayPane.appendChild(this._canvas);
+        mapInstance.on('moveend zoomend resize viewreset',this._scheduleDraw,this);
+        this._scheduleDraw();
+      },
+      onRemove(mapInstance){
+        mapInstance.off('moveend zoomend resize viewreset',this._scheduleDraw,this);
+        if(this._frame)cancelAnimationFrame(this._frame);
+        if(this._canvas&&this._canvas.parentNode)this._canvas.parentNode.removeChild(this._canvas);
+        this._canvas=null;
+      },
+      _scheduleDraw(){
+        if(this._frame)cancelAnimationFrame(this._frame);
+        this._frame=requestAnimationFrame(()=>this._draw());
+      },
+      _draw(){
+        if(!this._map||!this._canvas)return;
+        const size=this._map.getSize();
+        const topLeft=this._map.containerPointToLayerPoint([0,0]);
+        L.DomUtil.setPosition(this._canvas,topLeft);
+        const ratio=window.devicePixelRatio||1;
+        this._canvas.width=Math.max(1,Math.round(size.x*ratio));
+        this._canvas.height=Math.max(1,Math.round(size.y*ratio));
+        this._canvas.style.width=size.x+'px';
+        this._canvas.style.height=size.y+'px';
+        const ctx=this._canvas.getContext('2d');
+        ctx.setTransform(ratio,0,0,ratio,0,0);
+        ctx.clearRect(0,0,size.x,size.y);
+        ctx.globalCompositeOperation='lighter';
+        const zoom=this._map.getZoom();
+        const radius=Math.max(34,Math.min(92,30+zoom*4));
+        const maxWeight=Math.max(1,...this._data.map(p=>p.weight||1));
+        this._data.forEach(p=>{
+          const pt=this._map.latLngToContainerPoint([p.lat,p.lng]);
+          if(pt.x<-radius||pt.y<-radius||pt.x>size.x+radius||pt.y>size.y+radius)return;
+          const power=.34+Math.min(.46,(p.weight||1)/maxWeight*.46);
+          const gradient=ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,radius);
+          gradient.addColorStop(0,`rgba(174,255,230,${power})`);
+          gradient.addColorStop(.26,`rgba(87,236,220,${power*.72})`);
+          gradient.addColorStop(.58,`rgba(39,177,170,${power*.34})`);
+          gradient.addColorStop(1,'rgba(5,34,42,0)');
+          ctx.fillStyle=gradient;
+          ctx.beginPath();
+          ctx.arc(pt.x,pt.y,radius,0,Math.PI*2);
+          ctx.fill();
+        });
+        ctx.globalCompositeOperation='source-over';
+      }
+    });
+  }
+
+  function renderAnalyticsCatchHeatmap(){
+    const container=document.getElementById('analyticsCatchHeatmap');
+    if(!container||typeof L==='undefined')return;
+    const points=validHeatmapPoints();
+    setHeatmapEmpty(container,!points.length);
+    if(!analyticsHeatmapMap){
+      analyticsHeatmapMap=L.map(container,{zoomControl:false,attributionControl:false,scrollWheelZoom:false,preferCanvas:true}).setView([59.915,10.78],8);
+      analyticsHeatmapTileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true});
+      analyticsHeatmapTileLayer.addTo(analyticsHeatmapMap);
+      const HeatLayer=createCanvasHeatLayer(points);
+      analyticsHeatmapLayer=new HeatLayer(points);
+      analyticsHeatmapLayer.addTo(analyticsHeatmapMap);
+    }else if(analyticsHeatmapLayer){
+      analyticsHeatmapLayer.setData(points);
+    }
+    requestAnimationFrame(()=>{
+      if(!analyticsHeatmapMap)return;
+      analyticsHeatmapMap.invalidateSize(false);
+      if(points.length){
+        const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lng]));
+        analyticsHeatmapMap.fitBounds(bounds.pad(.22),{animate:false,padding:[28,28],maxZoom:12});
+      }
+    });
+  }
+
+  window.renderAnalyticsCatchHeatmap=renderAnalyticsCatchHeatmap;
+
+  if(typeof renderCharts==='function'){
+    const previousRenderChartsForCatchHeatmap=renderCharts;
+    renderCharts=function(){
+      const result=previousRenderChartsForCatchHeatmap.apply(this,arguments);
+      try{renderAnalyticsCatchHeatmap();}catch(e){console.warn('Analytics catch heatmap render failed',e);}
+      return result;
+    };
+  }
+
+  if(typeof rerenderAnalyticsView==='function'){
+    const previousRerenderAnalyticsViewForCatchHeatmap=rerenderAnalyticsView;
+    rerenderAnalyticsView=function(){
+      const result=previousRerenderAnalyticsViewForCatchHeatmap.apply(this,arguments);
+      try{renderAnalyticsCatchHeatmap();}catch(e){console.warn('Analytics catch heatmap refresh failed',e);}
+      return result;
+    };
+  }
+
+  document.addEventListener('click',e=>{
+    if(e.target.closest('[data-screen="analytics"]')){
+      setTimeout(()=>{try{renderAnalyticsCatchHeatmap();}catch(err){}},120);
+    }
+  });
+  window.addEventListener('resize',()=>{try{renderAnalyticsCatchHeatmap();}catch(e){}});
+})();

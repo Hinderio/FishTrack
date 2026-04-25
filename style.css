@@ -2325,3 +2325,49 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
 body.light .compare-cumulative-chart{background:linear-gradient(180deg,rgba(255,255,255,.86),rgba(246,250,253,.74));border-color:rgba(17,36,58,.08)}
 body.light .compare-cumulative-grid line,body.light .compare-cumulative-axis line{stroke:rgba(17,36,58,.11)}
 @media (max-width:760px){.compare-cumulative-chart{padding:6px;border-radius:20px}.compare-cumulative-chart svg{min-height:210px}.compare-cumulative-summary{align-items:stretch;flex-direction:column}.compare-cumulative-summary span{justify-content:space-between}}
+
+/* Isolated Analytics Catch Heatmap (additive, no changes to the original catch map) */
+#screen-analytics .analytics-catch-heatmap-panel{
+  grid-column:1 / -1;
+  width:100%;
+  overflow:hidden;
+}
+#screen-analytics .analytics-catch-heatmap{
+  position:relative;
+  width:100%;
+  min-height:520px;
+  height:min(62vh,680px);
+  border-radius:26px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(135deg,rgba(8,17,27,.92),rgba(12,28,42,.86));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 22px 60px rgba(0,0,0,.24);
+  isolation:isolate;
+}
+#screen-analytics .analytics-catch-heatmap .leaflet-container{background:transparent;}
+#screen-analytics .analytics-catch-heatmap .leaflet-tile-pane{filter:saturate(.72) brightness(.72) contrast(1.05);opacity:.82;}
+#screen-analytics .analytics-catch-heatmap .leaflet-control-zoom,
+#screen-analytics .analytics-catch-heatmap .leaflet-control-attribution{display:none;}
+#screen-analytics .analytics-catch-heatmap::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:500;
+  background:radial-gradient(circle at 50% 42%,rgba(74,215,209,.10),transparent 58%),linear-gradient(180deg,rgba(7,17,26,.14),rgba(7,17,26,.28));
+  mix-blend-mode:screen;
+}
+#screen-analytics .analytics-heatmap-empty{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  color:var(--muted);
+  font-weight:800;
+  letter-spacing:.01em;
+  text-align:center;
+  padding:24px;
+  z-index:650;
+  background:rgba(7,17,26,.35);
+}
+@media (max-width:720px){#screen-analytics .analytics-catch-heatmap{min-height:420px;height:58vh;border-radius:22px;}}
