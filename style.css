@@ -2288,3 +2288,19 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
     --matrix-gap-fit:6px;
   }
 }
+
+/* Spot icons for Spot × Köder Matrix – visual-only addition */
+#spotBaitMatrix.spot-bait-fit-grid .matrix-spot-label{
+  flex-direction:row !important;
+  justify-content:flex-start !important;
+  gap:clamp(5px, .55vw, 8px) !important;
+  text-align:left !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-spot-label > span:last-child{
+  min-width:0 !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-spot-icon{
+  width:clamp(18px, 2vw, 28px) !important;
+  height:clamp(18px, 2vw, 28px) !important;
+  opacity:.86 !important;
+}

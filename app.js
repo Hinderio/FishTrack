@@ -1221,9 +1221,6 @@ function rerenderAnalyticsView(){
     if(typeof renderSpotBaitMatrix === 'function'){
       renderSpotBaitMatrix();
     }
-    if(typeof renderParticipantTimeline === 'function'){
-      renderParticipantTimeline();
-    }
   } finally {
     state.catches = originalCatches;
   }
@@ -1922,8 +1919,10 @@ function renderCharts(){
   const pStats=computeParticipantStats();
   const maxCount=Math.max(1,...pStats.map(p=>p.count||0));
   const maxPoints=Math.max(10,...pStats.map(p=>p.points||0));
+  const participantCanvas=document.getElementById('participantChart');
+  if(participantCanvas){
   cleanup('participants');
-  charts.participants=new Chart(document.getElementById('participantChart'),{
+  charts.participants=new Chart(participantCanvas,{
     type:'bubble',
     data:{datasets:[{
       label:'Performance-Profil',
@@ -1944,6 +1943,7 @@ function renderCharts(){
       }
     })
   });
+  }
 }
 
 function renderTimeHeatmap(){
@@ -1998,7 +1998,17 @@ function renderSpotBaitMatrix(){
   container.style.setProperty('--matrix-cols',baits.length);
   container.style.setProperty('--matrix-rows',spots.length+1);
   const header='<div class="matrix-label matrix-corner"><span>Spot / Köder</span></div>'+baits.map(b=>`<div class="matrix-label matrix-bait-label"><span class="matrix-icon">${baitIcon(b)}</span><span>${escapeHtml(b)}</span></div>`).join('');
-  const rows=spots.map(spot=>`<div class="matrix-label matrix-spot-label"><span>${escapeHtml(spot)}</span></div>`+baits.map(bait=>{
+  const spotIcon=(spot)=>{
+    const key=String(spot||'').toLowerCase();
+    if(key.includes('schilf'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 54C18 38 19 24 15 10"/><path d="M30 54C30 34 31 20 28 7"/><path d="M43 54C42 38 43 26 48 13"/><path d="M13 29c8-4 13-3 18 2"/><path d="M29 22c9-5 15-4 21 2"/></svg>';
+    if(key.includes('kraut'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 52c8-16 8-29 1-40"/><path d="M32 54c-2-18 2-32 12-42"/><path d="M50 52c-9-13-8-27 0-39"/><path d="M18 34c6-5 12-6 18-1"/><path d="M31 43c7-4 13-4 19 1"/></svg>';
+    if(key.includes('totholz')||key.includes('holz'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 45c15-8 29-17 44-28"/><path d="M18 40l-5-12"/><path d="M34 31l-2-15"/><path d="M43 25l12 4"/><circle cx="20" cy="39" r="3"/></svg>';
+    if(key.includes('steil'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M13 51h36"/><path d="M16 49l10-10 5-12 9-7 10-9"/><path d="M12 29c6 3 11 3 17 0s11-3 17 0"/></svg>';
+    if(key.includes('flach'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M9 35c7-3 13-3 20 0s13 3 20 0"/><path d="M12 45c8-3 15-3 23 0s12 3 17 0"/><path d="M15 26h34"/><path d="M22 19h20"/></svg>';
+    if(key.includes('einlauf')||key.includes('zulauf'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M11 23c9-5 18-5 27 0s14 5 19 0"/><path d="M11 38c9-5 18-5 27 0s14 5 19 0"/><path d="M32 8v38"/><path d="M22 36l10 10 10-10"/></svg>';
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 42c9-7 18-9 30-5"/><path d="M17 51h31"/><path d="M25 32c1-9 6-16 15-21"/></svg>';
+  };
+  const rows=spots.map(spot=>`<div class="matrix-label matrix-spot-label"><span class="matrix-icon matrix-spot-icon">${spotIcon(spot)}</span><span>${escapeHtml(spot)}</span></div>`+baits.map(bait=>{
     const v=values.find(x=>x.spot===spot&&x.bait===bait)||{count:0,lift:0};
     const strength=Math.min(1,v.lift/maxLift);
     const opacity=.10+strength*.86;
