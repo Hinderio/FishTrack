@@ -2176,3 +2176,115 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
 .matrix-wrapper{position:relative;overflow:hidden}
 .matrix-content{position:absolute;top:50%;left:50%;transform-origin:center}
 .matrix-cell-inner{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:auto;height:auto;white-space:nowrap}
+
+/* Spot × Köder Matrix – final no-scroll proportional fit
+   Read-only visual patch: keeps the existing data/model logic and only changes rendering. */
+#spotBaitMatrix.spot-bait-fit-grid{
+  --matrix-gap-fit: clamp(6px, .7vw, 10px);
+  --matrix-radius-fit: clamp(14px, 1.4vw, 20px);
+  display:grid !important;
+  grid-template-columns:minmax(88px, 1.28fr) repeat(var(--matrix-cols), minmax(0, 1fr)) !important;
+  grid-template-rows:repeat(var(--matrix-rows), minmax(0, 1fr)) !important;
+  gap:var(--matrix-gap-fit) !important;
+  width:100% !important;
+  height:clamp(360px, 36vw, 500px) !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  padding:0 !important;
+  box-sizing:border-box !important;
+  scrollbar-width:none !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid::-webkit-scrollbar{display:none !important; width:0 !important; height:0 !important;}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-label,
+#spotBaitMatrix.spot-bait-fit-grid .matrix-cell{
+  width:auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:auto !important;
+  min-height:0 !important;
+  max-height:none !important;
+  padding:clamp(5px, .72vw, 10px) !important;
+  border-radius:var(--matrix-radius-fit) !important;
+  box-sizing:border-box !important;
+  overflow:hidden !important;
+  white-space:normal !important;
+  text-overflow:clip !important;
+  position:relative !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  flex-direction:column !important;
+  text-align:center !important;
+  line-height:1.08 !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-label{
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035)) !important;
+  border:1px solid rgba(255,255,255,.07) !important;
+  color:var(--muted) !important;
+  font-weight:800 !important;
+  font-size:clamp(10px, .92vw, 14px) !important;
+  letter-spacing:-.01em !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-cell{
+  border:1px solid rgba(255,255,255,.065) !important;
+  color:var(--text) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05) !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-cell strong{
+  display:block !important;
+  font-size:clamp(16px, 1.55vw, 23px) !important;
+  line-height:1 !important;
+  font-weight:900 !important;
+  margin:0 0 clamp(3px, .35vw, 6px) !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-cell span{
+  display:block !important;
+  margin:0 !important;
+  font-size:clamp(9px, .88vw, 13px) !important;
+  line-height:1.05 !important;
+  font-weight:800 !important;
+  color:rgba(243,246,251,.76) !important;
+  opacity:1 !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-bait-label{
+  gap:clamp(3px, .35vw, 6px) !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-bait-label > span:last-child,
+#spotBaitMatrix.spot-bait-fit-grid .matrix-spot-label > span,
+#spotBaitMatrix.spot-bait-fit-grid .matrix-corner > span{
+  max-width:100% !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-icon{
+  width:clamp(22px, 2.5vw, 36px) !important;
+  height:clamp(22px, 2.5vw, 36px) !important;
+  color:rgba(177,197,219,.92) !important;
+  opacity:.9 !important;
+  flex:0 0 auto !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-icon svg{
+  width:100% !important;
+  height:100% !important;
+  display:block !important;
+  fill:none !important;
+  stroke:currentColor !important;
+  stroke-width:4.2 !important;
+  stroke-linecap:round !important;
+  stroke-linejoin:round !important;
+}
+#spotBaitMatrix.spot-bait-fit-grid .matrix-label::before,
+#spotBaitMatrix.spot-bait-fit-grid .matrix-label::after,
+#spotBaitMatrix.spot-bait-fit-grid .matrix-cell::before,
+#spotBaitMatrix.spot-bait-fit-grid .matrix-cell::after{
+  display:none !important;
+  content:none !important;
+}
+@media (max-width:980px){
+  #spotBaitMatrix.spot-bait-fit-grid{
+    height:clamp(320px, 54vw, 440px) !important;
+    --matrix-gap-fit:6px;
+  }
+}

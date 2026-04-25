@@ -1969,7 +1969,12 @@ function renderSpotBaitMatrix(){
   const catches=[...state.catches];
   const spots=analyticsCountBy(catches,c=>c.spotLabel||c.location?.label||'Unbekannter Spot').slice(0,6).map(x=>x[0]);
   const baits=analyticsCountBy(catches,c=>c.bait||'Unbekannter Köder').slice(0,6).map(x=>x[0]);
-  if(!spots.length||!baits.length){container.style.removeProperty('--matrix-cols');container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';return;}
+  if(!spots.length||!baits.length){
+    container.style.removeProperty('--matrix-cols');
+    container.style.removeProperty('--matrix-rows');
+    container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';
+    return;
+  }
   const total=Math.max(1,catches.length);
   const spotTotals=Object.fromEntries(spots.map(s=>[s,catches.filter(c=>(c.spotLabel||c.location?.label||'Unbekannter Spot')===s).length]));
   const baitTotals=Object.fromEntries(baits.map(b=>[b,catches.filter(c=>(c.bait||'Unbekannter Köder')===b).length]));
@@ -1980,16 +1985,27 @@ function renderSpotBaitMatrix(){
     return {spot,bait,count,lift};
   }));
   const maxLift=Math.max(1,...values.map(v=>v.lift));
+  const baitIcon=(bait)=>{
+    const key=String(bait||'').toLowerCase();
+    if(key.includes('wobbler'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 38C21 22 39 17 55 15c-2 15-12 30-28 37-7 3-15 0-17-7-1-2-1-5 0-7Z"/><path d="M19 38c8-3 18-8 27-17"/><circle cx="42" cy="24" r="2.6"/></svg>';
+    if(key.includes('spinner'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M23 39c-6-10-2-24 10-31 7 11 4 24-6 31"/><path d="M30 37l16 16"/><circle cx="48" cy="55" r="4"/><path d="M17 45l10-8"/></svg>';
+    if(key.includes('gummi')||key.includes('fisch'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 35c13-16 28-21 40-14 5 3 7 7 8 10-5 1-10 4-14 8-10 10-24 8-34-4Z"/><path d="M45 29l12-10 1 20-13-10Z"/><circle cx="25" cy="29" r="2.3"/></svg>';
+    if(key.includes('jig'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M35 13c5 4 7 10 4 15-3 6-11 8-17 5-5-3-7-9-4-14 3-7 11-10 17-6Z"/><path d="M37 26c9 5 14 13 15 25"/><path d="M22 34c-7 6-10 12-11 18"/><path d="M26 36c-2 8-1 14 4 19"/></svg>';
+    if(key.includes('blink'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M19 55C30 51 48 30 51 9 37 14 18 35 13 50c-1 4 2 7 6 5Z"/><path d="M22 48c8-8 16-19 22-31"/><circle cx="44" cy="16" r="2.5"/></svg>';
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 36c11-13 28-18 42-11-6 14-22 22-36 18-3-1-5-3-6-7Z"/><circle cx="40" cy="28" r="2.3"/></svg>';
+  };
+  container.className='matrix-grid spot-bait-fit-grid';
   container.style.setProperty('--matrix-cols',baits.length);
-  container.style.setProperty('--matrix-min-width',`${180+(baits.length*122)}px`);
-  container.innerHTML='<div class="matrix-header"><div class="matrix-label">Spot / Köder</div>'+baits.map(b=>`<div class="matrix-label">${escapeHtml(b)}</div>`).join('')+'</div>'+spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+escapeHtml(spot)+'</div>'+baits.map(bait=>{
+  container.style.setProperty('--matrix-rows',spots.length+1);
+  const header='<div class="matrix-label matrix-corner"><span>Spot / Köder</span></div>'+baits.map(b=>`<div class="matrix-label matrix-bait-label"><span class="matrix-icon">${baitIcon(b)}</span><span>${escapeHtml(b)}</span></div>`).join('');
+  const rows=spots.map(spot=>`<div class="matrix-label matrix-spot-label"><span>${escapeHtml(spot)}</span></div>`+baits.map(bait=>{
     const v=values.find(x=>x.spot===spot&&x.bait===bait)||{count:0,lift:0};
     const strength=Math.min(1,v.lift/maxLift);
     const opacity=.10+strength*.86;
     return `<div class="matrix-cell analytics-affinity-cell" style="--affinity:${strength};background:radial-gradient(circle at 50% 30%,rgba(143,240,167,${opacity}),rgba(74,215,209,${Math.max(.06,opacity*.46)}))"><strong>${v.count}</strong><span>${v.lift?`${v.lift.toFixed(1)}× Lift`:'–'}</span></div>`;
-  }).join('')+'</div>').join('');
+  }).join('')).join('');
+  container.innerHTML=header+rows;
 }
-
 function renderParticipantTimeline(){
   const canvas=document.getElementById('timelineBubbleChart');
   if(!canvas||typeof Chart==='undefined')return;
