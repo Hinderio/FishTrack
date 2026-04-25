@@ -1488,6 +1488,7 @@ body.mobile-mode canvas {
   opacity: 0.85;
 }
 
+.subtle,
 .tournament-rule,
 .subtle-inline{
   color: var(--primary) !important;
