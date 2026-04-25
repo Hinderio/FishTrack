@@ -2278,15 +2278,16 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     }else if(analyticsHeatmapLayer){
       analyticsHeatmapLayer.setData(points);
     }
-    requestAnimationFrame(()=>{
-      if(!analyticsHeatmapMap)return;
-      analyticsHeatmapMap.invalidateSize(false);      
+    requestAnimationFrame(() => {
+      if(!analyticsHeatmapMap) return;
+    
+      analyticsHeatmapMap.invalidateSize(false);
+    
       if(points.length){
         setTimeout(() => {
           const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
           analyticsHeatmapMap.fitBounds(bounds, { padding: [50,50], maxZoom: 10 });
         }, 100);
-        }
       }
     });
   }
