@@ -1526,3 +1526,37 @@ badge.textContent = `🏆 x${trophyCount} +${bonus}`;
 const _bonusEnhancerTimer = setInterval(enhanceLeaderboardTournamentBonus, 1000);
 setTimeout(() => clearInterval(_bonusEnhancerTimer), 15000);
 
+
+
+
+// 🔹 Dynamic C-MAP link update (minimal invasive)
+(function(){
+  function updateDepthLink(mapInstance){
+    try{
+      if(!mapInstance || !mapInstance.getCenter) return;
+      const center = mapInstance.getCenter();
+      const btn = document.querySelector('.map-btn-depth');
+      if(btn && center){
+        btn.href = `https://www.c-map.com/chartexplorer/?lat=${center.lat}&long=${center.lng}&map=Discover&defaultZoom=15`;
+      }
+    }catch(e){}
+  }
+
+  // Hook into existing map if available
+  const tryAttach = () => {
+    if(window.map && window.map.on){
+      window.map.on('moveend', () => updateDepthLink(window.map));
+      updateDepthLink(window.map);
+      return true;
+    }
+    return false;
+  };
+
+  // Retry attach (for async init)
+  let tries = 0;
+  const interval = setInterval(()=>{
+    if(tryAttach() || tries++ > 10){
+      clearInterval(interval);
+    }
+  }, 500);
+})();
