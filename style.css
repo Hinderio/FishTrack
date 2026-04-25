@@ -1382,19 +1382,7 @@ body.mobile-mode canvas {
 
 
 /* ===== TOURNAMENT BONUS STYLING ===== */
-.tournament-bonus{
-  position:absolute;
-  bottom:14px;
-  right:18px;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 12px;
-  border-radius:999px;
-  font-size:0.75em;
-  font-weight:800;
-  box-shadow: 0 6px 16px rgba(0,0,0,.25);
-}
+
 
 /* dynamic tiers */
 .bonus-1{ background:#2c3e50; color:#ecf0f1; }
@@ -1405,19 +1393,7 @@ body.mobile-mode canvas {
 
 
 /* Tournament winner bonus badge */
-.tournament-bonus{
-  position:absolute;
-  bottom:14px;
-  right:18px;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  padding:6px 12px;
-  border-radius:999px;
-  font-size:0.75em;
-  font-weight:800;
-  box-shadow: 0 6px 16px rgba(0,0,0,.25);
-}
+
 .bonus-1{background:linear-gradient(135deg,#314155,#263342);color:#d9e7f5;}
 .bonus-2{background:linear-gradient(135deg,#2f6f7a,#24545e);color:#e8feff;}
 .bonus-3{background:linear-gradient(135deg,#36d6c9,#1f9fbc);color:#06242a;}
@@ -1450,18 +1426,7 @@ body.mobile-mode canvas {
   opacity: 0.9;
 }
 
-.tournament-bonus {
-  position: absolute;
-  bottom: 12px;
-  right: 16px;
-  font-size: 13px;
-  background: rgba(255,215,0,0.15);
-  color: #ffd700;
-  padding: 5px 12px;
-  border-radius: 14px;
-  font-weight: 600;
-  box-shadow: 0 0 10px rgba(255,215,0,0.2);
-}
+
 
 .t-group-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
 .t-group-title{margin:10px 0;opacity:.8}
@@ -1500,3 +1465,25 @@ body.mobile-mode canvas {
   transform: translateY(-2px);
 }
 
+
+
+/* FIX: tournament footer positioning */
+.list-card{
+  display:flex;
+  flex-direction:column;
+}
+
+.tournament-bonus{
+  position: static !important;
+  margin-top: 10px;
+  align-self: center;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  color: #8FA8A3;
+  background: transparent;
+  box-shadow: none;
+
+  opacity: 0.85;
+}
