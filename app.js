@@ -2228,6 +2228,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._frame=requestAnimationFrame(()=>this._draw());
       },
       _draw(){
+        console.log('HEAT DATA:', this._data); // ← HIER EINFÜGEN
         if(!this._map||!this._canvas)return;
         const size=this._map.getSize();
         const topLeft=this._map.containerPointToLayerPoint([0,0]);
