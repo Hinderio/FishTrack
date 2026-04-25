@@ -1498,8 +1498,28 @@ function reopenTournament(tournamentId){
 
 function enhanceLeaderboardTournamentBonus(){
   const bonusMap = getTournamentBonusMap();
+
+  // 🆕 EINMAL berechnen (nicht pro row!)
+  const trophyMapCount = {};
+  const tournaments = window.state.tournaments || [];
+
+  tournaments.forEach(t => {
+    if (!t.finished || !t.winner) return;
+
+    const names = Array.isArray(t.winner.names)
+      ? t.winner.names
+      : (t.winner.name ? [t.winner.name] : []);
+
+    names.forEach(name => {
+      const clean = String(name || "").replace(/[^a-zA-Z0-9 äöüÄÖÜß]/g, "").trim();
+      if (!clean) return;
+      trophyMapCount[clean] = (trophyMapCount[clean] || 0) + 1;
+    });
+  });
+
   document.querySelectorAll('.leaderboard-card,.leaderboard-item,.list-card,.rank-card,article').forEach(row => {
     if(row.dataset.tournamentBonusEnhanced === '1') return;
+
     const text = row.innerText || '';
     if(!text.includes('Punkte')) return;
 
@@ -1507,16 +1527,21 @@ function enhanceLeaderboardTournamentBonus(){
     if(!nameMatch) return;
 
     const cleanName = String(nameMatch[1] || '').replace(/[^a-zA-Z0-9 äöüÄÖÜß]/g, '').trim();
+
     const bonus = bonusMap[cleanName] || 0;
     if(!bonus || bonus <= 0) return;
 
-    const pointsBadge = Array.from(row.querySelectorAll('span,div')).find(el => /Punkte$/.test((el.innerText || '').trim()));
+    const trophyCount = trophyMapCount[cleanName] || 0;
+    if(trophyCount <= 0) return; // optional sauberer Schutz
+
+    const pointsBadge = Array.from(row.querySelectorAll('span,div'))
+      .find(el => /Punkte$/.test((el.innerText || '').trim()));
     if(!pointsBadge) return;
 
     const badge = document.createElement('span');
     badge.className = `tournament-bonus bonus-${tournamentBonusTier(bonus)}`;
-    const trophyCount = Math.max(1, Math.floor(bonus / 25));
-badge.textContent = `🏆 x${trophyCount} +${bonus}`;
+    badge.textContent = `🏆 x${trophyCount} +${bonus}`;
+
     pointsBadge.insertAdjacentElement('afterend', badge);
     row.dataset.tournamentBonusEnhanced = '1';
   });
