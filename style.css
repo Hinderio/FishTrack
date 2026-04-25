@@ -2304,15 +2304,3 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
   height:clamp(18px, 2vw, 28px) !important;
   opacity:.86 !important;
 }
-
-/* Behaviour Layer full-width layout patch — layout-only, scoped to Analytics Behaviour Layer */
-#screen-analytics .analytics-behaviour-grid{
-  grid-template-columns:1fr !important;
-  align-items:stretch !important;
-}
-
-#screen-analytics .analytics-behaviour-grid > .analytics-chart-panel{
-  width:100% !important;
-  max-width:100% !important;
-  grid-column:1 / -1 !important;
-}
