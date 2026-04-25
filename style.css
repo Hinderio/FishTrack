@@ -1498,3 +1498,6 @@ body.mobile-mode canvas {
   color: var(--primary) !important;
   font-weight: 600;
 }
+
+
+.t-subtitle{color: var(--primary); font-weight:600;}

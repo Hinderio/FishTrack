@@ -331,7 +331,7 @@ function buildTournamentStory(tournament,result,first,biggest,speciesWins,topAre
     : `Noch ist alles drin – ein guter Fisch und das Narrativ schreibt sich komplett neu.`;
 
   return [
-    `<p><strong>${tournament?.name||'Dieses Turnier'}</strong> entwickelt sich zu einer Mischung aus Präzisionsarbeit, Zufallsglück und freundlicher Eskalation. ${leadText}. ${duelText}</p>`,
+    `<p><strong>${tournament?.name||'Dieses Turnier'}</strong> <span class="t-subtitle">entwickelt sich zu einer Mischung aus Präzisionsarbeit, Zufallsglück und freundlicher Eskalation. ${leadText}. ${duelText}</span></p>`,
     `<p>${openerText} ${biggestText}</p>`,
     `<p>${speciesText} ${baitText} ${areaText}</p>`,
     `<p>In Summe liegen ${total} zugeordnete Fänge mit rund ${fmtKg(totalWeight)} auf dem Scoreboard. ${finaleText}</p>`
@@ -1156,8 +1156,7 @@ window.renderForecast = function(){
 
   el.innerHTML = `
     <article class="insight-card">
-      <strong>7-Tage-Prognose</strong>
-      <span>${forecast.text7}</span>
+      <strong>7-Tage-Prognose</strong> <span class="t-subtitle"> </span><span>${forecast.text7}</span>
     </article>
     <article class="insight-card">
       <strong>30-Tage-Prognose</strong>
