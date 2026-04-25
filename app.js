@@ -2127,3 +2127,142 @@ renderSpotBaitMatrix=function(){
 
 // MATRIX SCALING PATCH
 function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');const c=document.querySelector('.matrix-content');if(!w||!c)return;c.style.transform='translate(-50%,-50%) scale(1)';const s=Math.min(w.clientWidth/c.scrollWidth,w.clientHeight/c.scrollHeight,1);c.style.transform=`translate(-50%,-50%) scale(${s})`;}window.addEventListener('resize',scaleWholeMatrix);requestAnimationFrame(scaleWholeMatrix);
+
+/* Additive Geo Analytics Layer – isolated Leaflet instances, read-only */
+(function(){
+  const GEO_STATE={heatMap:null,weightedMap:null,heatLayer:null,weightedLayer:null,baseBounds:null};
+  function geoCatches(){
+    const source=(typeof getAnalyticsCatches==='function')?getAnalyticsCatches():(state.catches||[]);
+    return (source||[]).filter(c=>Number.isFinite(Number(c.location?.lat))&&Number.isFinite(Number(c.location?.lng)));
+  }
+  function geoTileLayer(){
+    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'});
+  }
+  function geoBounds(points){
+    if(!points.length) return null;
+    return L.latLngBounds(points.map(c=>[Number(c.location.lat),Number(c.location.lng)]));
+  }
+  function fitGeoMap(mapInstance, points){
+    if(!mapInstance) return;
+    const bounds=geoBounds(points);
+    setTimeout(()=>{
+      mapInstance.invalidateSize(false);
+      if(bounds&&bounds.isValid()) mapInstance.fitBounds(bounds.pad(points.length===1?0.08:0.22),{animate:false,maxZoom:points.length===1?13:15});
+      else mapInstance.setView([59.915,10.78],10);
+    },40);
+  }
+  function ensureMap(id, kind){
+    if(typeof L==='undefined') return null;
+    const el=document.getElementById(id);
+    if(!el) return null;
+    const key=kind==='heat'?'heatMap':'weightedMap';
+    if(GEO_STATE[key]) return GEO_STATE[key];
+    const mapInstance=L.map(el,{zoomControl:true,attributionControl:true,scrollWheelZoom:false,preferCanvas:true});
+    geoTileLayer().addTo(mapInstance);
+    GEO_STATE[key]=mapInstance;
+    return mapInstance;
+  }
+  const CanvasHeatLayer=L.Layer.extend({
+    initialize(points){this.points=points||[];},
+    onAdd(mapInstance){
+      this._map=mapInstance;
+      this._canvas=L.DomUtil.create('canvas','geo-heat-canvas leaflet-zoom-animated');
+      this._ctx=this._canvas.getContext('2d',{willReadFrequently:true});
+      mapInstance.getPanes().overlayPane.appendChild(this._canvas);
+      mapInstance.on('moveend zoomend resize viewreset',this._reset,this);
+      this._reset();
+    },
+    onRemove(mapInstance){
+      mapInstance.off('moveend zoomend resize viewreset',this._reset,this);
+      if(this._canvas&&this._canvas.parentNode)this._canvas.parentNode.removeChild(this._canvas);
+    },
+    setPoints(points){this.points=points||[];this._reset();},
+    _reset(){
+      if(!this._map||!this._canvas) return;
+      const size=this._map.getSize();
+      const topLeft=this._map.containerPointToLayerPoint([0,0]);
+      L.DomUtil.setPosition(this._canvas,topLeft);
+      const ratio=window.devicePixelRatio||1;
+      this._canvas.width=Math.max(1,size.x*ratio);this._canvas.height=Math.max(1,size.y*ratio);
+      this._canvas.style.width=size.x+'px';this._canvas.style.height=size.y+'px';
+      this._draw(ratio);
+    },
+    _draw(ratio){
+      const ctx=this._ctx,w=this._canvas.width,h=this._canvas.height;
+      ctx.clearRect(0,0,w,h);
+      if(!this.points.length) return;
+      const counts=new Map();
+      this.points.forEach(c=>{const key=`${Number(c.location.lat).toFixed(4)},${Number(c.location.lng).toFixed(4)}`;counts.set(key,(counts.get(key)||0)+1)});
+      const max=Math.max(1,...counts.values());
+      ctx.globalCompositeOperation='source-over';
+      this.points.forEach(c=>{
+        const p=this._map.latLngToContainerPoint([Number(c.location.lat),Number(c.location.lng)]);
+        const intensity=(counts.get(`${Number(c.location.lat).toFixed(4)},${Number(c.location.lng).toFixed(4)}`)||1)/max;
+        const radius=(42+Math.min(52,22*this._map.getZoom()/8))*ratio;
+        const x=p.x*ratio,y=p.y*ratio;
+        const g=ctx.createRadialGradient(x,y,0,x,y,radius);
+        g.addColorStop(0,`rgba(172,255,232,${0.28+0.34*intensity})`);
+        g.addColorStop(.32,`rgba(74,215,209,${0.22+0.26*intensity})`);
+        g.addColorStop(.72,`rgba(18,118,118,${0.12+0.18*intensity})`);
+        g.addColorStop(1,'rgba(4,36,42,0)');
+        ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+      });
+    }
+  });
+  function updateWeighted(mapInstance, points){
+    if(GEO_STATE.weightedLayer){GEO_STATE.weightedLayer.remove();GEO_STATE.weightedLayer=null;}
+    const groups=new Map();
+    points.forEach(c=>{
+      const lat=Number(c.location.lat),lng=Number(c.location.lng);
+      const key=`${lat.toFixed(4)},${lng.toFixed(4)}`;
+      const g=groups.get(key)||{lat,lng,count:0,weight:0,label:c.spotLabel||c.location?.label||'Spot'};
+      g.count+=1;g.weight+=Number(c.weightKg||0);groups.set(key,g);
+    });
+    const maxScore=Math.max(1,...[...groups.values()].map(g=>g.count+(g.weight*.35)));
+    const layer=L.layerGroup([...groups.values()].map(g=>{
+      const score=g.count+(g.weight*.35);
+      const size=Math.round(24+34*(score/maxScore));
+      const icon=L.divIcon({className:'',html:`<div class="geo-weighted-marker" style="--geo-size:${size}px"><span>${g.count}</span></div>`,iconSize:[size,size],iconAnchor:[size/2,size/2]});
+      return L.marker([g.lat,g.lng],{icon}).bindPopup(`<strong>${escapeHtml(g.label)}</strong><br>${g.count} Fang${g.count===1?'':'e'} · ${fmtKg(g.weight)}`);
+    }));
+    layer.addTo(mapInstance);GEO_STATE.weightedLayer=layer;
+  }
+  function renderGeoInsights(points){
+    const box=document.getElementById('analyticsGeoInsights');
+    if(!box) return;
+    if(!points.length){box.innerHTML='<article class="analytics-geo-insight"><strong>Noch keine Koordinaten</strong><span>Sobald Fänge mit Standort vorhanden sind, erscheinen hier Geo-Muster.</span></article>';return;}
+    const bySpot=new Map();
+    points.forEach(c=>{const k=c.spotLabel||c.location?.label||'Unbekannter Spot';const o=bySpot.get(k)||{count:0,weight:0};o.count++;o.weight+=Number(c.weightKg||0);bySpot.set(k,o);});
+    const top=[...bySpot.entries()].sort((a,b)=>b[1].count-a[1].count||b[1].weight-a[1].weight)[0];
+    const weights=points.map(c=>Number(c.weightKg||0)).filter(Number.isFinite);
+    const totalW=weights.reduce((s,v)=>s+v,0);
+    box.innerHTML=[
+      ['Hotspot',top?.[0]||'–',top?`${top[1].count} Fänge · ${fmtKg(top[1].weight)} Gewicht an diesem Spot.`:'Noch offen'],
+      ['Geo-Abdeckung',`${bySpot.size} Spot${bySpot.size===1?'':'s'}`,`${points.length} Fänge enthalten verwertbare Koordinaten.`],
+      ['Ø Geo-Gewicht',points.length?fmtKg(totalW/points.length):'–','Nur Fänge mit Standort werden für diese Karten verwendet.']
+    ].map(([s,v,d])=>`<article class="analytics-geo-insight"><small>${escapeHtml(s)}</small><strong>${escapeHtml(v)}</strong><span>${escapeHtml(d)}</span></article>`).join('');
+  }
+  window.renderAnalyticsGeoMaps=function(){
+    if(typeof L==='undefined') return;
+    const points=geoCatches();
+    const heatEl=document.getElementById('analyticsGeoHeatmap');
+    if(heatEl && heatEl.clientWidth===0){renderGeoInsights(points);return;}
+    const heat=ensureMap('analyticsGeoHeatmap','heat');
+    const weighted=ensureMap('analyticsWeightedSpotsMap','weighted');
+    if(heat){
+      if(!GEO_STATE.heatLayer){GEO_STATE.heatLayer=new CanvasHeatLayer(points).addTo(heat);} else GEO_STATE.heatLayer.setPoints(points);
+      fitGeoMap(heat,points);
+    }
+    if(weighted){updateWeighted(weighted,points);fitGeoMap(weighted,points);}
+    const hm=document.getElementById('geoHeatmapMeta'); if(hm) hm.textContent=points.length?`${points.length} Fangpunkte`:'Keine Koordinaten';
+    const wm=document.getElementById('geoWeightedMeta'); if(wm) wm.textContent=points.length?`${new Set(points.map(c=>`${Number(c.location.lat).toFixed(4)},${Number(c.location.lng).toFixed(4)}`)).size} Spots`:'Keine Koordinaten';
+    renderGeoInsights(points);
+  };
+  const previous=window.rerenderAnalyticsView||rerenderAnalyticsView;
+  if(typeof previous==='function'){
+    window.rerenderAnalyticsView=function(){const result=previous.apply(this,arguments);setTimeout(window.renderAnalyticsGeoMaps,80);return result;};
+    try{rerenderAnalyticsView=window.rerenderAnalyticsView;}catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(window.renderAnalyticsGeoMaps,160));
+  window.addEventListener('load',()=>setTimeout(window.renderAnalyticsGeoMaps,260));
+})();
