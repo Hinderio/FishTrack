@@ -1493,3 +1493,8 @@ body.mobile-mode canvas {
 .subtle-inline{
   color: var(--primary) !important;
 }
+
+.list-title-row span:not(.badge){
+  color: var(--primary) !important;
+  font-weight: 600;
+}
