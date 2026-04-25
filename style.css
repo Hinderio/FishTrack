@@ -1604,3 +1604,10 @@ body.light .participant-detail-head{background:linear-gradient(180deg,var(--card
 .catch-marker-selected{filter:drop-shadow(0 0 12px rgba(74,215,209,.9));animation:catchMarkerPulse 1.25s ease-in-out infinite}
 @keyframes catchMarkerPulse{0%,100%{stroke-opacity:1;transform:scale(1)}50%{stroke-opacity:.55;transform:scale(1.08)}}
 @media (max-width:760px){.recent-catch-card{align-items:flex-start}.recent-catch-map-hint{font-size:.78rem}.selected-catch-map-panel{align-items:flex-start}.selected-catch-map-panel .icon-btn{width:38px;height:38px}}
+
+.tournament-card .badge{
+  background: rgba(143,240,167,0.15);
+  color: var(--accent);
+  border: 1px solid rgba(143,240,167,0.35);
+  font-weight: 600;
+}
