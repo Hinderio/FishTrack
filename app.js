@@ -371,6 +371,7 @@ function participantComparisonMetricRows(aData,bData){
     {key:'avgWeight',label:'Ø Gewicht',a:Number(aData.avgWeight||0),b:Number(bData.avgWeight||0),format:v=>fmtKg(v),diff:v=>`${v>0?'+':''}${v.toFixed(2)} kg`},
     {key:'avgLength',label:'Ø Länge',a:Number(aData.avgLength||0),b:Number(bData.avgLength||0),format:v=>v?`${Math.round(v)} cm`:'–',diff:v=>`${v>0?'+':''}${Math.round(v)} cm`},
     {key:'tournament',label:'Turnierpunkte',a:Number(aTournament.totalPoints||0),b:Number(bTournament.totalPoints||0),format:v=>`${Math.round(v)} P`,diff:v=>`${v>0?'+':''}${Math.round(v)} P`},
+    {key:'tournamentWins',label:'Turniersiege',a:Number(aTournament.wins||0),b:Number(bTournament.wins||0),format:v=>`${Math.round(v)} Sieg${Math.round(v)===1?'':'e'}`,diff:v=>`${v>0?'+':''}${Math.round(v)} Sieg${Math.round(v)===1?'':'e'}`},
     {key:'level',label:'Level / Stufe',a:Number(aLevel.score||0),b:Number(bLevel.score||0),format:(v,side)=>side==='a'?`${aLevel.icon} ${aLevel.label}`:`${bLevel.icon} ${bLevel.label}`,diff:v=>`${v>0?'+':''}${Math.round(v)} Score`}
   ];
 }
@@ -390,6 +391,34 @@ function renderComparisonMetric(row){
   const diffText=diff===0?'Gleichstand':(diff>0?`A ${row.diff(diff)}`:`B ${row.diff(Math.abs(diff))}`);
   return `<article class="compare-metric ${stateClass}"><div class="compare-metric-head"><strong>${escapeHtml(row.label)}</strong><span>${escapeHtml(diffText)}</span></div><div class="compare-values"><b>${row.format(row.a,'a')}</b><b>${row.format(row.b,'b')}</b></div><div class="compare-bars"><div class="compare-bar compare-bar--a"><span style="width:${aPct}%"></span></div><div class="compare-bar compare-bar--b"><span style="width:${bPct}%"></span></div></div></article>`;
 }
+function cumulativeCatchSeriesForParticipant(participantId,minTime,maxTime){
+  const source=(state.catches||[]).filter(c=>c.participantId===participantId&&c.timestamp&&!Number.isNaN(new Date(c.timestamp).getTime())).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  const safeMin=Number.isFinite(minTime)?minTime:(source[0]?new Date(source[0].timestamp).getTime():Date.now());
+  const safeMax=Number.isFinite(maxTime)&&maxTime>safeMin?maxTime:safeMin+86400000;
+  const points=[{time:safeMin,value:0,label:'Start · 0 Fänge'}];
+  let total=0;
+  source.forEach(c=>{const time=new Date(c.timestamp).getTime();if(time<safeMin||time>safeMax)return;total+=1;points.push({time,value:total,label:`${fmtDateTime(c.timestamp)} · ${total} Fang${total===1?'':'e'}`});});
+  points.push({time:safeMax,value:total,label:`Endstand · ${total} Fang${total===1?'':'e'}`});
+  return {points,total};
+}
+function svgPathFromCumulativePoints(points,minTime,maxTime,maxValue,width,height,pad){
+  const span=Math.max(1,maxTime-minTime),usableW=width-pad.left-pad.right,usableH=height-pad.top-pad.bottom,denom=Math.max(1,maxValue);
+  return points.map((pt,index)=>{const x=pad.left+((pt.time-minTime)/span)*usableW;const y=height-pad.bottom-(pt.value/denom)*usableH;return `${index?'L':'M'} ${x.toFixed(1)} ${y.toFixed(1)}`;}).join(' ');
+}
+function renderCumulativeCatchComparison(aData,bData){
+  const relevant=[...aData.catches,...bData.catches].filter(c=>c.timestamp&&!Number.isNaN(new Date(c.timestamp).getTime())).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  if(!relevant.length)return `<section class="participant-detail-panel compare-cumulative-panel"><div class="participant-section-head"><div><p class="eyebrow">Kumulative Fangentwicklung</p><h3>Fänge über Zeit</h3></div><span class="participant-tournament-status">read-only</span></div><div class="meta">Noch keine Fänge für diese beiden Teilnehmer vorhanden.</div></section>`;
+  const first=new Date(relevant[0].timestamp).getTime(),last=new Date(relevant[relevant.length-1].timestamp).getTime(),minTime=first,maxTime=last>first?last:first+86400000;
+  const aSeries=cumulativeCatchSeriesForParticipant(aData.participant.id,minTime,maxTime),bSeries=cumulativeCatchSeriesForParticipant(bData.participant.id,minTime,maxTime);
+  const maxValue=Math.max(1,aSeries.total,bSeries.total),width=760,height=250,pad={left:44,right:22,top:24,bottom:42};
+  const aPath=svgPathFromCumulativePoints(aSeries.points,minTime,maxTime,maxValue,width,height,pad),bPath=svgPathFromCumulativePoints(bSeries.points,minTime,maxTime,maxValue,width,height,pad);
+  const aArea=`${aPath} L ${(width-pad.right).toFixed(1)} ${(height-pad.bottom).toFixed(1)} L ${pad.left.toFixed(1)} ${(height-pad.bottom).toFixed(1)} Z`;
+  const startLabel=new Date(minTime).toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit'}),endLabel=new Date(maxTime).toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit'});
+  const aColor=aData.participant.color||'#4ad7d1',bColor=bData.participant.color||'#8ff0a7';
+  const grid=[0,.25,.5,.75,1].map(r=>{const y=height-pad.bottom-r*(height-pad.top-pad.bottom),label=Math.round(r*maxValue);return `<g><line x1="${pad.left}" x2="${width-pad.right}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"/><text x="${pad.left-12}" y="${(y+4).toFixed(1)}" text-anchor="end">${label}</text></g>`}).join('');
+  const dots=(series,cls)=>series.points.filter((_,i,arr)=>i&&i<arr.length-1).map(pt=>{const x=pad.left+((pt.time-minTime)/Math.max(1,maxTime-minTime))*(width-pad.left-pad.right),y=height-pad.bottom-(pt.value/Math.max(1,maxValue))*(height-pad.top-pad.bottom);return `<circle class="${cls}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.7"><title>${escapeHtml(pt.label)}</title></circle>`}).join('');
+  return `<section class="participant-detail-panel compare-cumulative-panel"><div class="participant-section-head"><div><p class="eyebrow">Kumulative Fangentwicklung</p><h3>Fänge über Zeit</h3></div><span class="participant-tournament-status">read-only</span></div><div class="compare-cumulative-summary"><span style="--participant-color:${aColor}"><i></i>${escapeHtml(aData.participant.name)} · ${aSeries.total}</span><span style="--participant-color:${bColor}"><i></i>${escapeHtml(bData.participant.name)} · ${bSeries.total}</span></div><div class="compare-cumulative-chart" style="--compare-a:${aColor};--compare-b:${bColor}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Kumulative Fangentwicklung"><defs><linearGradient id="compareCatchAreaA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--compare-a)" stop-opacity=".24"/><stop offset="1" stop-color="var(--compare-a)" stop-opacity="0"/></linearGradient><filter id="compareCatchGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g class="compare-cumulative-grid">${grid}</g><path class="compare-cumulative-area" d="${aArea}"/><path class="compare-cumulative-line compare-cumulative-line--b" d="${bPath}"/><path class="compare-cumulative-line compare-cumulative-line--a" d="${aPath}"/>${dots(bSeries,'compare-cumulative-dot compare-cumulative-dot--b')}${dots(aSeries,'compare-cumulative-dot compare-cumulative-dot--a')}<g class="compare-cumulative-axis"><line x1="${pad.left}" x2="${width-pad.right}" y1="${height-pad.bottom}" y2="${height-pad.bottom}"/><text x="${pad.left}" y="${height-14}">${startLabel}</text><text x="${width-pad.right}" y="${height-14}" text-anchor="end">${endLabel}</text></g></svg></div></section>`;
+}
 function renderParticipantComparison(primaryId,secondaryId){
   const modal=document.getElementById('participantDetailModal'),body=document.getElementById('participantDetailBody'),title=document.getElementById('participantDetailTitle');
   if(!modal||!body)return;
@@ -401,7 +430,7 @@ function renderParticipantComparison(primaryId,secondaryId){
   if(title)title.textContent='Teilnehmer-Vergleich';
   modal.dataset.view='compare';
   modal.dataset.returnParticipantId=primaryId;
-  body.innerHTML=`<div class="participant-compare-view"><button class="pill secondary compare-back" type="button" data-close-participant-detail>← Zurück zu ${escapeHtml(a.participant.name)}</button><div class="compare-hero"><div>${renderCompareDuelist(a,'a')}</div><div class="compare-vs"><span>VS</span><strong>${escapeHtml(winner)}</strong><small>${aWins}:${bWins} Metriken</small></div><div>${renderCompareDuelist(b,'b')}</div></div><section class="participant-detail-panel compare-board"><div class="participant-section-head"><div><p class="eyebrow">Direktes Duell</p><h3>Unterschiede auf einen Blick</h3></div><span class="participant-tournament-status">read-only</span></div><div class="compare-metrics">${metrics.map(renderComparisonMetric).join('')}</div></section></div>`;
+  body.innerHTML=`<div class="participant-compare-view"><button class="pill secondary compare-back" type="button" data-close-participant-detail>← Zurück zu ${escapeHtml(a.participant.name)}</button><div class="compare-hero"><div>${renderCompareDuelist(a,'a')}</div><div class="compare-vs"><span>VS</span><strong>${escapeHtml(winner)}</strong><small>${aWins}:${bWins} Metriken</small></div><div>${renderCompareDuelist(b,'b')}</div></div><section class="participant-detail-panel compare-board"><div class="participant-section-head"><div><p class="eyebrow">Direktes Duell</p><h3>Unterschiede auf einen Blick</h3></div><span class="participant-tournament-status">read-only</span></div><div class="compare-metrics">${metrics.map(renderComparisonMetric).join('')}</div></section>${renderCumulativeCatchComparison(a,b)}</div>`;
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden','false');
   document.body.classList.add('participant-detail-open');
