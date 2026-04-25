@@ -1515,6 +1515,10 @@ body.mobile-mode canvas {
   align-items:start;
 }
 
+.tournament-overview-panel{
+  grid-column: 1 / -1;
+}
+
 /* Responsive wie Dashboard */
 @media (max-width: 900px){
   #tournamentList{
