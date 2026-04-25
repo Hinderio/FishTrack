@@ -1813,9 +1813,3 @@ body.light .participant-tournament-panel,body.light .participant-tournament-kpis
   flex:1 1 auto;
   min-height:0;
 }
-
-/* Tournament card selection: card opens details, no separate open button needed */
-.tournament-card{cursor:pointer;transition:transform .18s ease,background .18s ease,border-color .18s ease,outline-color .18s ease}
-.tournament-card:hover,.tournament-card:focus-visible{transform:translateY(-1px);border-color:rgba(74,215,209,.28);background:rgba(255,255,255,.065);outline:none}
-.tournament-card.active{border-color:rgba(74,215,209,.42);box-shadow:0 0 0 1px rgba(74,215,209,.16) inset}
-.tournament-card .list-actions{position:relative;z-index:2}
