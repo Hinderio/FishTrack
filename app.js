@@ -2098,3 +2098,18 @@ renderSpotBaitMatrix=function(){
   container.setAttribute('aria-label','Vollständig horizontal scrollbar Spot Köder Matrix');
   container.querySelectorAll('.matrix-cell').forEach(cell=>cell.classList.add('analytics-affinity-cell'));
 };
+
+
+/* MATRIX SCALING PATCH */
+function applyMatrixScaling(){
+ document.querySelectorAll('.matrix-cell').forEach(cell=>{
+  const inner=cell.querySelector('.matrix-cell-inner');
+  if(!inner)return;
+  const scaleX=cell.clientWidth/(inner.scrollWidth||1);
+  const scaleY=cell.clientHeight/(inner.scrollHeight||1);
+  const scale=Math.min(scaleX,scaleY,1);
+  inner.style.setProperty('--scale',scale);
+ });
+}
+window.addEventListener('resize',applyMatrixScaling);
+requestAnimationFrame(applyMatrixScaling);
