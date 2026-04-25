@@ -1561,3 +1561,33 @@ setTimeout(() => clearInterval(_bonusEnhancerTimer), 15000);
     }
   }, 500);
 })();
+
+
+// ✅ FINAL CLEAN FIX – Dynamic C-MAP button (no globals, no timing issues)
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('depthMapLink');
+  if (!btn) return;
+
+  // wait until map exists
+  const waitForMap = () => {
+    try {
+      if (typeof map !== 'undefined' && map && map.getCenter) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const c = map.getCenter();
+          const url = `https://www.c-map.com/chartexplorer/?lat=${c.lat}&long=${c.lng}&map=Discover&defaultZoom=15`;
+          window.open(url, '_blank');
+        });
+        return true;
+      }
+    } catch(e){}
+    return false;
+  };
+
+  let tries = 0;
+  const interval = setInterval(() => {
+    if (waitForMap() || tries++ > 20) {
+      clearInterval(interval);
+    }
+  }, 300);
+});
