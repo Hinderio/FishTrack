@@ -2211,7 +2211,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._canvas=L.DomUtil.create('canvas','analytics-catch-heatmap-canvas leaflet-zoom-animated');
         this._canvas.style.position='absolute';
         this._canvas.style.pointerEvents='none';
-        this._canvas.style.mixBlendMode='screen';
+        this._canvas.style.mixBlendMode='lighter';
         this._canvas.style.zIndex='420';
         mapInstance.getPanes().overlayPane.appendChild(this._canvas);
         mapInstance.on('moveend zoomend resize viewreset',this._scheduleDraw,this);
@@ -2228,7 +2228,6 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._frame=requestAnimationFrame(()=>this._draw());
       },
       _draw(){
-        console.log('HEAT DATA:', this._data); // ← HIER EINFÜGEN
         if(!this._map||!this._canvas)return;
         const size=this._map.getSize();
         const topLeft=this._map.containerPointToLayerPoint([0,0]);
@@ -2243,12 +2242,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.clearRect(0,0,size.x,size.y);
         ctx.globalCompositeOperation='lighter';
         const zoom=this._map.getZoom();
-        const radius = Math.max(60, Math.min(140, 50 + zoom * 6));
+        const radius = 90;
         const maxWeight=Math.max(1,...this._data.map(p=>p.weight||1));
         this._data.forEach(p=>{
           const pt=this._map.latLngToContainerPoint([p.lat,p.lng]);
           if(pt.x<-radius||pt.y<-radius||pt.x>size.x+radius||pt.y>size.y+radius)return;
-          const power = 0.6;
+          const power = 0.9;
           const gradient=ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,radius);
           gradient.addColorStop(0,`rgba(174,255,230,${power})`);
           gradient.addColorStop(.26,`rgba(87,236,220,${power*.72})`);
@@ -2281,10 +2280,13 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     }
     requestAnimationFrame(()=>{
       if(!analyticsHeatmapMap)return;
-      analyticsHeatmapMap.invalidateSize(false);
+      analyticsHeatmapMap.invalidateSize(false);      
       if(points.length){
-        const bounds=L.latLngBounds(points.map(p=>[p.lat,p.lng]));
-        analyticsHeatmapMap.fitBounds(bounds.pad(.22),{animate:false,padding:[28,28],maxZoom:12});
+        setTimeout(() => {
+          const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
+          analyticsHeatmapMap.fitBounds(bounds, { padding: [50,50], maxZoom: 10 });
+        }, 100);
+        }
       }
     });
   }
