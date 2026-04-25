@@ -1909,3 +1909,72 @@ body.light .participant-tournament-panel,body.light .participant-tournament-kpis
 #spotBaitMatrix .matrix-header > .matrix-label:first-child{
   height:100% !important;
 }
+
+/* Premium Analytics Dashboard */
+.analytics-hero{
+  border-radius:34px;
+  padding:24px;
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(360px,1fr);
+  gap:22px;
+  align-items:stretch;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(74,215,209,.22), transparent 32%),
+    radial-gradient(circle at 90% 20%, rgba(143,240,167,.14), transparent 28%),
+    var(--card);
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:var(--shadow);
+}
+.analytics-hero-copy{display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:150px}
+.analytics-hero-copy h2{font-size:clamp(2rem,4vw,3.35rem);letter-spacing:-.05em;line-height:.95}
+.analytics-summary{max-width:720px;color:var(--muted);line-height:1.55;font-size:1rem}
+.analytics-kpi-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.analytics-kpi-strip article,
+.analytics-insight-card,
+.analytics-empty{border-radius:24px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.07);padding:16px}
+.analytics-kpi-strip span,
+.analytics-insight-card small{display:block;color:var(--muted);font-size:.74rem;text-transform:uppercase;letter-spacing:.12em;font-weight:800}
+.analytics-kpi-strip strong{display:block;font-size:1.65rem;margin:8px 0 2px;letter-spacing:-.03em}
+.analytics-kpi-strip small{color:var(--muted)}
+.analytics-layer-title{display:flex;align-items:center;gap:12px;margin:8px 0 -4px}
+.analytics-layer-title>span{display:grid;place-items:center;width:42px;height:42px;border-radius:16px;background:rgba(74,215,209,.14);border:1px solid rgba(74,215,209,.22);color:var(--primary);font-weight:900}
+.analytics-layer-title h3{letter-spacing:-.02em}
+.analytics-insight-grid,
+.analytics-intelligence-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.analytics-insight-card{display:flex;gap:13px;align-items:flex-start;min-height:132px;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.analytics-insight-card:hover{transform:translateY(-2px);border-color:rgba(74,215,209,.24);background:rgba(255,255,255,.075)}
+.analytics-insight-icon{display:grid;place-items:center;flex:0 0 42px;height:42px;border-radius:16px;background:rgba(255,255,255,.08)}
+.analytics-insight-card strong{display:block;margin:6px 0 6px;font-size:1.12rem;line-height:1.18;letter-spacing:-.02em}
+.analytics-insight-card p{color:var(--muted);font-size:.92rem;line-height:1.42}
+.analytics-chart-panel{min-height:360px;display:flex;flex-direction:column}
+.analytics-chart-panel canvas{width:100%!important;max-height:280px}
+.analytics-behaviour-grid{grid-template-columns:.9fr 1.35fr}
+.analytics-performance-grid{grid-template-columns:1fr 1fr}
+.analytics-fixed-grid .panel{min-height:250px}
+#screen-analytics{gap:22px}
+#screen-analytics .panel-head{align-items:flex-start}
+body.light .analytics-hero{background:radial-gradient(circle at 12% 10%, rgba(74,215,209,.20), transparent 32%),radial-gradient(circle at 90% 20%, rgba(143,240,167,.18), transparent 28%),var(--card)}
+body.light .analytics-kpi-strip article,
+body.light .analytics-insight-card,
+body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(17,36,58,.08)}
+@media (max-width:1100px){
+  .analytics-hero{grid-template-columns:1fr}
+  .analytics-insight-grid,.analytics-intelligence-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analytics-behaviour-grid,.analytics-performance-grid{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .analytics-hero{padding:18px;border-radius:26px}
+  .analytics-kpi-strip,.analytics-insight-grid,.analytics-intelligence-grid{grid-template-columns:1fr}
+  .analytics-insight-card{min-height:auto}
+  .analytics-layer-title{align-items:flex-start}
+}
+
+/* Matrix columns use the existing render-time variable instead of a fixed column count. */
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  grid-template-columns:
+    minmax(var(--matrix-spot-col), var(--matrix-spot-col))
+    repeat(var(--matrix-cols, 6), minmax(var(--matrix-cell-min), 1fr)) !important;
+  width:max(100%, var(--matrix-min-width, calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap))))) !important;
+  min-width:var(--matrix-min-width, calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap)))) !important;
+}

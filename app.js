@@ -1448,6 +1448,93 @@ document.addEventListener('DOMContentLoaded',()=>{ensureCatchDropdownFields()});
 
 
 
+/* Premium Analytics Dashboard – read-only UI layer */
+function analyticsCountBy(catches, getter){
+  const map=new Map();
+  catches.forEach(c=>{const key=getter(c)||'Unbekannt';map.set(key,(map.get(key)||0)+1)});
+  return [...map.entries()].sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0])));
+}
+function analyticsAvg(values){
+  const nums=values.map(Number).filter(Number.isFinite);
+  return nums.length?nums.reduce((s,v)=>s+v,0)/nums.length:0;
+}
+function buildPremiumAnalyticsModel(){
+  const catches=[...(state.catches||[])];
+  const summary=typeof computeSummary==='function'?computeSummary():null;
+  const species=analyticsCountBy(catches,c=>speciesName(c));
+  const spots=analyticsCountBy(catches,c=>c.spotLabel||c.location?.label||'Unbekannter Spot');
+  const baits=analyticsCountBy(catches,c=>c.bait||'Unbekannter Köder');
+  const hours=Array.from({length:24},(_,hour)=>({hour,count:0,weight:0}));
+  const weekdays=['So','Mo','Di','Mi','Do','Fr','Sa'].map(day=>({day,count:0}));
+  catches.forEach(c=>{const d=new Date(c.timestamp||c.createdAt);if(Number.isNaN(d.getTime()))return;const h=d.getHours();hours[h].count+=1;hours[h].weight+=Number(c.weightKg||0);weekdays[d.getDay()].count+=1;});
+  const bestHour=hours.reduce((m,h)=>h.count>m.count?h:m,{hour:0,count:0,weight:0});
+  const bestDay=weekdays.reduce((m,d)=>d.count>m.count?d:m,{day:'–',count:0});
+  const comboMap=new Map();
+  catches.forEach(c=>{const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';const bait=c.bait||'Unbekannter Köder';const key=`${spot} × ${bait}`;comboMap.set(key,(comboMap.get(key)||0)+1);});
+  const topCombo=[...comboMap.entries()].sort((a,b)=>b[1]-a[1])[0];
+  const pStats=typeof computeParticipantStats==='function'?computeParticipantStats():[];
+  const efficient=[...pStats].filter(p=>p.count>0).map(p=>({...p,pointsPerCatch:p.points/p.count})).sort((a,b)=>b.pointsPerCatch-a.pointsPerCatch)[0];
+  return {catches,summary,species,spots,baits,hours,weekdays,bestHour,bestDay,topCombo,pStats,efficient,totalWeight:catches.reduce((s,c)=>s+Number(c.weightKg||0),0),avgLength:analyticsAvg(catches.map(c=>c.lengthCm)),avgWeight:analyticsAvg(catches.map(c=>c.weightKg))};
+}
+function premiumInsightCard(icon,label,value,detail){
+  return `<article class="analytics-insight-card"><span class="analytics-insight-icon">${icon}</span><div><small>${escapeHtml(label)}</small><strong>${escapeHtml(String(value||'–'))}</strong><p>${escapeHtml(detail||'')}</p></div></article>`;
+}
+function renderPremiumAnalyticsDashboard(){
+  const hero=document.getElementById('analyticsOverviewKpis');
+  const summaryEl=document.getElementById('analyticsExecutiveSummary');
+  const topEl=document.getElementById('analyticsTopInsights');
+  const intelEl=document.getElementById('analyticsIntelligenceGrid');
+  if(!hero&&!summaryEl&&!topEl&&!intelEl)return;
+  const m=buildPremiumAnalyticsModel();
+  const leader=m.pStats[0];
+  const topSpecies=m.species[0];
+  const topSpot=m.spots[0];
+  const topBait=m.baits[0];
+  if(summaryEl){
+    summaryEl.textContent=m.catches.length
+      ? `${m.catches.length} Fänge, ${fmtKg(m.totalWeight)} Gesamtgewicht und ${leader?leader.name+' als aktueller Performance-Anker':'noch kein Leader'} – die stärksten Muster sind Zeitfenster, Spot und Köder.`
+      : 'Noch keine Fänge vorhanden. Sobald Daten erfasst sind, entsteht hier automatisch das Analytics Cockpit.';
+  }
+  if(hero){
+    hero.innerHTML=[
+      ['Fänge',m.catches.length,'gesamt analysiert'],
+      ['Gewicht',fmtKg(m.totalWeight),'kumuliert'],
+      ['Ø Länge',`${Math.round(m.avgLength||0)} cm`,'pro Fang'],
+      ['Beste Zeit',m.bestHour.count?`${String(m.bestHour.hour).padStart(2,'0')}:00`:'–',m.bestHour.count?`${m.bestHour.count} Fänge`:'noch offen']
+    ].map(([label,value,detail])=>`<article><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`).join('');
+  }
+  if(topEl){
+    topEl.innerHTML=m.catches.length?[
+      premiumInsightCard('🏆','Leader',leader?.name||'–',leader?`${leader.points} Punkte · ${leader.count} Fänge`:'Noch keine Wertung'),
+      premiumInsightCard('🐟','Top-Art',topSpecies?.[0]||'–',topSpecies?`${topSpecies[1]} Fänge dominieren die Verteilung`:'Noch keine Art erfasst'),
+      premiumInsightCard('📍','Hotspot',topSpot?.[0]||'–',topSpot?`${topSpot[1]} Fänge an diesem Spot`:'Noch kein Spot erfasst'),
+      premiumInsightCard('🎯','Top-Köder',topBait?.[0]||'–',topBait?`${topBait[1]} erfolgreiche Einsätze`:'Noch kein Köder erfasst')
+    ].join(''):'<article class="analytics-empty glass">Noch keine Daten für Top Insights.</article>';
+  }
+  if(intelEl){
+    const cards=[];
+    cards.push(premiumInsightCard('⏰','Aktivitätsmuster',m.bestHour.count?`${String(m.bestHour.hour).padStart(2,'0')}:00 Uhr`:'–',m.bestHour.count?`Stärkstes Zeitfenster mit ${m.bestHour.count} Fang${m.bestHour.count===1?'':'en'}.`:'Noch kein belastbares Zeitmuster.'));
+    cards.push(premiumInsightCard('📅','Bester Wochentag',m.bestDay.count?m.bestDay.day:'–',m.bestDay.count?`${m.bestDay.count} Fang${m.bestDay.count===1?'':'e'} an diesem Wochentag.`:'Noch kein Wochentagsmuster.'));
+    cards.push(premiumInsightCard('🧪','Beste Kombination',m.topCombo?.[0]||'–',m.topCombo?`${m.topCombo[1]} Treffer mit dieser Spot-Köder-Kombi.`:'Noch keine Kombination erkennbar.'));
+    cards.push(premiumInsightCard('⚡','Punkte-Effizienz',m.efficient?.name||'–',m.efficient?`${m.efficient.pointsPerCatch.toFixed(1)} Punkte pro Fang.`:'Noch keine Fangwertung vorhanden.'));
+    intelEl.innerHTML=cards.join('');
+  }
+}
+
+(function(){
+  const originalRerenderAnalyticsView=window.rerenderAnalyticsView||rerenderAnalyticsView;
+  if(typeof originalRerenderAnalyticsView==='function'){
+    window.rerenderAnalyticsView=function(){
+      const result=originalRerenderAnalyticsView.apply(this,arguments);
+      renderPremiumAnalyticsDashboard();
+      return result;
+    };
+    try{rerenderAnalyticsView=window.rerenderAnalyticsView;}catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(renderPremiumAnalyticsDashboard,0));
+  window.addEventListener('load',()=>setTimeout(renderPremiumAnalyticsDashboard,120));
+})();
+
 
 function renderSpotBaitMatrix(){
   const container=document.getElementById('spotBaitMatrix');
