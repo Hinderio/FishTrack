@@ -1819,3 +1819,93 @@ body.light .participant-tournament-panel,body.light .participant-tournament-kpis
 .tournament-card:hover,.tournament-card:focus-visible{transform:translateY(-1px);border-color:rgba(74,215,209,.28);background:rgba(255,255,255,.065);outline:none}
 .tournament-card.active{border-color:rgba(74,215,209,.42);box-shadow:0 0 0 1px rgba(74,215,209,.16) inset}
 .tournament-card .list-actions{position:relative;z-index:2}
+
+/* Spot × Köder Matrix – dynamisches, responsives Rendering ohne Datenlogik-Änderung */
+#spotBaitMatrix{
+  --matrix-cols:1;
+  --matrix-gap:clamp(8px,1vw,14px);
+  --matrix-spot-col:clamp(156px,18vw,220px);
+  --matrix-cell-min:clamp(96px,10vw,130px);
+  --matrix-min-width:100%;
+  display:block !important;
+  width:100% !important;
+  overflow-x:auto !important;
+  overflow-y:hidden !important;
+  padding-bottom:6px !important;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.18) transparent;
+}
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  display:grid !important;
+  grid-template-columns:minmax(var(--matrix-spot-col),var(--matrix-spot-col)) repeat(var(--matrix-cols),minmax(var(--matrix-cell-min),1fr)) !important;
+  gap:var(--matrix-gap) !important;
+  width:max(100%,var(--matrix-min-width)) !important;
+  min-width:var(--matrix-min-width) !important;
+  align-items:stretch !important;
+  margin-bottom:var(--matrix-gap) !important;
+}
+#spotBaitMatrix .matrix-row:last-child{margin-bottom:0 !important}
+#spotBaitMatrix .matrix-label,
+#spotBaitMatrix .matrix-cell{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  min-height:0 !important;
+  height:auto !important;
+  aspect-ratio:1/1 !important;
+  padding:clamp(8px,1vw,12px) !important;
+  box-sizing:border-box !important;
+  border-radius:22px !important;
+  overflow:hidden !important;
+  text-align:center !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+}
+#spotBaitMatrix .matrix-label{
+  white-space:normal !important;
+  overflow-wrap:anywhere !important;
+  line-height:1.2 !important;
+}
+#spotBaitMatrix .matrix-cell{
+  flex-direction:column !important;
+  white-space:nowrap !important;
+}
+#spotBaitMatrix .matrix-cell strong{
+  font-size:clamp(1rem,1.5vw,1.25rem) !important;
+  line-height:1 !important;
+}
+#spotBaitMatrix .matrix-cell span{
+  font-size:clamp(.75rem,1.1vw,.875rem) !important;
+  line-height:1.15 !important;
+}
+@media (max-width:680px){
+  #spotBaitMatrix{
+    --matrix-spot-col:132px;
+    --matrix-cell-min:92px;
+    --matrix-gap:8px;
+  }
+  #spotBaitMatrix .matrix-label,
+  #spotBaitMatrix .matrix-cell{border-radius:18px !important}
+}
+
+/* Spot × Köder Matrix – präzise Zell-Symmetrie, Header/Zeilen bleiben aligned */
+#spotBaitMatrix .matrix-header,
+#spotBaitMatrix .matrix-row{
+  width:100% !important;
+  min-width:max-content !important;
+}
+#spotBaitMatrix .matrix-label{
+  aspect-ratio:auto !important;
+  min-height:var(--matrix-cell-min) !important;
+}
+#spotBaitMatrix .matrix-header .matrix-label:not(:first-child),
+#spotBaitMatrix .matrix-cell{
+  aspect-ratio:1/1 !important;
+  min-height:0 !important;
+}
+#spotBaitMatrix .matrix-row > .matrix-label:first-child,
+#spotBaitMatrix .matrix-header > .matrix-label:first-child{
+  height:100% !important;
+}

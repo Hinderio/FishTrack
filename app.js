@@ -1454,19 +1454,24 @@ function renderSpotBaitMatrix(){
   if(!container) return;
 
   const catches=[...state.catches];
-  const spots=[...new Set(catches.map(c=>c.spotLabel||'Unbekannt'))].slice(0,6);
-  const baits=[...new Set(catches.map(c=>c.bait||'Unbekannt'))].slice(0,6);
+  const spots=[...new Set(catches.map(c=>c.spotLabel||'Unbekannt'))];
+  const baits=[...new Set(catches.map(c=>c.bait||'Unbekannt'))];
 
   if(!spots.length||!baits.length){
+    container.style.removeProperty('--matrix-cols');
+    container.style.removeProperty('--matrix-min-width');
     container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';
     return;
   }
 
+  container.style.setProperty('--matrix-cols', baits.length);
+  container.style.setProperty('--matrix-min-width', `${220+(baits.length*130)+(baits.length*14)}px`);
+
   const max=Math.max(1,...spots.flatMap(spot=>baits.map(bait=>catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length)));
 
   container.innerHTML=
-    '<div class="matrix-header"><div class="matrix-label">Spot \/ Köder</div>'+baits.map(b=>`<div class="matrix-label">${b}</div>`).join('')+'</div>'+
-    spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+spot+'</div>'+baits.map(bait=>{
+    '<div class="matrix-header"><div class="matrix-label">Spot \/ Köder</div>'+baits.map(b=>`<div class="matrix-label">${escapeHtml(b)}</div>`).join('')+'</div>'+
+    spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+escapeHtml(spot)+'</div>'+baits.map(bait=>{
       const count=catches.filter(c=>(c.spotLabel||'Unbekannt')===spot&&(c.bait||'Unbekannt')===bait).length;
       const opacity=.12+(count/max)*.88;
       return `<div class="matrix-cell" style="background:rgba(74,215,209,${opacity})"><strong>${count}</strong><span>Fänge</span></div>`;
