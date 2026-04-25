@@ -2129,10 +2129,26 @@ const spotIcons = {
   'Einlauf': '<svg viewBox="0 0 24 24" class="spot-icon"><path d="M12 2v20M5 9l7-7 7 7"/></svg>'
 };
 
-// safe enhancement (does not overwrite existing render)
-document.querySelectorAll('.matrix-row-label').forEach(el=>{
-  const txt = el.textContent.trim();
-  if(spotIcons[txt] && !el.querySelector('svg')){
-    el.innerHTML = `<div class="spot-header">${spotIcons[txt]}<span>${txt}</span></div>`;
-  }
-});
+function applySpotIcons() {
+  const cells = Array.from(document.querySelectorAll('.matrix-grid > div'));
+  const COLS = 7;
+
+  cells.forEach((cell, index) => {
+    if (index % COLS !== 0) return;
+
+    const txt = cell.textContent.trim();
+
+    if (spotIcons[txt] && !cell.querySelector('svg')) {
+      cell.innerHTML = `
+        <div class="spot-header">
+          ${spotIcons[txt]}
+          <span>${txt}</span>
+        </div>
+      `;
+    }
+  });
+}
+
+requestAnimationFrame(applySpotIcons);
+setTimeout(applySpotIcons, 100);
+
