@@ -2156,3 +2156,167 @@ renderSpotBaitMatrix=function(){
 
 // MATRIX SCALING PATCH
 function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');const c=document.querySelector('.matrix-content');if(!w||!c)return;c.style.transform='translate(-50%,-50%) scale(1)';const s=Math.min(w.clientWidth/c.scrollWidth,w.clientHeight/c.scrollHeight,1);c.style.transform=`translate(-50%,-50%) scale(${s})`;}window.addEventListener('resize',scaleWholeMatrix);requestAnimationFrame(scaleWholeMatrix);
+
+/* Isolated Analytics Behaviour Heatmap Map – additive, no shared map state */
+(function(){
+  const NS = window.behaviourCatchHeatmap = window.behaviourCatchHeatmap || {};
+  NS.map = NS.map || null;
+  NS.layer = NS.layer || null;
+
+  function validHeatmapLocation(c){
+    const lat = Number(c?.location?.lat);
+    const lng = Number(c?.location?.lng);
+    return Number.isFinite(lat) && Number.isFinite(lng);
+  }
+
+  function analyticsHeatmapCatches(){
+    const source = (typeof getAnalyticsCatches === 'function') ? getAnalyticsCatches() : (state?.catches || []);
+    return source.filter(validHeatmapLocation).map(c => ({
+      lat: Number(c.location.lat),
+      lng: Number(c.location.lng),
+      weight: Math.max(1, Number(c.weightKg || 0) || 1),
+      spot: c.spotLabel || c.location?.label || 'Unbekannter Spot'
+    }));
+  }
+
+  function createHeatmapLayer(points){
+    const BehaviourHeatmapLayer = L.Layer.extend({
+      initialize(initialPoints){ this._points = initialPoints || []; this._raf = 0; },
+      onAdd(mapInstance){
+        this._map = mapInstance;
+        this._canvas = L.DomUtil.create('canvas', 'behaviour-heatmap-canvas leaflet-layer');
+        this._canvas.style.pointerEvents = 'none';
+        this._canvas.style.mixBlendMode = 'screen';
+        mapInstance.getPanes().overlayPane.appendChild(this._canvas);
+        mapInstance.on('moveend zoomend resize viewreset', this._schedule, this);
+        this._reset();
+      },
+      onRemove(mapInstance){
+        mapInstance.off('moveend zoomend resize viewreset', this._schedule, this);
+        if(this._raf) cancelAnimationFrame(this._raf);
+        this._canvas?.remove();
+      },
+      setPoints(nextPoints){ this._points = nextPoints || []; this._schedule(); },
+      _schedule(){
+        if(this._raf) cancelAnimationFrame(this._raf);
+        this._raf = requestAnimationFrame(() => { this._raf = 0; this._reset(); });
+      },
+      _reset(){
+        if(!this._map || !this._canvas) return;
+        const size = this._map.getSize();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this._canvas.width = Math.max(1, Math.round(size.x * dpr));
+        this._canvas.height = Math.max(1, Math.round(size.y * dpr));
+        this._canvas.style.width = `${size.x}px`;
+        this._canvas.style.height = `${size.y}px`;
+        const topLeft = this._map.containerPointToLayerPoint([0, 0]);
+        L.DomUtil.setPosition(this._canvas, topLeft);
+        const ctx = this._canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, size.x, size.y);
+        if(!this._points.length) return;
+
+        const zoom = this._map.getZoom();
+        const radius = Math.max(34, Math.min(86, 18 + zoom * 4.5));
+        ctx.globalCompositeOperation = 'screen';
+        ctx.filter = 'blur(1.2px)';
+
+        this._points.forEach(point => {
+          const p = this._map.latLngToContainerPoint([point.lat, point.lng]);
+          const intensity = Math.min(1, 0.34 + Math.log1p(point.weight) / 4.2);
+          const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius);
+          gradient.addColorStop(0, `rgba(192, 255, 235, ${0.52 * intensity})`);
+          gradient.addColorStop(0.34, `rgba(74, 215, 209, ${0.34 * intensity})`);
+          gradient.addColorStop(0.72, `rgba(13, 103, 106, ${0.22 * intensity})`);
+          gradient.addColorStop(1, 'rgba(5, 35, 42, 0)');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.filter = 'none';
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgba(191, 255, 236, .80)';
+        this._points.forEach(point => {
+          const p = this._map.latLngToContainerPoint([point.lat, point.lng]);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 2.6, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    });
+    return new BehaviourHeatmapLayer(points);
+  }
+
+  window.renderBehaviourCatchHeatmap = function renderBehaviourCatchHeatmap(){
+    const el = document.getElementById('behaviourHeatmapMap');
+    const meta = document.getElementById('behaviourHeatmapMeta');
+    if(!el || typeof L === 'undefined') return;
+
+    const points = analyticsHeatmapCatches();
+    if(meta){
+      const uniqueSpots = new Set(points.map(p => p.spot)).size;
+      meta.innerHTML = points.length
+        ? `<span>${points.length} Fang${points.length === 1 ? '' : 'e'} mit Koordinaten</span><span>${uniqueSpots} Spot${uniqueSpots === 1 ? '' : 's'}</span><span>Türkis/Cyan Dichteverlauf</span>`
+        : '<span>Noch keine Fang-Koordinaten für die Heatmap vorhanden.</span>';
+    }
+
+    if(!NS.map){
+      NS.map = L.map(el, { zoomControl: true, attributionControl: true, scrollWheelZoom: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '&copy; OpenStreetMap'
+      }).addTo(NS.map);
+      NS.layer = createHeatmapLayer(points).addTo(NS.map);
+      NS.map.on('click', () => NS.map.scrollWheelZoom.enable());
+      NS.map.on('mouseout', () => NS.map.scrollWheelZoom.disable());
+    } else if(NS.layer?.setPoints){
+      NS.layer.setPoints(points);
+    }
+
+    setTimeout(() => {
+      if(!NS.map) return;
+      NS.map.invalidateSize();
+      if(points.length){
+        const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
+        NS.map.fitBounds(bounds, { padding: [34, 34], maxZoom: 13, animate: false });
+      } else {
+        NS.map.setView([59.915, 10.78], 8);
+      }
+      NS.layer?.setPoints?.(points);
+    }, 80);
+  };
+
+  function wrapAnalyticsHeatmapRender(){
+    if(window.__behaviourHeatmapWrapped) return;
+    window.__behaviourHeatmapWrapped = true;
+    const previousRerender = window.rerenderAnalyticsView || (typeof rerenderAnalyticsView === 'function' ? rerenderAnalyticsView : null);
+    if(typeof previousRerender === 'function'){
+      window.rerenderAnalyticsView = function(){
+        const result = previousRerender.apply(this, arguments);
+        window.renderBehaviourCatchHeatmap();
+        return result;
+      };
+      try{ rerenderAnalyticsView = window.rerenderAnalyticsView; }catch(e){}
+    }
+    const previousShowScreen = window.showScreen || (typeof showScreen === 'function' ? showScreen : null);
+    if(typeof previousShowScreen === 'function'){
+      window.showScreen = function(name){
+        const result = previousShowScreen.apply(this, arguments);
+        if(name === 'analytics') setTimeout(window.renderBehaviourCatchHeatmap, 140);
+        return result;
+      };
+      try{ showScreen = window.showScreen; }catch(e){}
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    wrapAnalyticsHeatmapRender();
+    setTimeout(window.renderBehaviourCatchHeatmap, 180);
+  });
+  window.addEventListener('load', () => {
+    wrapAnalyticsHeatmapRender();
+    setTimeout(window.renderBehaviourCatchHeatmap, 260);
+  });
+})();
