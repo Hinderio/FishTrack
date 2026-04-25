@@ -2170,26 +2170,15 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   function validHeatmapPoints(){
     return (state?.catches || [])
       .map(c => {
-        const lat = Number(
-          c?.location?.lat ??
-          c?.lat ??
-          c?.latitude ??
-          c?.coords?.lat
-        );
-  
-        const lng = Number(
-          c?.location?.lng ??
-          c?.lng ??
-          c?.longitude ??
-          c?.coords?.lng
-        );
+        const lat = Number(c.latitude);
+        const lng = Number(c.longitude);
   
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   
         return {
           lat,
           lng,
-          weight: Number.isFinite(Number(c.weightKg)) ? Number(c.weightKg) : 0.5
+          weight: Number.isFinite(Number(c.weight_kg)) ? Number(c.weight_kg) : 0.5
         };
       })
       .filter(Boolean);
