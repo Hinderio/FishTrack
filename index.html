@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="style.css?v=121" />
+  <link rel="stylesheet" href="style.css?v=122" />
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute">
@@ -365,6 +365,20 @@
     </nav>
   </div>
 
+
+  <div id="participantDetailModal" class="participant-detail-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="participantDetailTitle">
+    <div class="participant-detail-card glass">
+      <div class="participant-detail-head">
+        <div>
+          <p class="eyebrow">Leaderboard Detail</p>
+          <h3 id="participantDetailTitle">Teilnehmer-Detail</h3>
+        </div>
+        <button id="closeParticipantDetail" class="icon-btn" type="button" aria-label="Detailansicht schliessen" data-close-participant-detail>✕</button>
+      </div>
+      <div id="participantDetailBody"></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
@@ -382,7 +396,7 @@
   console.log('Supabase erfolgreich verbunden');
 </script>
 
-<script src="app.js?v=121"></script>
+<script src="app.js?v=122"></script>
 
 
 
