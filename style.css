@@ -1614,14 +1614,11 @@ body.light .participant-detail-head{background:linear-gradient(180deg,var(--card
 
 /* Seniority badge: read-only leaderboard decorator */
 .seniority-row{
-  position:absolute;
-  top:16px;
-  right:16px;
-
-  margin-top:0; /* wichtig */
+  margin-top:8px;
   display:flex;
-  justify-content:flex-end;
-  pointer-events:none; /* optional sauber */
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
 }
 .seniority-badge{
   --seniority-a: rgba(74,215,209,.24);
