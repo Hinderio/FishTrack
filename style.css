@@ -1695,3 +1695,30 @@ body.light .participant-tournament-panel,body.light .participant-tournament-kpis
 .participant-compare-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
 .participant-compare-entry h3{margin:0 0 4px}.participant-compare-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.participant-compare-controls select{min-width:220px;padding:11px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.06);color:var(--text);outline:none}.participant-compare-controls select:focus{border-color:rgba(74,215,209,.45);box-shadow:0 0 0 3px rgba(74,215,209,.12)}.participant-compare-view{display:flex;flex-direction:column;gap:14px}.compare-back{align-self:flex-start}.compare-hero{display:grid;grid-template-columns:1fr auto 1fr;align-items:stretch;gap:14px}.compare-duelist{height:100%;display:flex;align-items:center;gap:14px;padding:16px;border-radius:26px;background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.035));border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}.compare-duelist--b{justify-content:flex-end;text-align:right}.compare-duelist-avatar{width:58px;height:58px;border-radius:20px;display:grid;place-items:center;font-size:1.85rem;background:linear-gradient(135deg,var(--participant-color),rgba(255,255,255,.16));box-shadow:0 12px 28px rgba(0,0,0,.22)}.compare-duelist span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px}.compare-duelist strong{display:block;font-size:1.35rem}.compare-duelist small{color:var(--muted)}.compare-vs{min-width:112px;border-radius:26px;padding:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at 50% 10%,rgba(74,215,209,.24),rgba(255,255,255,.045));border:1px solid rgba(74,215,209,.2)}.compare-vs span{font-size:1.55rem;font-weight:950;letter-spacing:.08em}.compare-vs strong{font-size:.9rem}.compare-vs small{color:var(--muted)}.compare-board{margin-bottom:0}.compare-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.compare-metric{padding:12px;border-radius:18px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.055)}.compare-metric.a-wins{border-color:rgba(74,215,209,.24)}.compare-metric.b-wins{border-color:rgba(143,240,167,.24)}.compare-metric-head,.compare-values{display:flex;align-items:center;justify-content:space-between;gap:12px}.compare-metric-head strong{font-size:.95rem}.compare-metric-head span{font-size:.78rem;color:var(--muted);font-weight:800}.compare-values{margin:10px 0 8px}.compare-values b{font-size:1.05rem}.compare-bars{display:flex;flex-direction:column;gap:6px}.compare-bar{height:9px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden}.compare-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--primary),var(--accent))}.compare-bar--b span{margin-left:auto;background:linear-gradient(90deg,var(--accent),var(--primary))}body.light .participant-compare-controls select{background:rgba(255,255,255,.72);border-color:rgba(17,36,58,.1)}
 @media (max-width:760px){.participant-compare-entry{align-items:stretch;flex-direction:column}.participant-compare-controls{align-items:stretch}.participant-compare-controls select,.participant-compare-controls button{width:100%}.compare-hero{grid-template-columns:1fr}.compare-duelist--b{justify-content:flex-start;text-align:left}.compare-vs{min-width:0}.compare-metrics{grid-template-columns:1fr}}
+
+/* VS Compare Button – clean integration */
+.primary-btn{
+  border:none;
+  border-radius:999px;
+  padding:12px 18px;
+  font-weight:700;
+  font-size:.9rem;
+  cursor:pointer;
+
+  background:linear-gradient(135deg,var(--primary),var(--accent));
+  color:#00131c;
+
+  box-shadow:0 8px 22px rgba(0,0,0,.25);
+  transition:all .2s ease;
+}
+
+.primary-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+
+/* optional: etwas kompakter im Leaderboard */
+.btn-compare{
+  padding:10px 14px;
+  font-size:.82rem;
+}
