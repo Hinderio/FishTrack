@@ -2099,17 +2099,5 @@ renderSpotBaitMatrix=function(){
   container.querySelectorAll('.matrix-cell').forEach(cell=>cell.classList.add('analytics-affinity-cell'));
 };
 
-
-/* MATRIX SCALING PATCH */
-function applyMatrixScaling(){
- document.querySelectorAll('.matrix-cell').forEach(cell=>{
-  const inner=cell.querySelector('.matrix-cell-inner');
-  if(!inner)return;
-  const scaleX=cell.clientWidth/(inner.scrollWidth||1);
-  const scaleY=cell.clientHeight/(inner.scrollHeight||1);
-  const scale=Math.min(scaleX,scaleY,1);
-  inner.style.setProperty('--scale',scale);
- });
-}
-window.addEventListener('resize',applyMatrixScaling);
-requestAnimationFrame(applyMatrixScaling);
+// MATRIX SCALING PATCH
+function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');const c=document.querySelector('.matrix-content');if(!w||!c)return;c.style.transform='translate(-50%,-50%) scale(1)';const s=Math.min(w.clientWidth/c.scrollWidth,w.clientHeight/c.scrollHeight,1);c.style.transform=`translate(-50%,-50%) scale(${s})`;}window.addEventListener('resize',scaleWholeMatrix);requestAnimationFrame(scaleWholeMatrix);
