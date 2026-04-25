@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v17-cards-only-fix-2';
+const CACHE_NAME = 'fishtrack-v18-tournament-history-fix';
 const ASSETS = [
   './',
   './index.html',
