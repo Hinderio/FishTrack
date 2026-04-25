@@ -2138,10 +2138,17 @@ function applySpotIcons() {
 
     const txt = cell.textContent.trim();
 
-    if (spotIcons[txt] && !cell.querySelector('svg')) {
+    // 👉 WICHTIG: Kürzung entfernen
+    const normalized = txt.replace('...', '').replace('…', '');
+
+    const match = Object.keys(spotIcons).find(key =>
+      key.startsWith(normalized) || normalized.startsWith(key)
+    );
+
+    if (match && !cell.querySelector('svg')) {
       cell.innerHTML = `
         <div class="spot-header">
-          ${spotIcons[txt]}
+          ${spotIcons[match]}
           <span>${txt}</span>
         </div>
       `;
