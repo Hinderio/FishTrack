@@ -387,27 +387,28 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+<!-- Leaflet -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Heatmap -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet.heat/dist/leaflet-heat.js"></script>
+
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
   const SUPABASE_URL = 'https://spzytdyottsicwmmwsbl.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNwenl0ZHlvdHRzaWN3bW13c2JsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NDE5MzksImV4cCI6MjA5MjExNzkzOX0.9Ku9KU102YaX1UhWVPntA6q7vzyvo7rCzgn68pLS9xU';
+  const SUPABASE_ANON_KEY = 'DEIN_KEY';
 
   window.supabaseClient = supabase.createClient(
     SUPABASE_URL,
     SUPABASE_ANON_KEY
   );
-
-  console.log('Supabase erfolgreich verbunden');
 </script>
 
 <script src="app.js?v=123"></script>
-
-
-
-<script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 </body>
 </html>
