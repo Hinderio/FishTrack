@@ -382,7 +382,8 @@ async function finishTournament(tournamentId){
   alert(`🏆 ${tournament.winner.names.join(' & ')} gewinnt\n🎯 +${winPoints} Turnierpunkte`);
 }
 
-function renderTournaments(){const list=document.getElementById('tournamentList');const title=document.getElementById('activeTournamentTitle');const meta=document.getElementById('activeTournamentMeta');const leaderboard=document.getElementById('tournamentLeaderboard');const highlights=document.getElementById('tournamentHighlights');const story=document.getElementById('tournamentStory');if(!list||!title||!meta||!leaderboard||!highlights||!story)return;list.innerHTML='';
+function updateTournamentKpis(){const totalEl=document.getElementById('kpi_totalTournaments');const openEl=document.getElementById('kpi_openTournaments');const closedEl=document.getElementById('kpi_closedTournaments');const catchesEl=document.getElementById('kpi_tournamentCatches');if(!totalEl||!openEl||!closedEl||!catchesEl)return;const tournaments=state.tournaments||[];const tournamentIds=new Set(tournaments.map(t=>t.id));const open=tournaments.filter(t=>!t.finished).length;const closed=tournaments.filter(t=>!!t.finished).length;const assigned=(state.catches||[]).filter(c=>c.tournamentId&&tournamentIds.has(c.tournamentId)).length;totalEl.textContent=tournaments.length;openEl.textContent=open;closedEl.textContent=closed;catchesEl.textContent=assigned}
+function renderTournaments(){const list=document.getElementById('tournamentList');const title=document.getElementById('activeTournamentTitle');const meta=document.getElementById('activeTournamentMeta');const leaderboard=document.getElementById('tournamentLeaderboard');const highlights=document.getElementById('tournamentHighlights');const story=document.getElementById('tournamentStory');if(!list||!title||!meta||!leaderboard||!highlights||!story)return;updateTournamentKpis();list.innerHTML='';
 
 const openWrap=document.createElement('div');
 const closedWrap=document.createElement('div');
