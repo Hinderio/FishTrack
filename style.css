@@ -1978,3 +1978,109 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
   width:max(100%, var(--matrix-min-width, calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap))))) !important;
   min-width:var(--matrix-min-width, calc(var(--matrix-spot-col) + (6 * var(--matrix-cell-min)) + (6 * var(--matrix-gap)))) !important;
 }
+
+/* High-End Analytics Behaviour + Performance Layer alignment patch */
+#screen-analytics .analytics-behaviour-grid,
+#screen-analytics .analytics-performance-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+  align-items:stretch;
+}
+#screen-analytics .analytics-behaviour-grid .analytics-chart-panel,
+#screen-analytics .analytics-performance-grid .analytics-chart-panel{
+  min-height:430px;
+  height:430px;
+  padding:20px;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  gap:14px;
+  overflow:hidden;
+}
+#screen-analytics .analytics-chart-panel canvas{
+  width:100%!important;
+  height:100%!important;
+  max-height:none!important;
+  display:block;
+}
+#screen-analytics .analytics-time-rhythm{
+  height:100%;
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  grid-auto-rows:1fr;
+  gap:10px;
+  align-content:stretch;
+}
+#screen-analytics .analytics-rhythm-cell{
+  min-height:0;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 26px rgba(0,0,0,.10);
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  gap:4px;
+  color:var(--text)!important;
+  position:relative;
+  overflow:hidden;
+}
+#screen-analytics .analytics-rhythm-cell::after{
+  content:'';
+  position:absolute;
+  inset:auto 12px 8px 12px;
+  height:3px;
+  border-radius:99px;
+  background:rgba(255,255,255,.36);
+  transform:scaleX(var(--intensity));
+  transform-origin:left center;
+}
+#screen-analytics .analytics-rhythm-cell.is-peak{
+  border-color:rgba(143,240,167,.56);
+  box-shadow:0 0 0 1px rgba(143,240,167,.18),0 18px 42px rgba(74,215,209,.16);
+}
+#screen-analytics .analytics-rhythm-cell strong{font-size:1.02rem;letter-spacing:-.02em}
+#screen-analytics .analytics-rhythm-cell span,
+#screen-analytics .analytics-rhythm-cell em{font-size:.74rem;color:rgba(238,246,255,.78);font-style:normal;font-weight:800}
+#screen-analytics #spotBaitMatrix{
+  height:100%;
+  min-height:0;
+  overflow:auto;
+  padding:0;
+  display:block;
+}
+#screen-analytics #spotBaitMatrix .matrix-header,
+#screen-analytics #spotBaitMatrix .matrix-row{
+  display:grid!important;
+  grid-template-columns:150px repeat(var(--matrix-cols),minmax(104px,1fr))!important;
+  gap:10px!important;
+  min-width:var(--matrix-min-width);
+  margin-bottom:10px!important;
+}
+#screen-analytics #spotBaitMatrix .matrix-label,
+#screen-analytics #spotBaitMatrix .matrix-cell{
+  min-height:54px!important;
+  border-radius:18px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  padding:10px!important;
+  border:1px solid rgba(255,255,255,.09)!important;
+}
+#screen-analytics #spotBaitMatrix .matrix-label{background:rgba(255,255,255,.055)!important;color:var(--muted)!important;font-size:.78rem!important;font-weight:900!important;text-transform:none!important}
+#screen-analytics #spotBaitMatrix .analytics-affinity-cell{position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+#screen-analytics #spotBaitMatrix .analytics-affinity-cell::after{content:'';position:absolute;left:10px;right:10px;bottom:8px;height:3px;border-radius:99px;background:rgba(255,255,255,.35);transform:scaleX(var(--affinity));transform-origin:left center}
+#screen-analytics #spotBaitMatrix .matrix-cell strong{font-size:1.12rem!important;line-height:1!important}
+#screen-analytics #spotBaitMatrix .matrix-cell span{font-size:.7rem!important;color:rgba(238,246,255,.78)!important;font-weight:800!important}
+@media (max-width:980px){
+  #screen-analytics .analytics-behaviour-grid,
+  #screen-analytics .analytics-performance-grid{grid-template-columns:1fr}
+  #screen-analytics .analytics-behaviour-grid .analytics-chart-panel,
+  #screen-analytics .analytics-performance-grid .analytics-chart-panel{height:auto;min-height:420px}
+}
+@media (max-width:640px){
+  #screen-analytics .analytics-time-rhythm{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  #screen-analytics .analytics-behaviour-grid .analytics-chart-panel,
+  #screen-analytics .analytics-performance-grid .analytics-chart-panel{min-height:390px;padding:16px}
+}

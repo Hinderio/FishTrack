@@ -1887,3 +1887,128 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 300);
 });
+
+/* High-End Analytics Behaviour + Performance Layer – read-only visual upgrade */
+function analyticsFixedChartOptions(extra={}){
+  const axisWidth=58;
+  const base={
+    responsive:true,
+    maintainAspectRatio:false,
+    animation:false,
+    normalized:true,
+    layout:{padding:{top:18,right:18,bottom:8,left:8}},
+    plugins:{
+      legend:{display:false,labels:{color:css('--text'),font:{size:11,weight:'700'},boxWidth:9,boxHeight:9,usePointStyle:true,padding:14}},
+      tooltip:{backgroundColor:'rgba(7,17,26,.94)',titleColor:css('--text'),bodyColor:css('--muted'),borderColor:'rgba(255,255,255,.12)',borderWidth:1,padding:12,displayColors:true}
+    },
+    scales:{
+      x:{offset:false,ticks:{color:css('--muted'),font:{size:11,weight:'700'},padding:10,maxRotation:0,autoSkip:true},grid:{color:'rgba(255,255,255,.075)',drawTicks:false},border:{color:'rgba(255,255,255,.14)'}},
+      y:{beginAtZero:true,afterFit(axis){axis.width=axisWidth},ticks:{color:css('--muted'),font:{size:11,weight:'700'},padding:10,precision:0},grid:{color:'rgba(255,255,255,.075)',drawTicks:false},border:{display:false}}
+    }
+  };
+  return {...base,...extra,plugins:{...base.plugins,...(extra.plugins||{})},scales:{...base.scales,...(extra.scales||{})}};
+}
+
+function analyticsCatchHour(c){
+  const d=new Date(c.timestamp||c.createdAt);
+  return Number.isNaN(d.getTime())?null:d.getHours()+d.getMinutes()/60;
+}
+
+function renderCharts(){
+  const daily=dailyBuckets();
+  cleanup('daily');
+  charts.daily=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:daily.map(x=>x[0].slice(5)),datasets:[{label:'Fänge',data:daily.map(x=>x[1]),backgroundColor:'#4ad7d1',borderRadius:12}]},options:dashboardChartOptions()});
+
+  const pStats=computeParticipantStats();
+  const maxCount=Math.max(1,...pStats.map(p=>p.count||0));
+  const maxPoints=Math.max(10,...pStats.map(p=>p.points||0));
+  cleanup('participants');
+  charts.participants=new Chart(document.getElementById('participantChart'),{
+    type:'bubble',
+    data:{datasets:[{
+      label:'Performance-Profil',
+      data:pStats.map((p,i)=>({x:p.count||0,y:p.points||0,r:Math.max(8,Math.min(24,8+Number(p.totalWeight||0)*1.8)),name:p.name,avg:p.count?((p.points||0)/p.count).toFixed(1):'0.0',rank:i+1})),
+      backgroundColor:pStats.map(p=>(p.color||'#4ad7d1')+'cc'),
+      borderColor:pStats.map(p=>p.color||'#4ad7d1'),
+      borderWidth:2,
+      hoverBorderWidth:3
+    }]},
+    options:analyticsFixedChartOptions({
+      scales:{
+        x:{min:0,suggestedMax:maxCount+1,title:{display:true,text:'Fangvolumen',color:css('--muted'),font:{size:11,weight:'800'}},ticks:{color:css('--muted'),font:{size:11,weight:'700'},padding:10,precision:0},grid:{color:'rgba(255,255,255,.075)',drawTicks:false},border:{color:'rgba(255,255,255,.14)'}},
+        y:{min:0,suggestedMax:maxPoints+10,afterFit(axis){axis.width=58},title:{display:true,text:'Punkte',color:css('--muted'),font:{size:11,weight:'800'}},ticks:{color:css('--muted'),font:{size:11,weight:'700'},padding:10,precision:0},grid:{color:'rgba(255,255,255,.075)',drawTicks:false},border:{display:false}}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label(ctx){const r=ctx.raw;return `${r.name}: ${r.y} Punkte · ${r.x} Fänge · ${r.avg} P/Fang`;}}}
+      }
+    })
+  });
+}
+
+function renderTimeHeatmap(){
+  const grid=document.getElementById('timeHeatmap');
+  if(!grid)return;
+  const catches=[...state.catches];
+  const hours=Array.from({length:24},(_,hour)=>({hour,count:0,weight:0}));
+  catches.forEach(c=>{const h=analyticsCatchHour(c);if(h===null)return;const hour=Math.floor(h);hours[hour].count+=1;hours[hour].weight+=Number(c.weightKg||0);});
+  const max=Math.max(1,...hours.map(h=>h.count));
+  const best=hours.reduce((m,h)=>h.count>m.count?h:m,hours[0]);
+  grid.className='time-grid analytics-time-rhythm';
+  grid.innerHTML=hours.map(h=>{
+    const intensity=h.count/max;
+    const opacity=.10+intensity*.86;
+    const avg=h.count?h.weight/h.count:0;
+    return `<div class="time-cell analytics-rhythm-cell ${h.hour===best.hour&&h.count?'is-peak':''}" style="--intensity:${intensity};background:linear-gradient(180deg,rgba(74,215,209,${opacity}),rgba(143,240,167,${Math.max(.05,opacity*.55)}))"><strong>${String(h.hour).padStart(2,'0')}</strong><span>${h.count} Fang${h.count===1?'':'e'}</span><em>${avg?fmtKg(avg):'–'}</em></div>`;
+  }).join('');
+}
+
+function renderSpotBaitMatrix(){
+  const container=document.getElementById('spotBaitMatrix');
+  if(!container)return;
+  const catches=[...state.catches];
+  const spots=analyticsCountBy(catches,c=>c.spotLabel||c.location?.label||'Unbekannter Spot').slice(0,6).map(x=>x[0]);
+  const baits=analyticsCountBy(catches,c=>c.bait||'Unbekannter Köder').slice(0,6).map(x=>x[0]);
+  if(!spots.length||!baits.length){container.style.removeProperty('--matrix-cols');container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';return;}
+  const total=Math.max(1,catches.length);
+  const spotTotals=Object.fromEntries(spots.map(s=>[s,catches.filter(c=>(c.spotLabel||c.location?.label||'Unbekannter Spot')===s).length]));
+  const baitTotals=Object.fromEntries(baits.map(b=>[b,catches.filter(c=>(c.bait||'Unbekannter Köder')===b).length]));
+  const values=spots.flatMap(spot=>baits.map(bait=>{
+    const count=catches.filter(c=>(c.spotLabel||c.location?.label||'Unbekannter Spot')===spot&&(c.bait||'Unbekannter Köder')===bait).length;
+    const expected=(spotTotals[spot]*baitTotals[bait])/total;
+    const lift=expected?count/expected:0;
+    return {spot,bait,count,lift};
+  }));
+  const maxLift=Math.max(1,...values.map(v=>v.lift));
+  container.style.setProperty('--matrix-cols',baits.length);
+  container.style.setProperty('--matrix-min-width',`${180+(baits.length*122)}px`);
+  container.innerHTML='<div class="matrix-header"><div class="matrix-label">Spot / Köder</div>'+baits.map(b=>`<div class="matrix-label">${escapeHtml(b)}</div>`).join('')+'</div>'+spots.map(spot=>'<div class="matrix-row"><div class="matrix-label">'+escapeHtml(spot)+'</div>'+baits.map(bait=>{
+    const v=values.find(x=>x.spot===spot&&x.bait===bait)||{count:0,lift:0};
+    const strength=Math.min(1,v.lift/maxLift);
+    const opacity=.10+strength*.86;
+    return `<div class="matrix-cell analytics-affinity-cell" style="--affinity:${strength};background:radial-gradient(circle at 50% 30%,rgba(143,240,167,${opacity}),rgba(74,215,209,${Math.max(.06,opacity*.46)}))"><strong>${v.count}</strong><span>${v.lift?`${v.lift.toFixed(1)}× Lift`:'–'}</span></div>`;
+  }).join('')+'</div>').join('');
+}
+
+function renderParticipantTimeline(){
+  const canvas=document.getElementById('timelineBubbleChart');
+  if(!canvas||typeof Chart==='undefined')return;
+  canvas.height=280;
+  if(window.timelineBubbleChartInstance)window.timelineBubbleChartInstance.destroy();
+  const catches=[...state.catches].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  const participants=[...new Set(catches.map(c=>participantById(c.participantId)?.name).filter(Boolean))];
+  const datasets=participants.map((name,index)=>({
+    label:name,
+    data:catches.filter(c=>participantById(c.participantId)?.name===name).map(c=>({x:analyticsCatchHour(c)??0,y:index+1,r:Math.max(7,Math.min(22,7+Number(c.weightKg||0)*1.8)),species:speciesName(c),weight:Number(c.weightKg||0)})),
+    backgroundColor:(state.participants.find(p=>p.name===name)?.color||'#4ad7d1')+'bb',
+    borderColor:state.participants.find(p=>p.name===name)?.color||'#4ad7d1',
+    borderWidth:2
+  }));
+  window.timelineBubbleChartInstance=new Chart(canvas,{type:'bubble',data:{datasets},options:analyticsFixedChartOptions({
+    plugins:{legend:{display:true,position:'bottom',labels:{color:css('--text'),usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8,padding:14,font:{size:11,weight:'700'}}},tooltip:{callbacks:{label(ctx){const r=ctx.raw;return `${ctx.dataset.label}: ${r.species} · ${fmtKg(r.weight)} · ${String(Math.floor(r.x)).padStart(2,'0')}:00`;}}}},
+    scales:{
+      x:{min:0,max:24,title:{display:true,text:'Tageszeit',color:css('--muted'),font:{size:11,weight:'800'}},ticks:{stepSize:4,color:css('--muted'),font:{size:11,weight:'700'},padding:10,callback:v=>String(v).padStart(2,'0')+':00'},grid:{color:'rgba(255,255,255,.075)',drawTicks:false},border:{color:'rgba(255,255,255,.14)'}},
+      y:{min:.5,max:Math.max(1.5,participants.length+.5),afterFit(axis){axis.width=58},ticks:{stepSize:1,color:css('--muted'),font:{size:11,weight:'700'},padding:10,callback:v=>participants[v-1]||''},grid:{color:'rgba(255,255,255,.055)',drawTicks:false},border:{display:false}}
+    }
+  })});
+}
