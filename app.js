@@ -2178,8 +2178,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   function validHeatmapPoints(){
     return (state?.catches || [])
       .map(c => {
-        const lat = Number(c.location?.lat);
-        const lng = Number(c.location?.lng);
+        const lat = Number(c.latitude);
+        const lng = Number(c.longitude);
   
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   
