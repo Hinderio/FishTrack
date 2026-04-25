@@ -2175,8 +2175,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   function validHeatmapPoints(){
     return (state?.catches || [])
       .map(c => {
-        const lat = Number(c.latitude);
-        const lng = Number(c.longitude);
+        const lat = Number(c.location?.lat);
+        const lat = Number(c.location?.lat);
   
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   
