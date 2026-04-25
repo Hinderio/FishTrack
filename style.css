@@ -1591,7 +1591,12 @@ body.light .participant-detail-head{background:linear-gradient(180deg,var(--card
 }
 
 /* Dashboard recent-catch map focus (minimal-invasive extension) */
-.recent-catch-card{cursor:pointer;align-items:center;transition:.2s transform ease,.2s border-color ease,.2s background ease}
+.recent-catch-card{
+  cursor:pointer;
+  align-items:flex-start;   /* 🔥 DAS IST DER FIX */
+  text-align:left;          /* 🔥 zusätzlich sauber */
+  transition:.2s transform ease,.2s border-color ease,.2s background ease
+}
 .recent-catch-card:hover,.recent-catch-card:focus-visible{transform:translateY(-1px);border-color:rgba(74,215,209,.35);background:rgba(74,215,209,.08);outline:none}
 .recent-catch-map-hint{flex:0 0 auto;color:var(--primary);font-weight:800;font-size:.82rem;white-space:nowrap;opacity:.82}
 .selected-catch-map-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:12px 14px;border-radius:20px;background:rgba(74,215,209,.11);border:1px solid rgba(74,215,209,.28);box-shadow:0 12px 30px rgba(0,0,0,.18)}
