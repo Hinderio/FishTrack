@@ -1000,6 +1000,40 @@ function getEuropeZone(lat, lng){
   return row * cols + col + 1;
 }
 
+// Static read-only labels for the existing fixed 5x5 Europe zones.
+// Important: display-only decorator; does not affect zone calculation, filtering, storage or map rendering.
+const HEATMAP_ZONE_NAMES = {
+  1: 'Nordatlantik West',
+  2: 'Nordsee Nord',
+  3: 'Skandinavien Nord',
+  4: 'Finnland / Baltikum Nord',
+  5: 'Osteuropa Nord',
+  6: 'Britische Inseln Nord',
+  7: 'Nordsee Küste',
+  8: 'Südskandinavien',
+  9: 'Baltikum / Ostsee',
+  10: 'Osteuropa Mitte',
+  11: 'Atlantikküste West',
+  12: 'Benelux / Nordfrankreich',
+  13: 'Deutschland Mitte',
+  14: 'Polen / Tschechien',
+  15: 'Karpatenraum',
+  16: 'Frankreich West',
+  17: 'Alpenraum / Schweiz',
+  18: 'Österreich / Norditalien',
+  19: 'Balkan Nord',
+  20: 'Schwarzes Meer West',
+  21: 'Iberische Atlantikküste',
+  22: 'Mittelmeer West',
+  23: 'Italien / Adria',
+  24: 'Griechenland / Ägäis',
+  25: 'Türkei West'
+};
+
+function heatmapZoneName(zone){
+  return HEATMAP_ZONE_NAMES[Number(zone)] || `Gebiet ${zone}`;
+}
+
 // Override heatmap rendering with fixed Europe zones
 window.renderHeatmapGrid = function(points){
   const container = document.getElementById('heatmapGrid');
@@ -1026,7 +1060,10 @@ window.renderHeatmapGrid = function(points){
     cell.dataset.zone = String(zone);
     cell.style.background = `rgba(143,240,167,${opacity})`;
     cell.style.color = opacity > 0.45 ? '#06210c' : '#dbe7ef';
-    cell.innerHTML = `<strong>Zone ${zone}</strong><span>${count} Fang${count === 1 ? '' : 'e'}</span>`;
+    const zoneName = heatmapZoneName(zone);
+    cell.setAttribute('title', `Zone ${zone} – ${zoneName}: ${count} Fang${count === 1 ? '' : 'e'}`);
+    cell.setAttribute('aria-label', `Zone ${zone} – ${zoneName}, ${count} Fang${count === 1 ? '' : 'e'}`);
+    cell.innerHTML = `<strong><span class="zone-number">Zone ${zone}</span><span class="zone-name">${zoneName}</span></strong><span>${count} Fang${count === 1 ? '' : 'e'}</span>`;
 
     if(String(window.selectedHeatmapZone || '') === String(zone)){
       cell.classList.add('active-zone');
