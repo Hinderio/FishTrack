@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v20-zone-names';
+const CACHE_NAME = 'fishtrack-v21-analytics-geo';
 const ASSETS = [
   './',
   './index.html',
