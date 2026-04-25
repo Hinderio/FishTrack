@@ -2168,9 +2168,31 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   let analyticsHeatmapTileLayer=null;
 
   function validHeatmapPoints(){
-    return (state?.catches||[])
-      .filter(c=>Number.isFinite(Number(c?.location?.lat))&&Number.isFinite(Number(c?.location?.lng)))
-      .map(c=>({lat:Number(c.location.lat),lng:Number(c.location.lng),weight:Math.max(1,Number(c.weightKg||1))}));
+    return (state?.catches || [])
+      .map(c => {
+        const lat = Number(
+          c?.location?.lat ??
+          c?.lat ??
+          c?.latitude ??
+          c?.coords?.lat
+        );
+  
+        const lng = Number(
+          c?.location?.lng ??
+          c?.lng ??
+          c?.longitude ??
+          c?.coords?.lng
+        );
+  
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  
+        return {
+          lat,
+          lng,
+          weight: Number.isFinite(Number(c.weightKg)) ? Number(c.weightKg) : 0.5
+        };
+      })
+      .filter(Boolean);
   }
 
   function setHeatmapEmpty(container,visible){
