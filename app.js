@@ -2284,13 +2284,15 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     requestAnimationFrame(() => {
       if(!analyticsHeatmapMap) return;
     
-      analyticsHeatmapMap.invalidateSize(false);
+      analyticsHeatmapMap.invalidateSize(true);
     
       if(points.length){
-        setTimeout(() => {
-          const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
-          analyticsHeatmapMap.fitBounds(bounds, { padding: [50,50], maxZoom: 10 });
-        }, 100);
+        const bounds = L.latLngBounds(points.map(p => [p.lat, p.lng]));
+        analyticsHeatmapMap.fitBounds(bounds, {
+          padding: [80, 80],
+          maxZoom: 12,
+          animate: false
+        });
       }
     });
   }
