@@ -1509,10 +1509,20 @@ body.mobile-mode canvas {
 .tournament-fab:hover{transform:translateY(-2px) scale(1.04);filter:brightness(1.05)}
 .save-toast{margin:0 0 14px;padding:12px 14px;border-radius:18px;background:rgba(143,240,167,.16);border:1px solid rgba(143,240,167,.35);color:var(--text);font-weight:700}
 #tournamentList{
-  display:flex;
-  flex-direction:column;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
   gap:16px;
+  align-items:start;
 }
+
+/* Responsive wie Dashboard */
+@media (max-width: 900px){
+  #tournamentList{
+    grid-template-columns: 1fr;
+  }
+}
+
+
 .tournament-group{min-width:0;padding:12px;border:1px solid var(--card-border);border-radius:22px;background:rgba(255,255,255,.035)}
 body.light .tournament-group{background:rgba(255,255,255,.45)}
 .t-group-list{max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px}
