@@ -378,7 +378,7 @@ function renderParticipantComparePicker(participantId){
   const others=(state.participants||[]).filter(p=>p.id!==participantId);
   if(!others.length)return '<section class="participant-compare-entry participant-detail-panel"><div><p class="eyebrow">Duell</p><h3>Vergleichen mit…</h3><div class="meta">Für einen Vergleich braucht es mindestens zwei Teilnehmer.</div></div></section>';
   const options=others.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.avatar||'🎣')} ${escapeHtml(p.name)}</option>`).join('');
-  return `<section class="participant-compare-entry participant-detail-panel"><div><p class="eyebrow">Duell</p><h3>Vergleichen mit…</h3><div class="meta">Starte einen direkten Teilnehmer-vs.-Teilnehmer Vergleich.</div></div><div class="participant-compare-controls"><select id="participantCompareSelect" aria-label="Zweiten Teilnehmer auswählen">${options}</select><button class="primary-btn" type="button" data-start-participant-compare="${escapeHtml(participantId)}">VS starten</button></div></section>`;
+  return `<section class="participant-compare-entry participant-detail-panel"><div><p class="eyebrow">Duell</p><h3>Vergleichen mit…</h3><div class="meta">Starte einen direkten Teilnehmer-vs.-Teilnehmer Vergleich.</div></div><div class="participant-compare-controls"><select id="participantCompareSelect" aria-label="Zweiten Teilnehmer auswählen">${options}</select><button class="primary-btn btn-compare" type="button" data-start-participant-compare="${escapeHtml(participantId)}">⚔️ VS starten</button></div></section>`;
 }
 function renderCompareDuelist(data,side){
   const p=data.participant,level=computeSeniorityLevel(data.stats||p,state?.tournaments||[]),points=Number(data.stats?.points||0);
