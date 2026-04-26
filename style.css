@@ -2381,3 +2381,36 @@ body.light .compare-cumulative-grid line,body.light .compare-cumulative-axis lin
   position:absolute;
   z-index: 9999 !important;
 }
+
+
+/* === unified map action buttons === */
+.map-action-btn{
+  background: rgba(15,27,40,.9) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 18px !important;
+  width: 64px;
+  height: 64px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow: 0 10px 25px rgba(0,0,0,.35);
+  backdrop-filter: blur(8px);
+}
+
+.map-action-btn svg{
+  width: 26px;
+  height: 26px;
+  stroke: #eef6ff;
+  stroke-width: 1.8;
+  fill: none;
+}
+
+.map-action-btn.active{
+  border-color: #4ad7d1;
+  box-shadow: 0 0 0 2px rgba(74,215,209,.2), 0 10px 25px rgba(0,0,0,.35);
+}
+
+.map-action-btn:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0,0,0,.4);
+}
