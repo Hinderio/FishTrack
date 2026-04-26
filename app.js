@@ -2330,7 +2330,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       analyticsHeatmapMap = L.map(container,{
         zoomControl:false,
         attributionControl:false,
-        scrollWheelZoom:false,
+        scrollWheelZoom:true,
         preferCanvas:true
       });
       analyticsHeatmapTileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true});
