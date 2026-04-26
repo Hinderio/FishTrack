@@ -653,6 +653,18 @@ init();
   // Local variables for grid state
   let gridVisibleNew = true;
   let gridLayersNew = [];
+  let showAllCatchesActiveNew = true;
+
+  function getMapCatchPointsNew() {
+    return state.catches.filter(c => c.location && c.location.lat != null && c.location.lng != null);
+  }
+
+  function syncShowAllCatchesButtonNew() {
+    const showAllBtn = document.getElementById('show-all-catches-btn');
+    if (!showAllBtn) return;
+    showAllBtn.classList.toggle('active', showAllCatchesActiveNew);
+    showAllBtn.setAttribute('aria-pressed', showAllCatchesActiveNew ? 'true' : 'false');
+  }
 
   // Draw a simple 2×2 km grid overlay on the map
   function drawGridNew(points) {
@@ -702,9 +714,9 @@ init();
       const result = originalRenderMap.apply(this, args);
       try {
         // draw grid only when on the map screen
-        const bonusMap = getTournamentBonusMap();
-  const points = state.catches.filter(c => c.location && c.location.lat != null && c.location.lng != null);
+        const points = getMapCatchPointsNew();
         drawGridNew(points);
+        syncShowAllCatchesButtonNew();
       } catch (e) {}
       return result;
     };
@@ -738,15 +750,16 @@ init();
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
         gridVisibleNew = !gridVisibleNew;
-        const bonusMap = getTournamentBonusMap();
-  const points = state.catches.filter(c => c.location && c.location.lat != null && c.location.lng != null);
+        const points = getMapCatchPointsNew();
         drawGridNew(points);
       });
     }
     if (showAllBtn) {
+      syncShowAllCatchesButtonNew();
       showAllBtn.addEventListener('click', () => {
-        const bonusMap = getTournamentBonusMap();
-  const points = state.catches.filter(c => c.location && c.location.lat != null && c.location.lng != null);
+        showAllCatchesActiveNew = true;
+        syncShowAllCatchesButtonNew();
+        const points = getMapCatchPointsNew();
         fitAllNew(points);
       });
     }
