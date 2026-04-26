@@ -1555,38 +1555,37 @@ function buildCatchFlowIntelligence(m){
   if(!catches.length){
     return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Noch keine Fangphasen</h4></div><span>Flow</span></div><div class="analytics-intel-empty">Sobald Fänge vorhanden sind, erkennt diese Fläche automatisch Aktivitätszonen, Peaks und den besten nächsten Fangslot.</div></article>`;
   }
-  const start=new Date(catches[0].date);start.setHours(0,0,0,0);
-  const end=new Date(catches[catches.length-1].date);end.setHours(0,0,0,0);
-  const dayMs=86400000;
-  const days=Math.max(1,Math.round((end-start)/dayMs)+1);
-  const bucketCount=Math.min(Math.max(days,9),18);
-  const buckets=Array.from({length:bucketCount},()=>({label:'',count:0,weight:0,length:0,species:new Map()}));
+  const bucketCount=8;
+  const buckets=Array.from({length:bucketCount},(_,i)=>({label:analyticsHourLabel(i*3),count:0,weight:0,length:0,species:new Map()}));
   catches.forEach(x=>{
-    const raw=Math.floor((new Date(x.date).setHours(0,0,0,0)-start)/dayMs);
-    const idx=Math.min(buckets.length-1,Math.max(0,Math.floor(raw/Math.max(1,days/buckets.length))));
+    const idx=Math.min(bucketCount-1,Math.max(0,Math.floor(x.date.getHours()/3)));
     const b=buckets[idx];
     b.count+=1;b.weight+=Number(x.catch.weightKg||0);b.length+=Number(x.catch.lengthCm||0);
     const sp=speciesName(x.catch)||'Unbekannt';
     b.species.set(sp,(b.species.get(sp)||0)+1);
   });
-  buckets.forEach((b,i)=>{const d=new Date(start.getTime()+Math.round(i*Math.max(1,days/buckets.length))*dayMs);b.label=d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit'});});
   const rawMax=Math.max(...buckets.map(b=>b.count),1);
   const smooth=buckets.map((b,i)=>{
     const prev=buckets[i-1]?.count||0,next=buckets[i+1]?.count||0;
     const density=(prev*.32+b.count*.88+next*.32)/Math.max(1,rawMax*1.52);
     return {...b,density:analyticsSafePct(density,.04),phase:density>.72?'Peak':density>.42?'Build-Up':b.count?'Active':'Low'};
   });
-  const points=smooth.map((b,i)=>({x:6+(i/(Math.max(1,smooth.length-1)))*88,y:74-(b.density*48),r:5+b.density*22,...b}));
+  const points=smooth.map((b,i)=>({x:6+(i/(Math.max(1,smooth.length-1)))*88,y:74-(b.density*48),...b}));
   const top=points.reduce((a,b)=>b.density>a.density?b:a,points[0]);
   const topIdx=points.indexOf(top);
   const path=points.map((p,i)=>`${i?'S':'M'} ${i?((points[i-1].x+p.x)/2).toFixed(2):p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
-  const waveLow=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(82-(p.density*9)).toFixed(2)}`).join(' ')} L 94 89 L 6 89 Z`;
-  const waveMid=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(78-(p.density*24)).toFixed(2)}`).join(' ')} L 94 89 L 6 89 Z`;
-  const waveHigh=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(73-(p.density*42)).toFixed(2)}`).join(' ')} L 94 89 L 6 89 Z`;
+  const waveLow=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(84-(p.density*7)).toFixed(2)}`).join(' ')} L 94 90 L 6 90 Z`;
+  const waveMid=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(80-(p.density*18)).toFixed(2)}`).join(' ')} L 94 90 L 6 90 Z`;
+  const waveHigh=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(76-(p.density*34)).toFixed(2)}`).join(' ')} L 94 90 L 6 90 Z`;
   const segments=points.map((p,i)=>{const w=88/Math.max(1,points.length);return `<span class="flow-zone is-${p.phase.toLowerCase().replace('-','')}" style="left:${Math.max(3,p.x-w/2).toFixed(2)}%;width:${Math.min(94,w).toFixed(2)}%"><b>${escapeHtml(p.phase)}</b></span>`;}).join('');
   const topSpecies=[...top.species.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'–';
-  const pred=analyticsPredictionHint(m,'Flow');
-  return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Automatisch erkannte Fangphasen</h4></div><span>${top.phase}</span></div><div class="flow-v2-stage"><div class="flow-zone-rail">${segments}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowV2A" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".12"/><stop offset=".52" stop-color="var(--accent)" stop-opacity=".36"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".10"/></linearGradient><filter id="flowV2Glow"><feGaussianBlur stdDeviation="3.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="flow-v2-band flow-v2-low" d="${waveLow}"></path><path class="flow-v2-band flow-v2-mid" d="${waveMid}"></path><path class="flow-v2-band flow-v2-high" d="${waveHigh}"></path><path class="flow-v2-spine" d="${path}"></path>${points.map((p,i)=>p.count?`<circle class="flow-v2-pulse ${i===topIdx?'is-core':''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${(2+p.density*5).toFixed(2)}"></circle>`:'').join('')}</svg><div class="flow-v2-axis">${smooth.map((b,i)=>`<span class="${i===topIdx?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="intel-prediction-card"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.species)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="analytics-intel-facts"><span><b>${top.count}</b> Peak-Fänge</span><span><b>${escapeHtml(topSpecies)}</b> stärkste Phase</span><span><b>${fmtKg(top.weight)}</b> Peak-Gewicht</span></div></article>`;
+  const avgPerHour=(catches.length/24).toFixed(1).replace('.',',');
+  const activeWindow=`${escapeHtml(top.label)}–${escapeHtml(analyticsHourLabel((topIdx*3+3)%24))}`;
+  const densities=points.map(p=>p.density);
+  const avgDensity=densities.reduce((a,b)=>a+b,0)/Math.max(1,densities.length);
+  const variance=densities.reduce((sum,d)=>sum+Math.pow(d-avgDensity,2),0)/Math.max(1,densities.length);
+  const stability=Math.round(Math.max(0,Math.min(99,(1-Math.sqrt(variance))*100)));
+  return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Automatisch erkannte Fangphasen</h4></div><span>${top.phase}</span></div><div class="flow-v2-stage"><div class="flow-zone-rail">${segments}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowV2A" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".10"/><stop offset=".52" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".08"/></linearGradient><filter id="flowV2Glow"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="flow-v2-band flow-v2-low" d="${waveLow}"></path><path class="flow-v2-band flow-v2-mid" d="${waveMid}"></path><path class="flow-v2-band flow-v2-high" d="${waveHigh}"></path><path class="flow-v2-spine" d="${path}"></path></svg><div class="flow-v2-axis">${smooth.map((b,i)=>`<span class="${i===topIdx?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="analytics-intel-facts analytics-flow-facts-v2"><span><b>${top.count}</b> Peak-Fänge</span><span><b>${escapeHtml(topSpecies)}</b> stärkste Phase</span><span><b>${fmtKg(top.weight)}</b> Peak-Gewicht</span><span><b>${avgPerHour}</b> Ø Fänge / h</span><span><b>${activeWindow}</b> aktivstes Zeitfenster</span><span><b>${stability}%</b> Flow Stability</span></div></article>`;
 }
 function buildPatternSignatureIntelligence(m,activeIndex=-1){
   if(!m.catches.length){

@@ -2493,3 +2493,14 @@ body.light .flow-zone-rail,body.light .dna-label,body.light .dna-center{backgrou
 .signature-rank-v2 .signature-rank-item:disabled{opacity:1}
 @media (max-width:1100px){.analytics-intel-v2{min-height:auto}.flow-v2-stage,.dna-v2-stage{height:320px}}
 @media (max-width:680px){.flow-v2-stage,.dna-v2-stage{height:280px}.dna-v2-stage svg{inset:8% 10%;width:80%;height:84%}}
+
+/* Catch Flow Intelligence v2 – left chart only: cleaner flow + 6 KPI hints */
+.analytics-flow-intel .flow-v2-spine{stroke-width:1.9;opacity:.96;filter:url(#flowV2Glow)}
+.analytics-flow-intel .flow-v2-band{filter:url(#flowV2Glow)}
+.analytics-flow-intel .flow-v2-low{opacity:.18}
+.analytics-flow-intel .flow-v2-mid{opacity:.32}
+.analytics-flow-intel .flow-v2-high{opacity:.54}
+.analytics-flow-intel .flow-v2-pulse,.analytics-flow-intel .flow-v2-aura{display:none}
+.analytics-flow-intel .analytics-flow-facts-v2{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px}
+.analytics-flow-intel .analytics-flow-facts-v2 span{min-height:64px;align-content:center}
+@media (max-width:680px){.analytics-flow-intel .analytics-flow-facts-v2{grid-template-columns:1fr}}
