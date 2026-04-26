@@ -688,27 +688,46 @@ init();
     });
   }
 
-  // Fit the map view to include all provided catches
-  function fitAllNew(points) {
-    if (!points.length || !map) return;
-    const bounds = L.latLngBounds(points.map(c => [c.location.lat, c.location.lng]));
-    map.fitBounds(bounds.pad(0.25));
-  }
+// Fit the map view to include all provided catches
+function fitAllNew(points) {
+  if (!points.length || !map) return;
+  const bounds = L.latLngBounds(points.map(c => [c.location.lat, c.location.lng]));
+  map.fitBounds(bounds.pad(0.25));
+}
 
-  // Wrap renderMap to insert grid overlay drawing
-  if (typeof renderMap === 'function') {
-    const originalRenderMap = renderMap;
-    renderMap = function(...args) {
-      const result = originalRenderMap.apply(this, args);
-      try {
-        // draw grid only when on the map screen
-        const bonusMap = getTournamentBonusMap();
-  const points = state.catches.filter(c => c.location && c.location.lat != null && c.location.lng != null);
-        drawGridNew(points);
-      } catch (e) {}
-      return result;
-    };
-  }
+// ✅ EINMALIGER DEFAULT-STATE
+let initialFitAllDone = false;
+
+// Wrap renderMap to insert grid overlay drawing
+if (typeof renderMap === 'function') {
+  const originalRenderMap = renderMap;
+
+  renderMap = function(...args) {
+    const result = originalRenderMap.apply(this, args);
+
+    try {
+      // draw grid only when on the map screen
+      const bonusMap = getTournamentBonusMap();
+
+      const points = state.catches.filter(c => 
+        c.location && 
+        c.location.lat != null && 
+        c.location.lng != null
+      );
+
+      // ✅ DEFAULT: „Alle Fänge zeigen“ beim ersten Laden
+      if (!initialFitAllDone) {
+        fitAllNew(points);
+        initialFitAllDone = true;
+      }
+
+      drawGridNew(points);
+
+    } catch (e) {}
+
+    return result;
+  };
+}
 
   // Wrap renderDashboard to update species KPIs
   if (typeof renderDashboard === 'function') {
