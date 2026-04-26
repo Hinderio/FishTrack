@@ -2633,34 +2633,45 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
 /* === Weather UI Injection (safe, append-only) === */
 function injectWeatherIntoCatchCards(){
   const cards = document.querySelectorAll('.card');
-
   const catches = window.state?.catches || [];
 
-  cards.forEach((card, index) => {
+  cards.forEach(card => {
     if (card.dataset.weatherInjected) return;
 
-    const c = catches[index];
-    if (!c) return;
+    const text = card.innerText;
+
+    // Match anhand von Datum + Länge (sehr stabil in deiner UI)
+    const match = catches.find(c => {
+      if (!c.lengthCm || !c.created_at) return false;
+
+      const length = `${Math.round(c.lengthCm)} cm`;
+      const date = new Date(c.created_at)
+        .toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
+
+      return text.includes(length) && text.includes(date);
+    });
+
+    if (!match) return;
 
     if (
-      c.weather_temp_c == null &&
-      c.weather_wind_ms == null &&
-      !c.weather_condition
+      match.weather_temp_c == null &&
+      match.weather_wind_ms == null &&
+      !match.weather_condition
     ) return;
 
     const row = document.createElement('div');
     row.className = 'weather-row';
 
-    if (c.weather_temp_c != null) {
-      row.innerHTML += `<div class="weather-chip">🌡 ${Math.round(c.weather_temp_c)}°</div>`;
+    if (match.weather_temp_c != null) {
+      row.innerHTML += `<div class="weather-chip">🌡 ${Math.round(match.weather_temp_c)}°</div>`;
     }
 
-    if (c.weather_wind_ms != null) {
-      row.innerHTML += `<div class="weather-chip">🌬 ${c.weather_wind_ms} m/s</div>`;
+    if (match.weather_wind_ms != null) {
+      row.innerHTML += `<div class="weather-chip">🌬 ${match.weather_wind_ms} m/s</div>`;
     }
 
-    if (c.weather_condition) {
-      row.innerHTML += `<div class="weather-chip">${c.weather_icon || '☁️'} ${c.weather_condition}</div>`;
+    if (match.weather_condition) {
+      row.innerHTML += `<div class="weather-chip">${match.weather_icon || '☁️'} ${match.weather_condition}</div>`;
     }
 
     card.appendChild(row);
