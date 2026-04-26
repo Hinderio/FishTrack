@@ -2304,8 +2304,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          let intensity = Math.pow(count / max, 0.2);
-          intensity = Math.min(intensity, 1);
+          let intensity = Math.pow(count / max, 0.5);
+          intensity = Math.min(intensity, 0.75);
       
           const gradient = ctx.createRadialGradient(
             x, y, 0,
