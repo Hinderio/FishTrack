@@ -2268,13 +2268,14 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         console.log('DRAWING POINTS:', this._data.length);
       
-        // 🔥 Zoom stabil
+        // 🔥 stabileres Zoom-Verhalten
         const zoom = this._map.getZoom();
-        const radius = Math.max(100, Math.pow(2, zoom - 3));
+        const radius = Math.max(40, Math.pow(2, zoom - 5));
       
-        // 🔥 Dichte
-        const cellSize = 20;
+        // 🔥 feinere Dichte
+        const cellSize = 30;
       
+        // 🔥 GRID
         const grid = new Map();
       
         this._data.forEach(p => {
@@ -2291,12 +2292,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 DIRECT COLOR HEATMAP (kein Weiß, kein Colorize)
+        // 🔥 PHASE 1: INTENSITY
         // =========================================================
       
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 1;
-        ctx.filter = 'blur(28px)';
+        ctx.filter = 'blur(25px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
@@ -2304,29 +2305,71 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          let intensity = Math.pow(count / max, 0.5);
-          intensity = Math.min(intensity, 0.75);
+          // 🔥 entscheidend: bessere Skalierung
+          let intensity = Math.pow(count / max, 0.35);
+      
+          // 🔥 cap gegen Weiß-Explosion
+          intensity = Math.min(intensity, 0.85);
       
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
-          
-          // 🔥 echte Heatmap-Farben (smooth!)
-          gradient.addColorStop(0.0, `rgba(0,120,255,${0.7 * intensity})`);   // 🔵 blau
-          gradient.addColorStop(0.25, `rgba(0,200,120,${0.8 * intensity})`);  // 🟢 grün
-          gradient.addColorStop(0.5, `rgba(255,220,0,${0.9 * intensity})`);   // 🟡 gelb
-          gradient.addColorStop(0.75, `rgba(255,120,0,${0.85 * intensity})`); // 🟠 orange
-          gradient.addColorStop(1.0, `rgba(255,0,0,0)`);                      // 🔴 auslauf
-          
+      
+          gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
+          gradient.addColorStop(1, `rgba(255,255,255,0)`);
+      
           ctx.fillStyle = gradient;
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
           ctx.fill();
         });
       
-        // 🔥 RESET
         ctx.filter = 'none';
+      
+        // =========================================================
+        // 🎨 PHASE 2: COLORIZE
+        // =========================================================
+      
+        const imageData = ctx.getImageData(0, 0, size.x, size.y);
+        const pixels = imageData.data;
+      
+        for (let i = 0; i < pixels.length; i += 4) {
+          const alpha = pixels[i + 3] / 255;
+          if (alpha === 0) continue;
+      
+          let r, g, b;
+      
+          if (alpha < 0.15) {
+            // 🔵 blau → grün
+            r = 0;
+            g = 120 * (alpha / 0.15);
+            b = 255;
+          } else if (alpha < 0.4) {
+            // 🟢 grün
+            r = 0;
+            g = 200;
+            b = 255 * (1 - (alpha - 0.15) / 0.25);
+          } else if (alpha < 0.7) {
+            // 🟡 gelb
+            r = 255 * ((alpha - 0.4) / 0.3);
+            g = 255;
+            b = 0;
+          } else {
+            // 🔴 rot
+            r = 255;
+            g = 255 * (1 - (alpha - 0.7) / 0.3);
+            b = 0;
+          }
+      
+          pixels[i]     = r;
+          pixels[i + 1] = g;
+          pixels[i + 2] = b;
+        }
+      
+        ctx.putImageData(imageData, 0, 0);
+      
+        // 🔥 RESET
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
