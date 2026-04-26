@@ -2353,9 +2353,14 @@ body.light .compare-cumulative-grid line,body.light .compare-cumulative-axis lin
   position:absolute;
   inset:0;
   pointer-events:none;
-  z-index:500;
-  background:radial-gradient(circle at 50% 42%,rgba(74,215,209,.10),transparent 58%),linear-gradient(180deg,rgba(7,17,26,.14),rgba(7,17,26,.28));
-  mix-blend-mode:screen;
+
+  /* 🔥 WICHTIG */
+  z-index: 1;            /* statt 500 */
+  mix-blend-mode: normal;  /* statt screen */
+
+  background:
+    radial-gradient(circle at 50% 42%,rgba(74,215,209,.06),transparent 60%),
+    linear-gradient(180deg,rgba(7,17,26,.08),rgba(7,17,26,.18));
 }
 #screen-analytics .analytics-heatmap-empty{
   position:absolute;
@@ -2371,3 +2376,8 @@ body.light .compare-cumulative-grid line,body.light .compare-cumulative-axis lin
   background:rgba(7,17,26,.35);
 }
 @media (max-width:720px){#screen-analytics .analytics-catch-heatmap{min-height:420px;height:58vh;border-radius:22px;}}
+
+.analytics-catch-heatmap canvas{
+  position:absolute;
+  z-index: 9999 !important;
+}
