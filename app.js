@@ -2292,7 +2292,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // 🔥 WEICHZEICHNER (GAME CHANGER)
-        ctx.filter = 'blur(18px)';
+        ctx.filter = 'blur(28px)';
       
         // 🔥 WICHTIG: über GRID rendern (nicht pro Punkt!)
         grid.forEach((count, key) => {
@@ -2301,12 +2301,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          const intensity = count / max;
-      
-          const gradient = ctx.createRadialGradient(
-            x, y, 0,
-            x, y, radius
-          );
+          const intensity = count / max;   
       
           // 🔥 echter Heatmap-Look
           const gradient = ctx.createRadialGradient(
