@@ -1705,9 +1705,7 @@ function renderSpotBaitMatrix(){
   const container=document.getElementById('spotBaitMatrix');
   if(!container) return;
 
-  const catches = (typeof getDashboardCatches === 'function')
-  ? getDashboardCatches()
-  : state.catches;
+  const catches=[...state.catches];
   const spots=[...new Set(catches.map(c=>c.spotLabel||'Unbekannt'))];
   const baits=[...new Set(catches.map(c=>c.bait||'Unbekannt'))];
 
@@ -2136,11 +2134,10 @@ function renderTimeHeatmap(){
 function renderSpotBaitMatrix(){
   const container=document.getElementById('spotBaitMatrix');
   if(!container)return;
-  const catches=filteredAnalyticsCatches();
-  const spots=[...new Set(catches.map(c=>c.spotLabel||c.location?.label||'Unbekannter Spot'))].slice(0,6);
-  const baits=[...new Set(catches.map(c=>c.bait||'Unbekannter Köder'))].slice(0,6);
+  const catches=[...state.catches];
+  const spots=analyticsCountBy(catches,c=>c.spotLabel||c.location?.label||'Unbekannter Spot').slice(0,6).map(x=>x[0]);
+  const baits=analyticsCountBy(catches,c=>c.bait||'Unbekannter Köder').slice(0,6).map(x=>x[0]);
   if(!spots.length||!baits.length){
-    container.className='matrix-grid';
     container.style.removeProperty('--matrix-cols');
     container.style.removeProperty('--matrix-rows');
     container.innerHTML='<div class="meta">Noch zu wenig Daten für die Matrix.</div>';
@@ -2158,55 +2155,34 @@ function renderSpotBaitMatrix(){
   const maxLift=Math.max(1,...values.map(v=>v.lift));
   const baitIcon=(bait)=>{
     const key=String(bait||'').toLowerCase();
-    if(key.includes('wobbler'))return '◒';
-    if(key.includes('spinner'))return '⌁';
-    if(key.includes('gummi')||key.includes('fisch'))return '◉';
-    if(key.includes('jig'))return '◆';
-    if(key.includes('jerk'))return '◇';
-    if(key.includes('blink'))return '◐';
-    return '◌';
+    if(key.includes('wobbler'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 38C21 22 39 17 55 15c-2 15-12 30-28 37-7 3-15 0-17-7-1-2-1-5 0-7Z"/><path d="M19 38c8-3 18-8 27-17"/><circle cx="42" cy="24" r="2.6"/></svg>';
+    if(key.includes('spinner'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M23 39c-6-10-2-24 10-31 7 11 4 24-6 31"/><path d="M30 37l16 16"/><circle cx="48" cy="55" r="4"/><path d="M17 45l10-8"/></svg>';
+    if(key.includes('gummi')||key.includes('fisch'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 35c13-16 28-21 40-14 5 3 7 7 8 10-5 1-10 4-14 8-10 10-24 8-34-4Z"/><path d="M45 29l12-10 1 20-13-10Z"/><circle cx="25" cy="29" r="2.3"/></svg>';
+    if(key.includes('jig'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M35 13c5 4 7 10 4 15-3 6-11 8-17 5-5-3-7-9-4-14 3-7 11-10 17-6Z"/><path d="M37 26c9 5 14 13 15 25"/><path d="M22 34c-7 6-10 12-11 18"/><path d="M26 36c-2 8-1 14 4 19"/></svg>';
+    if(key.includes('blink'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M19 55C30 51 48 30 51 9 37 14 18 35 13 50c-1 4 2 7 6 5Z"/><path d="M22 48c8-8 16-19 22-31"/><circle cx="44" cy="16" r="2.5"/></svg>';
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 36c11-13 28-18 42-11-6 14-22 22-36 18-3-1-5-3-6-7Z"/><circle cx="40" cy="28" r="2.3"/></svg>';
   };
-  const spotIcon=(spot)=>{
-    const key=String(spot||'').toLowerCase();
-    if(key.includes('schilf'))return '♮';
-    if(key.includes('kraut'))return '〽';
-    if(key.includes('totholz')||key.includes('holz'))return '⌁';
-    if(key.includes('steil'))return '╱';
-    if(key.includes('flach'))return '≋';
-    if(key.includes('einlauf')||key.includes('zulauf'))return '↧';
-    return '⌒';
-  };
-
-  const labelW=184, cellW=136, headerH=74, rowH=88, gap=10;
-  const viewW=labelW+(baits.length*cellW)+(baits.length*gap);
-  const viewH=headerH+(spots.length*rowH)+(spots.length*gap);
-  const safeText=(v)=>escapeHtml(String(v||''));
-  const fo=(x,y,w,h,cls,html)=>`<foreignObject x="${x}" y="${y}" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" class="${cls}">${html}</div></foreignObject>`;
-  const cellRect=(x,y,w,h,cls,extra='')=>`<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="20" ry="20" ${extra}/>`;
-
-  let svg=`<svg class="matrix-fit-svg" viewBox="0 0 ${viewW} ${viewH}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Spot Köder Matrix"><defs><filter id="matrixGlow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
-  svg+=cellRect(0,0,labelW,headerH,'matrix-svg-label')+fo(0,0,labelW,headerH,'matrix-svg-label-content matrix-svg-corner','<strong>Spot / Köder</strong>');
-  baits.forEach((bait,i)=>{
-    const x=labelW+gap+i*(cellW+gap);
-    svg+=cellRect(x,0,cellW,headerH,'matrix-svg-label')+fo(x,0,cellW,headerH,'matrix-svg-label-content',`<span class="matrix-svg-icon">${safeText(baitIcon(bait))}</span><strong>${safeText(bait)}</strong>`);
-  });
-  spots.forEach((spot,r)=>{
-    const y=headerH+gap+r*(rowH+gap);
-    svg+=cellRect(0,y,labelW,rowH,'matrix-svg-label')+fo(0,y,labelW,rowH,'matrix-svg-spot-content',`<span class="matrix-svg-icon">${safeText(spotIcon(spot))}</span><strong>${safeText(spot)}</strong>`);
-    baits.forEach((bait,c)=>{
-      const x=labelW+gap+c*(cellW+gap);
-      const v=values.find(item=>item.spot===spot&&item.bait===bait)||{count:0,lift:0};
-      const strength=Math.min(1,v.lift/maxLift);
-      const glow=(.16+strength*.76).toFixed(3);
-      svg+=cellRect(x,y,cellW,rowH,'matrix-svg-cell',`style="--affinity:${strength.toFixed(3)};--glow:${glow}"`)+fo(x,y,cellW,rowH,'matrix-svg-cell-content',`<strong>${v.count}</strong><span>${v.lift?`${v.lift.toFixed(1)}× Lift`:'–'}</span>`);
-    });
-  });
-  svg+='</svg>';
-
-  container.className='matrix-grid spot-bait-svg-fit';
+  container.className='matrix-grid spot-bait-fit-grid';
   container.style.setProperty('--matrix-cols',baits.length);
   container.style.setProperty('--matrix-rows',spots.length+1);
-  container.innerHTML=svg;
+  const header='<div class="matrix-label matrix-corner"><span>Spot / Köder</span></div>'+baits.map(b=>`<div class="matrix-label matrix-bait-label"><span class="matrix-icon">${baitIcon(b)}</span><span>${escapeHtml(b)}</span></div>`).join('');
+  const spotIcon=(spot)=>{
+    const key=String(spot||'').toLowerCase();
+    if(key.includes('schilf'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 54C18 38 19 24 15 10"/><path d="M30 54C30 34 31 20 28 7"/><path d="M43 54C42 38 43 26 48 13"/><path d="M13 29c8-4 13-3 18 2"/><path d="M29 22c9-5 15-4 21 2"/></svg>';
+    if(key.includes('kraut'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 52c8-16 8-29 1-40"/><path d="M32 54c-2-18 2-32 12-42"/><path d="M50 52c-9-13-8-27 0-39"/><path d="M18 34c6-5 12-6 18-1"/><path d="M31 43c7-4 13-4 19 1"/></svg>';
+    if(key.includes('totholz')||key.includes('holz'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 45c15-8 29-17 44-28"/><path d="M18 40l-5-12"/><path d="M34 31l-2-15"/><path d="M43 25l12 4"/><circle cx="20" cy="39" r="3"/></svg>';
+    if(key.includes('steil'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M13 51h36"/><path d="M16 49l10-10 5-12 9-7 10-9"/><path d="M12 29c6 3 11 3 17 0s11-3 17 0"/></svg>';
+    if(key.includes('flach'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M9 35c7-3 13-3 20 0s13 3 20 0"/><path d="M12 45c8-3 15-3 23 0s12 3 17 0"/><path d="M15 26h34"/><path d="M22 19h20"/></svg>';
+    if(key.includes('einlauf')||key.includes('zulauf'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M11 23c9-5 18-5 27 0s14 5 19 0"/><path d="M11 38c9-5 18-5 27 0s14 5 19 0"/><path d="M32 8v38"/><path d="M22 36l10 10 10-10"/></svg>';
+    return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 42c9-7 18-9 30-5"/><path d="M17 51h31"/><path d="M25 32c1-9 6-16 15-21"/></svg>';
+  };
+  const rows=spots.map(spot=>`<div class="matrix-label matrix-spot-label"><span class="matrix-icon matrix-spot-icon">${spotIcon(spot)}</span><span>${escapeHtml(spot)}</span></div>`+baits.map(bait=>{
+    const v=values.find(x=>x.spot===spot&&x.bait===bait)||{count:0,lift:0};
+    const strength=Math.min(1,v.lift/maxLift);
+    const opacity=.10+strength*.86;
+    return `<div class="matrix-cell analytics-affinity-cell" style="--affinity:${strength};background:radial-gradient(circle at 50% 30%,rgba(143,240,167,${opacity}),rgba(74,215,209,${Math.max(.06,opacity*.46)}))"><strong>${v.count}</strong><span>${v.lift?`${v.lift.toFixed(1)}× Lift`:'–'}</span></div>`;
+  }).join('')).join('');
+  container.innerHTML=header+rows;
 }
 function renderParticipantTimeline(){
   const canvas=document.getElementById('timelineBubbleChart');
