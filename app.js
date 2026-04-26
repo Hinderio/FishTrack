@@ -2642,7 +2642,7 @@ function injectWeatherIntoCatchCards(){
 
     // Match anhand von Datum + Länge (sehr stabil in deiner UI)
     const match = catches.find(c => {
-      if (!c.lengthCm || !c.created_at) return false;
+      if (!c.lengthCm || !c.timestamp) return false;
 
       const length = `${Math.round(c.lengthCm)} cm`;
       const date = new Date(c.timestamp)
