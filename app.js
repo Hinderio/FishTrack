@@ -2266,8 +2266,6 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.clearRect(0,0,size.x,size.y);
       
-        console.log('DRAWING POINTS:', this._data.length);
-      
         // 🔥 stabileres Zoom-Verhalten
         const zoom = this._map.getZoom();
         const radius = Math.max(40, Math.pow(2, zoom - 5));
@@ -2292,7 +2290,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 PHASE 1: INTENSITY
+        // 🔥 PHASE 1: INTENSITY (WEISS)
         // =========================================================
       
         ctx.globalCompositeOperation = 'lighter';
@@ -2305,10 +2303,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          // 🔥 entscheidend: bessere Skalierung
           let intensity = Math.pow(count / max, 0.35);
-      
-          // 🔥 cap gegen Weiß-Explosion
           intensity = Math.min(intensity, 0.85);
       
           const gradient = ctx.createRadialGradient(
@@ -2328,46 +2323,22 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.filter = 'none';
       
         // =========================================================
-        // 🎨 PHASE 2: COLORIZE
+        // 🎨 PHASE 2: COLORIZE (GPU – KEIN PIXEL LOOP)
         // =========================================================
       
-        const imageData = ctx.getImageData(0, 0, size.x, size.y);
-        const pixels = imageData.data;
+        ctx.globalCompositeOperation = 'source-atop';
       
-        for (let i = 0; i < pixels.length; i += 4) {
-          const alpha = pixels[i + 3] / 255;
-          if (alpha === 0) continue;
+        const gradient = ctx.createLinearGradient(0, 0, 0, size.y);
       
-          let r, g, b;
+        // 🔥 sehr nah an deinem Referenzbild
+        gradient.addColorStop(0.0, 'rgb(255,0,0)');     // rot
+        gradient.addColorStop(0.25, 'rgb(255,200,0)');  // gelb
+        gradient.addColorStop(0.5, 'rgb(0,200,0)');     // grün
+        gradient.addColorStop(0.75, 'rgb(0,120,255)');  // blau
+        gradient.addColorStop(1.0, 'rgb(0,0,255)');     // tiefblau
       
-          if (alpha < 0.15) {
-            // 🔵 blau → grün
-            r = 0;
-            g = 120 * (alpha / 0.15);
-            b = 255;
-          } else if (alpha < 0.4) {
-            // 🟢 grün
-            r = 0;
-            g = 200;
-            b = 255 * (1 - (alpha - 0.15) / 0.25);
-          } else if (alpha < 0.7) {
-            // 🟡 gelb
-            r = 255 * ((alpha - 0.4) / 0.3);
-            g = 255;
-            b = 0;
-          } else {
-            // 🔴 rot
-            r = 255;
-            g = 255 * (1 - (alpha - 0.7) / 0.3);
-            b = 0;
-          }
-      
-          pixels[i]     = r;
-          pixels[i + 1] = g;
-          pixels[i + 2] = b;
-        }
-      
-        ctx.putImageData(imageData, 0, 0);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size.x, size.y);
       
         // 🔥 RESET
         ctx.globalCompositeOperation = 'source-over';
