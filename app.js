@@ -2266,9 +2266,6 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.clearRect(0,0,size.x,size.y);
       
-        ctx.globalAlpha = 0.9;
-        ctx.globalCompositeOperation = 'source-over';
-      
         console.log('DRAWING POINTS:', this._data.length);
       
         // 🔥 größer = weichere Flächen
@@ -2291,32 +2288,31 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         const max = Math.max(1, ...grid.values());
       
-        // 🔥 WEICHZEICHNER (GAME CHANGER)
-        ctx.filter = 'blur(28px)';
+        // =========================================================
+        // 🔥 PHASE 1: INTENSITY (NUR WEISS!)
+        // =========================================================
       
-        // 🔥 WICHTIG: über GRID rendern (nicht pro Punkt!)
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = 1;
+        ctx.filter = 'blur(35px)';
+      
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
       
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          const intensity = count / max;   
+          // 🔥 smoother falloff (WICHTIG!)
+          const intensity = Math.pow(count / max, 0.6);
       
-          // 🔥 echter Heatmap-Look
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
-          
-          // 🔥 echte Heatmap-Farbskala (wie dein Referenzbild)
-          gradient.addColorStop(0.0, `rgba(255,255,200,${1.0 * intensity})`);  // weiß-gelb
-          gradient.addColorStop(0.15, `rgba(255,220,100,${0.95 * intensity})`);
-          gradient.addColorStop(0.3, `rgba(255,160,0,${0.9 * intensity})`);
-          gradient.addColorStop(0.5, `rgba(255,60,0,${0.75 * intensity})`);
-          gradient.addColorStop(0.7, `rgba(255,0,0,${0.6 * intensity})`);
-          gradient.addColorStop(0.85, `rgba(0,200,120,${0.45 * intensity})`);  // 🔥 GRÜN
-          gradient.addColorStop(1.0, `rgba(0,120,255,0)`);                     // 🔥 BLAU AUSLAUF
+      
+          // ❗ NUR WEISS → KEINE FARBEN!
+          gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
+          gradient.addColorStop(1, `rgba(255,255,255,0)`);
       
           ctx.fillStyle = gradient;
           ctx.beginPath();
@@ -2324,8 +2320,53 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           ctx.fill();
         });
       
-        // 🔥 RESET (wichtig!)
         ctx.filter = 'none';
+      
+        // =========================================================
+        // 🎨 PHASE 2: COLORIZE (MAGIE)
+        // =========================================================
+      
+        const imageData = ctx.getImageData(0, 0, size.x, size.y);
+        const pixels = imageData.data;
+      
+        for (let i = 0; i < pixels.length; i += 4) {
+          const alpha = pixels[i + 3] / 255;
+      
+          if (alpha === 0) continue;
+      
+          let r, g, b;
+      
+          if (alpha < 0.25) {
+            // 🔵 blau
+            r = 0;
+            g = 120 * (alpha / 0.25);
+            b = 255;
+          } else if (alpha < 0.5) {
+            // 🟢 grün
+            r = 0;
+            g = 200;
+            b = 255 * (1 - (alpha - 0.25) / 0.25);
+          } else if (alpha < 0.75) {
+            // 🟡 gelb
+            r = 255 * ((alpha - 0.5) / 0.25);
+            g = 255;
+            b = 0;
+          } else {
+            // 🔴 rot
+            r = 255;
+            g = 255 * (1 - (alpha - 0.75) / 0.25);
+            b = 0;
+          }
+      
+          pixels[i]     = r;
+          pixels[i + 1] = g;
+          pixels[i + 2] = b;
+        }
+      
+        ctx.putImageData(imageData, 0, 0);
+      
+        // 🔥 RESET
+        ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
     });
