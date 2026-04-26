@@ -2272,7 +2272,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         const radius = Math.max(20, this._map.getZoom() * 4);
         
-        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalCompositeOperation = 'source-over';
         
         // 🔥 STEP 1: Punkte sammeln (für Dichte)
         const grid = new Map();
