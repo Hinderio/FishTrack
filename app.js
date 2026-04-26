@@ -2291,12 +2291,28 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._data.forEach(p => {
           const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
           if (!pt) return;
-      
+        
           const gx = Math.round(pt.x / cellSize);
           const gy = Math.round(pt.y / cellSize);
-      
           const key = `${gx}_${gy}`;
-          grid.set(key, (grid.get(key) || 0) + 1);
+        
+          const count = grid.get(key) || 0;
+        
+          let intensity = Math.pow(count / max, 0.35);
+          intensity = Math.min(intensity, 0.85);
+        
+          const gradient = ctx.createRadialGradient(
+            pt.x, pt.y, 0,   // ✅ echte Position!
+            pt.x, pt.y, radius
+          );
+        
+          gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
+          gradient.addColorStop(1, `rgba(255,255,255,0)`);
+        
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+          ctx.fill();
         });
       
         const max = Math.max(1, ...grid.values());
