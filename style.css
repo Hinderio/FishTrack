@@ -2414,3 +2414,49 @@ body.light .compare-cumulative-grid line,body.light .compare-cumulative-axis lin
   transform: translateY(-2px);
   box-shadow: 0 14px 30px rgba(0,0,0,.4);
 }
+
+/* === FORCE UNIFIED MAP BUTTON SYSTEM === */
+.map-action-btn,
+.map-btn,
+.weather-control {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 18px !important;
+
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(15,27,40,.9) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+
+  box-shadow: 0 10px 25px rgba(0,0,0,.35) !important;
+  backdrop-filter: blur(8px);
+
+  padding: 0 !important;
+}
+
+/* Icons vereinheitlichen */
+.map-action-btn svg,
+.map-btn svg,
+.weather-control svg {
+  width: 26px !important;
+  height: 26px !important;
+  stroke: #eef6ff !important;
+  stroke-width: 1.8 !important;
+  fill: none !important;
+}
+
+/* Fallback für Emoji → gleiche Größe */
+.map-btn,
+.weather-control {
+  font-size: 22px !important;
+}
+
+/* Hover */
+.map-action-btn:hover,
+.map-btn:hover,
+.weather-control:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0,0,0,.4);
+}
