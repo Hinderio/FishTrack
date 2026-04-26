@@ -2310,26 +2310,27 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         bctx.filter = 'blur(25px)';
       
         grid.forEach((count, key) => {
-          const [gx, gy] = key.split('_').map(Number);
-      
-          const x = gx * cellSize;
-          const y = gy * cellSize;
-      
+          const [gx, gy] = key.split('_').map(Number);      
+
+          // ✅ NEU: Mittelpunkt sauber berechnen
+          const x = gx * cellSize + cellSize / 2;
+          const y = gy * cellSize + cellSize / 2;
+        
           let intensity = Math.pow(count / max, 0.35);
           intensity = Math.min(intensity, 0.85);
-      
-          const gradient = bctx.createRadialGradient(
+        
+          const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
-      
+        
           gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
           gradient.addColorStop(1, `rgba(255,255,255,0)`);
-      
-          bctx.fillStyle = gradient;
-          bctx.beginPath();
-          bctx.arc(x, y, radius, 0, Math.PI * 2);
-          bctx.fill();
+        
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          ctx.fill();
         });
       
         bctx.filter = 'none';
