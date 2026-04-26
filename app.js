@@ -717,16 +717,20 @@ if (typeof renderMap === 'function') {
 
       // ✅ DEFAULT: „Alle Fänge zeigen“ beim ersten Laden
       if (!initialFitAllDone) {
-        fitAllNew(points);
       
-        // ✅ exakt gleiche Logik wie Button
-      const btn = document.querySelector('.map-action-btn');
-      if (btn) btn.classList.add('active');
+        const btn = document.querySelector('.map-action-btn');
+      
+        if (btn) {
+          btn.click(); // 🔥 WICHTIG: echte Logik auslösen
+        } else {
+          // fallback falls Button noch nicht im DOM ist
+          fitAllNew(points);
+        }
       
         initialFitAllDone = true;
       }
 
-      drawGridNew(points);
+drawGridNew(points);
 
     } catch (e) {}
 
