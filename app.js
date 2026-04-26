@@ -2270,10 +2270,10 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         // 🔥 Zoom stabil
         const zoom = this._map.getZoom();
-        const radius = Math.max(80, Math.pow(2, zoom - 4));
+        const radius = Math.max(100, Math.pow(2, zoom - 3));
       
         // 🔥 Dichte
-        const cellSize = 30;
+        const cellSize = 20;
       
         const grid = new Map();
       
@@ -2296,7 +2296,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 1;
-        ctx.filter = 'blur(20px)';
+        ctx.filter = 'blur(28px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
