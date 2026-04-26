@@ -2269,8 +2269,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         console.log('DRAWING POINTS:', this._data.length);
       
         // 🔥 Zoom stabil
-        const zoom = this._map.getZoom();
-        const radius = Math.max(50, Math.pow(2, zoom - 5));
+      const zoom = this._map.getZoom();
+      const zoomBoost = Math.pow(2, 10 - zoom);
       
         // 🔥 feinere Dichte
         const cellSize = 30;
@@ -2296,7 +2296,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 1;
-        ctx.filter = 'blur(25px)';
+        ctx.filter = 'blur(15px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
@@ -2305,7 +2305,17 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const y = gy * cellSize;
       
           // 🔥 smooth scaling
-          let intensity = Math.pow(count / max, 0.45);
+          let base = count / max;
+
+          // 🔥 Zoom-Faktor (entscheidend!)
+          const zoom = this._map.getZoom();
+          const zoomBoost = Math.max(1, 12 / zoom);
+          
+          // 🔥 neue Intensität
+          let intensity = Math.pow(base * zoomBoost, 0.5);
+          
+          // 🔥 cap
+          intensity = Math.min(intensity, 0.8);
       
           // 🔥 gegen Überstrahlen
           intensity = Math.min(intensity, 0.8);
