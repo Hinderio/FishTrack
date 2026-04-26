@@ -2291,28 +2291,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._data.forEach(p => {
           const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
           if (!pt) return;
-        
+      
           const gx = Math.round(pt.x / cellSize);
           const gy = Math.round(pt.y / cellSize);
+      
           const key = `${gx}_${gy}`;
-        
-          const count = grid.get(key) || 0;
-        
-          let intensity = Math.pow(count / max, 0.35);
-          intensity = Math.min(intensity, 0.85);
-        
-          const gradient = ctx.createRadialGradient(
-            pt.x, pt.y, 0,   // ✅ echte Position!
-            pt.x, pt.y, radius
-          );
-        
-          gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
-          gradient.addColorStop(1, `rgba(255,255,255,0)`);
-        
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
-          ctx.fill();
+          grid.set(key, (grid.get(key) || 0) + 1);
         });
       
         const max = Math.max(1, ...grid.values());
@@ -2326,27 +2310,26 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         bctx.filter = 'blur(25px)';
       
         grid.forEach((count, key) => {
-          const [gx, gy] = key.split('_').map(Number);      
-
-          // ✅ NEU: Mittelpunkt sauber berechnen
-          const x = gx * cellSize + cellSize / 2;
-          const y = gy * cellSize + cellSize / 2;
-        
+          const [gx, gy] = key.split('_').map(Number);
+      
+          const x = gx * cellSize;
+          const y = gy * cellSize;
+      
           let intensity = Math.pow(count / max, 0.35);
           intensity = Math.min(intensity, 0.85);
-        
-          const gradient = ctx.createRadialGradient(
+      
+          const gradient = bctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
-        
+      
           gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
           gradient.addColorStop(1, `rgba(255,255,255,0)`);
-        
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(x, y, radius, 0, Math.PI * 2);
-          ctx.fill();
+      
+          bctx.fillStyle = gradient;
+          bctx.beginPath();
+          bctx.arc(x, y, radius, 0, Math.PI * 2);
+          bctx.fill();
         });
       
         bctx.filter = 'none';
