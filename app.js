@@ -1648,21 +1648,25 @@ function renderPremiumAnalyticsDashboard(){
   const intelEl=document.getElementById('analyticsIntelligenceGrid');
   if(!hero&&!summaryEl&&!topEl&&!intelEl)return;
   const m=buildPremiumAnalyticsModel();
+  const cockpitModel=typeof getFilteredPremiumAnalyticsModel==='function'
+    ? getFilteredPremiumAnalyticsModel()
+    : m;
+  const cockpitLeader=cockpitModel.pStats[0];
   const leader=m.pStats[0];
   const topSpecies=m.species[0];
   const topSpot=m.spots[0];
   const topBait=m.baits[0];
   if(summaryEl){
-    summaryEl.textContent=m.catches.length
-      ? `${m.catches.length} Fänge, ${fmtKg(m.totalWeight)} Gesamtgewicht und ${leader?leader.name+' als aktueller Performance-Anker':'noch kein Leader'} – die stärksten Muster sind Zeitfenster, Spot und Köder.`
+    summaryEl.textContent=cockpitModel.catches.length
+      ? `${cockpitModel.catches.length} Fänge, ${fmtKg(cockpitModel.totalWeight)} Gesamtgewicht und ${cockpitLeader?cockpitLeader.name+' als aktueller Performance-Anker':'noch kein Leader'} – die stärksten Muster sind Zeitfenster, Spot und Köder.`
       : 'Noch keine Fänge vorhanden. Sobald Daten erfasst sind, entsteht hier automatisch das Analytics Cockpit.';
   }
   if(hero){
     hero.innerHTML=[
-      ['Fänge',m.catches.length,'gesamt analysiert'],
-      ['Gewicht',fmtKg(m.totalWeight),'kumuliert'],
-      ['Ø Länge',`${Math.round(m.avgLength||0)} cm`,'pro Fang'],
-      ['Beste Zeit',m.bestHour.count?`${String(m.bestHour.hour).padStart(2,'0')}:00`:'–',m.bestHour.count?`${m.bestHour.count} Fänge`:'noch offen']
+      ['Fänge',cockpitModel.catches.length,'gesamt analysiert'],
+      ['Gewicht',fmtKg(cockpitModel.totalWeight),'kumuliert'],
+      ['Ø Länge',`${Math.round(cockpitModel.avgLength||0)} cm`,'pro Fang'],
+      ['Beste Zeit',cockpitModel.bestHour.count?`${String(cockpitModel.bestHour.hour).padStart(2,'0')}:00`:'–',cockpitModel.bestHour.count?`${cockpitModel.bestHour.count} Fänge`:'noch offen']
     ].map(([label,value,detail])=>`<article><span>${label}</span><strong>${value}</strong><small>${detail}</small></article>`).join('');
   }
   if(topEl){
