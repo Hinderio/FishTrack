@@ -2576,3 +2576,9 @@ body.light .analytics-signature-intel .weather-ring-node{background:rgba(255,255
 body.light .live-prediction-location-card{background:rgba(255,255,255,.64);border-color:rgba(17,36,58,.08)}
 body.light .live-prediction-output{background:linear-gradient(135deg,rgba(74,215,209,.12),rgba(143,240,167,.08));border-color:rgba(17,36,58,.08)}
 @media (max-width:680px){.live-prediction-location-card,.live-prediction-output{align-items:stretch;flex-direction:column}.live-prediction-actions{justify-content:stretch}.live-prediction-actions .pill{flex:1}.confidence-badge{min-width:100%;min-height:58px}}
+
+/* Contextual Prediction extension – scoped, no layout rewrite */
+.live-prediction-contextual{align-items:stretch}
+.context-fit-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.context-fit-row em{font-style:normal;font-size:.72rem;font-weight:800;letter-spacing:.03em;color:var(--accent);padding:6px 9px;border-radius:999px;background:rgba(80,255,200,.08);border:1px solid rgba(80,255,200,.16)}
+body.light .context-fit-row em{background:rgba(74,215,209,.12);border-color:rgba(17,36,58,.08)}
