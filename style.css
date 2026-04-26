@@ -2582,3 +2582,12 @@ body.light .live-prediction-output{background:linear-gradient(135deg,rgba(74,215
 .context-fit-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .context-fit-row em{font-style:normal;font-size:.72rem;font-weight:800;letter-spacing:.03em;color:var(--accent);padding:6px 9px;border-radius:999px;background:rgba(80,255,200,.08);border:1px solid rgba(80,255,200,.16)}
 body.light .context-fit-row em{background:rgba(74,215,209,.12);border-color:rgba(17,36,58,.08)}
+
+/* Live Catch Prediction Spot Selector – isolated additive styling */
+.live-prediction-spot-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:-2px 0 14px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.025)}
+.live-prediction-spot-row span{color:var(--text);font-weight:800}
+.live-prediction-spot-row select{min-width:210px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.06);color:var(--text);padding:10px 14px;font:inherit;font-weight:800;outline:none}
+.live-prediction-spot-row select:focus{border-color:rgba(74,215,209,.45);box-shadow:0 0 0 3px rgba(74,215,209,.12)}
+body.light .live-prediction-spot-row{background:rgba(255,255,255,.56);border-color:rgba(17,36,58,.08)}
+body.light .live-prediction-spot-row select{background:rgba(255,255,255,.78);border-color:rgba(17,36,58,.1)}
+@media (max-width:680px){.live-prediction-spot-row{align-items:stretch;flex-direction:column}.live-prediction-spot-row select{width:100%;min-width:0}}

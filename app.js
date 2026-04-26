@@ -1713,7 +1713,7 @@ function refreshPatternSignatureIntelligence(activeIndex){
   current.outerHTML=buildPatternSignatureIntelligence(m,activeIndex);
 }
 
-const liveCatchPredictionState={lat:null,lng:null,weather:null,loadingWeather:false,pickMode:false};
+const liveCatchPredictionState={lat:null,lng:null,weather:null,loadingWeather:false,pickMode:false,spotType:''};
 function liveCatchLatLng(c){
   const lat=Number(c?.location?.lat??c?.lat??c?.latitude);
   const lng=Number(c?.location?.lng??c?.lng??c?.longitude);
@@ -1764,12 +1764,26 @@ function liveCatchAvgFit(values,fallback=.5){
   const nums=values.map(Number).filter(Number.isFinite);
   return nums.length?nums.reduce((s,n)=>s+n,0)/nums.length:fallback;
 }
+function liveCatchPredictionSpotOptions(catches){
+  const base=['Krautkante','Totholz','Schilfkante','Freiwasser','Unbekannt'];
+  const seen=new Set(base.map(v=>String(v).toLowerCase()));
+  const dynamic=(catches||[]).map(c=>c.spotLabel||c.location?.label||'').filter(Boolean).filter(v=>{const key=String(v).toLowerCase();if(seen.has(key))return false;seen.add(key);return true;});
+  return [...base,...dynamic];
+}
+function liveCatchSpotMatchScore(patternSpot,selectedSpot){
+  if(!selectedSpot)return null;
+  const a=String(patternSpot||'').trim().toLowerCase();
+  const b=String(selectedSpot||'').trim().toLowerCase();
+  if(!a||!b)return .2;
+  return a===b?1:.12;
+}
 function usePatternEngine(catches,context={}){
   const now=new Date();
   const nowHour=now.getHours();
   const nowBucket=liveCatchTimeBucket(now);
   const loc=context?.location||null;
   const weather=context?.weather||null;
+  const selectedSpot=context?.spotType||'';
   const groups=new Map();
   catches.forEach(c=>{
     const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';
@@ -1787,10 +1801,13 @@ function usePatternEngine(catches,context={}){
     const timeFit=p.catches.reduce((s,c)=>s+liveCatchTimeScore(c,nowHour),0)/Math.max(1,p.catches.length);
     const currentBucketFit=p.timeBucket===nowBucket?1:.42;
     const weatherFit=liveCatchAvgFit(p.catches.map(c=>liveCatchWeatherScore(c,weather)),weather?.temperature_2m!=null?.5:.5);
-    const locationFit=loc?liveCatchAvgFit(p.catches.map(c=>{const ll=liveCatchLatLng(c);return ll?Math.max(0,1-liveCatchDistanceKm(loc,ll)/50):NaN;}),.35):.5;
+    const geoLocationFit=loc?liveCatchAvgFit(p.catches.map(c=>{const ll=liveCatchLatLng(c);return ll?Math.max(0,1-liveCatchDistanceKm(loc,ll)/50):NaN;}),.35):.5;
+    const selectedSpotFit=liveCatchSpotMatchScore(p.spot,selectedSpot);
+    const locationFit=selectedSpotFit==null?geoLocationFit:selectedSpotFit;
+    const spotSemanticFit=selectedSpotFit==null?.5:selectedSpotFit;
     const score=(p.catches.length*4)+(avgLength*.08)+(consistency*8)+(timeFit*5);
     const contextualScore=score+(currentBucketFit*7)+(timeFit*6)+(weatherFit*6)+(locationFit*5);
-    return {...p,catchCount:p.catches.length,avgLength,consistency,timeFit,currentBucketFit,weatherFit,locationFit,score,contextualScore};
+    return {...p,catchCount:p.catches.length,avgLength,consistency,timeFit,currentBucketFit,weatherFit,locationFit,geoLocationFit,spotSemanticFit,score,contextualScore};
   }).sort((a,b)=>(b.contextualScore||b.score)-(a.contextualScore||a.score)||b.score-a.score);
   return {patterns,bestPattern:patterns[0]||null};
 }
@@ -1812,10 +1829,10 @@ function liveCatchBestPattern(){
   const catches=typeof getAnalyticsCatches==='function'?getAnalyticsCatches():(state.catches||[]);
   const relevant=loc?catches.map(c=>({c,ll:liveCatchLatLng(c)})).filter(x=>x.ll&&liveCatchDistanceKm(loc,x.ll)<=50).map(x=>x.c):catches;
   if(!relevant.length)return {status:loc?'no-data':'fallback-empty'};
-  const engine=usePatternEngine(relevant,{location:loc,weather:liveCatchPredictionState.weather});
+  const engine=usePatternEngine(relevant,{location:loc,weather:liveCatchPredictionState.weather,spotType:liveCatchPredictionState.spotType});
   const enhanced=usePredictionEnhancer({status:'ready'},engine.bestPattern,relevant.length);
   if(!enhanced.pattern)return {status:'no-data'};
-  return {status:'ready',...enhanced,weather:liveCatchPredictionState.weather,locationAware:Boolean(loc)};
+  return {status:'ready',...enhanced,weather:liveCatchPredictionState.weather,locationAware:Boolean(loc),spotType:liveCatchPredictionState.spotType};
 }
 function liveCatchOpenExistingLocationPicker(){
   if(typeof useExistingLocationPicker==='function'){
@@ -1831,6 +1848,10 @@ function renderLiveCatchPrediction(){
   const hasLoc=Number.isFinite(liveCatchPredictionState.lat)&&Number.isFinite(liveCatchPredictionState.lng);
   const lat=hasLoc?liveCatchPredictionState.lat.toFixed(5):'–';
   const lng=hasLoc?liveCatchPredictionState.lng.toFixed(5):'–';
+  const currentCatches=typeof getAnalyticsCatches==='function'?getAnalyticsCatches():(state.catches||[]);
+  const spotOptions=liveCatchPredictionSpotOptions(currentCatches);
+  const selectedSpot=liveCatchPredictionState.spotType||'';
+  const spotSelect=`<label class="live-prediction-spot-row" for="livePredictionSpotType"><span>🎯 Spot-Typ</span><select id="livePredictionSpotType" aria-label="Spot-Typ für Prediction wählen"><option value="">Nicht definiert</option>${spotOptions.map(v=>`<option value="${escapeHtml(v)}" ${v===selectedSpot?'selected':''}>${escapeHtml(v)}</option>`).join('')}</select></label>`;
   const result=liveCatchBestPattern();
   let output='';
   if(result.status==='fallback-empty')output='<div class="live-prediction-output is-muted">Noch zu wenig Daten für eine Pattern-basierte Prediction.</div>';
@@ -1841,10 +1862,10 @@ function renderLiveCatchPrediction(){
     const timePct=Math.round(Math.max(0,Math.min(1,p.timeFit||0))*100);
     const weatherPct=Math.round(Math.max(0,Math.min(1,p.weatherFit||0))*100);
     const locationPct=Math.round(Math.max(0,Math.min(1,p.locationFit||0))*100);
-    const contextLine=`${result.locationAware?'Standortbasiert':'Fallback auf aktuellen Analytics-Filter'} · ${p.catchCount} ähnliche Fänge · Ø ${Math.round(p.avgLength||0)} cm · ${Number.isFinite(temp)?Math.round(temp)+'°':'aktuelle Bedingungen'} / ${liveCatchWindLabel(w?.wind_speed_10m)}`;
-    output=`<div class="live-prediction-output live-prediction-contextual"><div><small>🎯 Contextual Prediction</small><strong>${escapeHtml(p.timeBucket)} · ${escapeHtml(p.spot)} · ${escapeHtml(p.bait)}</strong><span>${escapeHtml(contextLine)}</span><div class="context-fit-row"><em>Zeit ${timePct}%</em><em>Wetter ${weatherPct}%</em><em>${result.locationAware?'Spot '+locationPct+'%':'Spot offen'}</em></div></div><div class="confidence-badge" style="--confidence:${result.confidence}%"><b>${result.confidence}%</b><small>Confidence</small></div></div>`;
+    const contextLine=`${result.spotType?'Spot gewählt: '+result.spotType:(result.locationAware?'Standortbasiert':'Fallback auf aktuellen Analytics-Filter')} · ${p.catchCount} ähnliche Fänge · Ø ${Math.round(p.avgLength||0)} cm · ${Number.isFinite(temp)?Math.round(temp)+'°':'aktuelle Bedingungen'} / ${liveCatchWindLabel(w?.wind_speed_10m)}`;
+    output=`<div class="live-prediction-output live-prediction-contextual"><div><small>🎯 Contextual Prediction</small><strong>${escapeHtml(p.timeBucket)} · ${escapeHtml(p.spot)} · ${escapeHtml(p.bait)}</strong><span>${escapeHtml(contextLine)}</span><div class="context-fit-row"><em>Zeit ${timePct}%</em><em>Wetter ${weatherPct}%</em><em>${result.spotType?'Spot '+locationPct+'%':(result.locationAware?'Nähe '+locationPct+'%':'Spot offen')}</em></div></div><div class="confidence-badge" style="--confidence:${result.confidence}%"><b>${result.confidence}%</b><small>Confidence</small></div></div>`;
   }
-  el.innerHTML=`<div class="panel-head live-prediction-head"><div><h3>Live Catch Prediction</h3><span class="meta">Pattern + Standort + aktuelle Zeit + Wetter</span></div></div><div class="live-prediction-location-card"><div><strong>📍 Standort wählen</strong><span>${hasLoc?`${lat}, ${lng}`:'Kein Standort – nutzt aktuellen Filter als Fallback'}</span></div><div class="live-prediction-actions"><button type="button" id="livePredictionUseLocation" class="pill secondary">Aktuell</button><button type="button" id="livePredictionPickMap" class="pill secondary">Karte öffnen</button></div></div>${output}`;
+  el.innerHTML=`<div class="panel-head live-prediction-head"><div><h3>Live Catch Prediction</h3><span class="meta">Pattern + Standort + aktuelle Zeit + Wetter</span></div></div><div class="live-prediction-location-card"><div><strong>📍 Standort wählen</strong><span>${hasLoc?`${lat}, ${lng}`:'Kein Standort – nutzt aktuellen Filter als Fallback'}</span></div><div class="live-prediction-actions"><button type="button" id="livePredictionUseLocation" class="pill secondary">Aktuell</button><button type="button" id="livePredictionPickMap" class="pill secondary">Karte öffnen</button></div></div>${spotSelect}${output}`;
 }
 async function updateLiveCatchPredictionLocation(lat,lng){
   liveCatchPredictionState.lat=Number(lat);liveCatchPredictionState.lng=Number(lng);renderLiveCatchPrediction();
@@ -1923,6 +1944,12 @@ function renderPremiumAnalyticsDashboard(){
     }
     if(e.target?.id==='livePredictionPickMap'){
       liveCatchOpenExistingLocationPicker();
+    }
+  });
+  document.addEventListener('change',e=>{
+    if(e.target?.id==='livePredictionSpotType'){
+      liveCatchPredictionState.spotType=e.target.value||'';
+      renderLiveCatchPrediction();
     }
   });
   document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{renderPremiumAnalyticsDashboard();renderLiveCatchPrediction();},0));
