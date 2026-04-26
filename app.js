@@ -2230,7 +2230,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._canvas.style.zIndex = '99999';
         this._canvas.style.mixBlendMode = 'normal';
       
-        mapInstance.getContainer().appendChild(this._canvas);
+        document.getElementById('analyticsCatchHeatmap').appendChild(this._canvas);
       
         mapInstance.on('move zoom moveend zoomend resize viewreset', this._scheduleDraw, this);
         this._scheduleDraw();
