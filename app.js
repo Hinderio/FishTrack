@@ -100,6 +100,7 @@ state.catches = (catches || []).map(c => ({
   spotLabel: c.spotLabel || c.spot_label || '',
   note: c.note || '',
   createdAt: c.createdAt || c.created_at || c.caught_at || new Date().toISOString(),
+
   location: {
     lat: c.latitude != null 
       ? Number(c.latitude) 
@@ -108,8 +109,20 @@ state.catches = (catches || []).map(c => ({
     lng: c.longitude != null 
       ? Number(c.longitude) 
       : (c.location?.lng != null ? Number(c.location.lng) : null),
+
     label: c.location?.label || c.spotLabel || c.spot_label || ''
-  }
+  },
+
+  // 🔥 NEU – Weather Fields (wichtig für dein Fix)
+  weather_fetched_at: c.weather_fetched_at ?? null,
+  weather_temp_c: c.weather_temp_c ?? null,
+  weather_feels_like_c: c.weather_feels_like_c ?? null,
+  weather_wind_ms: c.weather_wind_ms ?? null,
+  weather_humidity: c.weather_humidity ?? null,
+  weather_clouds: c.weather_clouds ?? null,
+  weather_precip_mm: c.weather_precip_mm ?? null,
+  weather_condition: c.weather_condition ?? null,
+  weather_icon: c.weather_icon ?? null
 }));
 
 if (typeof renderCharts === 'function') {
