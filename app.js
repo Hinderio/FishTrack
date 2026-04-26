@@ -2633,13 +2633,13 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
 /* === Weather UI Injection (safe, append-only) === */
 function injectWeatherIntoCatchCards(){
   const cards = document.querySelectorAll('.card');
-  cards.forEach(card => {
+
+  const catches = window.state?.catches || [];
+
+  cards.forEach((card, index) => {
     if (card.dataset.weatherInjected) return;
 
-    const id = card.dataset.id;
-    if (!id) return;
-
-    const c = (window.state?.catches || []).find(x => String(x.id) === String(id));
+    const c = catches[index];
     if (!c) return;
 
     if (
@@ -2666,6 +2666,7 @@ function injectWeatherIntoCatchCards(){
     card.appendChild(row);
     card.dataset.weatherInjected = "1";
   });
+}
 }
 
 setInterval(injectWeatherIntoCatchCards, 800);
