@@ -2270,7 +2270,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         // 🔥 Zoom stabil
         const zoom = this._map.getZoom();
-        const radius = Math.max(40, Math.pow(2, zoom - 5));
+        const radius = Math.max(80, Math.pow(2, zoom - 4));
       
         // 🔥 Dichte
         const cellSize = 30;
@@ -2304,21 +2304,22 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          let intensity = Math.pow(count / max, 0.45);
+          let intensity = Math.pow(count / max, 0.2);
           intensity = Math.min(intensity, 1);
       
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
-      
-          // 🔥 Heatmap-Farbskala (nah an deinem Referenzbild)
-          gradient.addColorStop(0.0, `rgba(255,255,0,${1.0 * intensity})`);   // gelb (core)
-          gradient.addColorStop(0.25, `rgba(255,170,0,${0.9 * intensity})`);  // orange
-          gradient.addColorStop(0.5, `rgba(255,0,0,${0.7 * intensity})`);     // rot
-          gradient.addColorStop(0.75, `rgba(0,200,0,${0.45 * intensity})`);   // grün
-          gradient.addColorStop(1.0, `rgba(0,0,255,0)`);                      // blau fade
-      
+          
+          // 🔥 echte Heatmap-Farben (smooth!)
+          gradient.addColorStop(0.0, `rgba(255,255,180,${1.0 * intensity})`); // hell
+          gradient.addColorStop(0.2, `rgba(255,220,100,${0.95 * intensity})`);
+          gradient.addColorStop(0.4, `rgba(255,160,0,${0.9 * intensity})`);
+          gradient.addColorStop(0.6, `rgba(255,80,0,${0.75 * intensity})`);
+          gradient.addColorStop(0.8, `rgba(255,0,0,${0.6 * intensity})`);
+          gradient.addColorStop(1.0, `rgba(255,0,0,0)`);
+          
           ctx.fillStyle = gradient;
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
