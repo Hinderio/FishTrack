@@ -1684,7 +1684,7 @@ function buildPatternSignatureIntelligence(m,activeIndex=-1){
   const alt=altSource.slice(0,4).map((p,i)=>({label:p.spot===best.spot?p.bait:p.spot,score:p.score,x:[34,66,36,64][i],y:[34,34,66,66][i]}));
   const selectedScale=isMaster?1:analyticsSafePct(best.score/max,.42);
   const links=dim.map(n=>`<line class="dna-link dna-link-main" style="--w:${(1.1+selectedScale*.55).toFixed(2)}" x1="50" y1="50" x2="${n.x}" y2="${n.y}"></line>`).join('')+alt.map(a=>`<line class="dna-link dna-link-alt" style="--w:${(.55+Math.min(1,a.score/max)*.5).toFixed(2)}" x1="50" y1="50" x2="${a.x}" y2="${a.y}"></line>`).join('');
-  const pred=analyticsPredictionHint(m,'DNA');
+  const pred=isMaster?analyticsPredictionHint(m,'DNA'):{hour:best.hour,label:best.hour,confidence:Math.round(Math.max(0,Math.min(99,(best.score/Math.max(max,1))*100))),species:best.species,bait:best.bait,spot:best.spot,focus:'DNA'};
   const headTitle=isMaster?'Aggregierte Master-Signatur':'Dominante Erfolgs-Signatur';
   const headValue=isMaster?'100%':`${Math.round(best.score/max*100)}%`;
   const centerLabel=isMaster?'Master DNA':'Signature';
@@ -1703,7 +1703,7 @@ function getFilteredPremiumAnalyticsModel(){
   const catches=typeof getAnalyticsCatches==='function'?getAnalyticsCatches():(state.catches||[]);
   return buildPremiumAnalyticsModel(catches);
 }
-let analyticsActiveSignatureIndex=-1;
+let analyticsActiveSignatureIndex=0;
 function refreshPatternSignatureIntelligence(activeIndex){
   analyticsActiveSignatureIndex=activeIndex;
   const intelEl=document.getElementById('analyticsIntelligenceGrid');
@@ -1898,7 +1898,7 @@ function renderPremiumAnalyticsDashboard(){
     if(!item||!document.getElementById('analyticsIntelligenceGrid')?.contains(item))return;
     const next=Number(item.dataset.signatureIndex);
     const current=Number(item.closest('.analytics-signature-intel')?.dataset.activeSignature);
-    refreshPatternSignatureIntelligence(current===next?-1:next);
+    refreshPatternSignatureIntelligence(Number.isFinite(next)?next:0);
   });
   document.addEventListener('click',e=>{
     if(e.target?.id==='livePredictionUseLocation'){
