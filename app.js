@@ -1692,7 +1692,7 @@ function buildPatternSignatureIntelligence(m,activeIndex=-1){
   const avgLength=catchesWithData.length>0?catchesWithData.reduce((sum,c)=>sum+Number(c.lengthCm??c.length_cm??0),0)/catchesWithData.length:null;
   const weatherData=catchesWithData.filter(c=>c.weather_temp_c!=null||c.weather_wind_ms!=null||c.weather_clouds!=null||c.weather_precip_mm!=null);
   const weatherAvg=weatherData.length?(()=>{const avg=key=>weatherData.reduce((sum,c)=>sum+Number(c[key]||0),0)/weatherData.length;return {temp:avg('weather_temp_c'),wind:avg('weather_wind_ms'),clouds:avg('weather_clouds'),rain:avg('weather_precip_mm')};})():null;
-  const weatherRing=weatherAvg?`<div class="dna-weather-ring" aria-label="Durchschnittlicher Wetterkontext"><div class="weather-ring-node weather-ring-node-top">🌡 ${Math.round(weatherAvg.temp)}°</div><div class="weather-ring-node weather-ring-node-right">💨 ${weatherAvg.wind.toFixed(1).replace('.',',')} m/s</div><div class="weather-ring-node weather-ring-node-bottom">🌧 ${weatherAvg.rain.toFixed(1).replace('.',',')} mm</div><div class="weather-ring-node weather-ring-node-left">☁️ ${Math.round(weatherAvg.clouds)}%</div></div>`:'';
+  const weatherRing=weatherAvg?`<div class="dna-weather-ring" aria-label="Durchschnittlicher Wetterkontext"><div class="weather-ring-node weather-ring-node-top"><strong>${Math.round(weatherAvg.temp)}°</strong><small>TEMP</small></div><div class="weather-ring-node weather-ring-node-right"><strong>${weatherAvg.wind.toFixed(1).replace('.',',')} m/s</strong><small>WIND</small></div><div class="weather-ring-node weather-ring-node-bottom"><strong>${weatherAvg.rain.toFixed(1).replace('.',',')} mm</strong><small>RAIN</small></div><div class="weather-ring-node weather-ring-node-left"><strong>${Math.round(weatherAvg.clouds)}%</strong><small>CLOUDS</small></div></div>`:'';
   const centerMetric=avgLength==null?'Ø – cm':`Ø ${Math.round(avgLength)} cm`;
   return `<article class="analytics-intel-visual analytics-signature-intel analytics-intel-v2" data-active-signature="${selectedIndex}"><div class="analytics-intel-head"><div><small>Pattern DNA v2 + Prediction</small><h4>${headTitle}</h4></div><span>${headValue}</span></div><div class="dna-v2-stage"><svg viewBox="0 0 100 100" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><defs><radialGradient id="dnaCoreV2" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".82"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".14"/></radialGradient></defs><circle class="dna-orbit dna-orbit-a" cx="50" cy="50" r="28"></circle><circle class="dna-orbit dna-orbit-b" cx="50" cy="50" r="17"></circle>${links}<circle class="dna-core-v2" cx="50" cy="50" r="7.6"></circle>${alt.map(a=>`<circle class="dna-alt-node" style="--s:${analyticsSafePct(a.score/max,.2).toFixed(2)}" cx="${a.x}" cy="${a.y}" r="${(3.1+Math.min(1,a.score/max)*1.9).toFixed(2)}"></circle>`).join('')}${dim.map(n=>`<circle class="dna-main-node" cx="${n.x}" cy="${n.y}" r="6.1"></circle>`).join('')}</svg>${weatherRing}${dim.map(n=>`<div class="dna-label dna-label-${n.key}" style="left:${n.x}%;top:${n.y}%"><small>${escapeHtml(n.type)}</small><strong>${escapeHtml(n.label)}</strong></div>`).join('')}<div class="dna-center"><small>${centerLabel}</small><strong>${best.count}×</strong><span>${centerMetric}</span></div></div><div class="intel-prediction-card dna-prediction"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.spot)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="signature-rank signature-rank-v2">${patterns.map((p,i)=>`<button type="button" class="signature-rank-item is-clickable ${i===selectedIndex?'is-active':''}" data-signature-index="${i}" style="--rank:${Math.max(.16,p.score/max).toFixed(2)}" aria-pressed="${i===selectedIndex?'true':'false'}"><b>#${i+1}</b>${escapeHtml(p.spot)} · ${escapeHtml(p.bait)} · ${escapeHtml(p.hour)}</button>`).join('')}</div></article>`;
 }
@@ -1712,6 +1712,99 @@ function refreshPatternSignatureIntelligence(activeIndex){
   const m=getFilteredPremiumAnalyticsModel();
   current.outerHTML=buildPatternSignatureIntelligence(m,activeIndex);
 }
+
+const liveCatchPredictionState={lat:null,lng:null,weather:null,loadingWeather:false,pickMode:false,map:null,marker:null};
+function liveCatchLatLng(c){
+  const lat=Number(c?.location?.lat??c?.lat??c?.latitude);
+  const lng=Number(c?.location?.lng??c?.lng??c?.longitude);
+  return Number.isFinite(lat)&&Number.isFinite(lng)?{lat,lng}:null;
+}
+function liveCatchDistanceKm(a,b){
+  const R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
+  const lat1=a.lat*Math.PI/180,lat2=b.lat*Math.PI/180;
+  const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
+}
+function liveCatchTimeScore(c,hour){
+  const d=new Date(c.timestamp||c.createdAt);
+  if(Number.isNaN(d.getTime()))return .35;
+  const diff=Math.abs(d.getHours()-hour);
+  return Math.max(0,1-Math.min(diff,24-diff)/12);
+}
+function liveCatchWeatherScore(c,w){
+  if(!w)return .5;
+  const parts=[];
+  const add=(key,weatherKey,range)=>{const a=Number(c[key]),b=Number(w[weatherKey]);if(Number.isFinite(a)&&Number.isFinite(b))parts.push(Math.max(0,1-Math.abs(a-b)/range));};
+  add('weather_temp_c','temperature_2m',14);add('weather_wind_ms','wind_speed_10m',8);add('weather_clouds','cloud_cover',70);add('weather_precip_mm','precipitation',8);
+  return parts.length?parts.reduce((s,x)=>s+x,0)/parts.length:.5;
+}
+function liveCatchWindLabel(wind){
+  const n=Number(wind);
+  if(!Number.isFinite(n))return 'passendem Wind';
+  if(n<2)return 'ruhigem Wind';
+  if(n<6)return 'leichtem Wind';
+  if(n<10)return 'spürbarem Wind';
+  return 'starkem Wind';
+}
+function liveCatchBestPattern(){
+  const loc=Number.isFinite(liveCatchPredictionState.lat)&&Number.isFinite(liveCatchPredictionState.lng)?{lat:liveCatchPredictionState.lat,lng:liveCatchPredictionState.lng}:null;
+  if(!loc)return {status:'no-location'};
+  const catches=typeof getAnalyticsCatches==='function'?getAnalyticsCatches():(state.catches||[]);
+  const hour=new Date().getHours();
+  const relevant=catches.map(c=>({c,ll:liveCatchLatLng(c)})).filter(x=>x.ll&&liveCatchDistanceKm(loc,x.ll)<=50).map(x=>x.c);
+  if(!relevant.length)return {status:'no-data'};
+  const weather=liveCatchPredictionState.weather;
+  const scored=relevant.map(c=>({c,score:liveCatchTimeScore(c,hour)*.4+liveCatchWeatherScore(c,weather)*.4+.2})).sort((a,b)=>b.score-a.score);
+  const best=scored[0].c;
+  const d=new Date(best.timestamp||best.createdAt);
+  const bestHour=Number.isNaN(d.getTime())?`${String(hour).padStart(2,'0')}:00`:`${String(d.getHours()).padStart(2,'0')}:00`;
+  return {status:'ready',best,relevantCount:relevant.length,hour:bestHour,weather};
+}
+function renderLiveCatchPrediction(){
+  const el=document.getElementById('liveCatchPrediction');
+  if(!el)return;
+  const lat=Number.isFinite(liveCatchPredictionState.lat)?liveCatchPredictionState.lat.toFixed(6):'';
+  const lng=Number.isFinite(liveCatchPredictionState.lng)?liveCatchPredictionState.lng.toFixed(6):'';
+  const result=liveCatchBestPattern();
+  let output='';
+  if(result.status==='no-location')output='<div class="live-prediction-output is-muted">Wähle einen Standort, dann erscheint hier dein aktueller Fangvorschlag.</div>';
+  else if(result.status==='no-data')output='<div class="live-prediction-output is-muted">Für diesen Standort gibt es mit dem aktuellen Filter noch keine passenden Fangdaten.</div>';
+  else{
+    const b=result.best,w=result.weather;
+    const temp=Number(w?.temperature_2m);
+    output=`<div class="live-prediction-output"><small>Beste Chance aktuell:</small><strong>${escapeHtml(speciesName(b)||'Fisch')} · ${escapeHtml(b.bait||'bewährter Köder')} · ${escapeHtml(b.spotLabel||b.location?.label||'passender Spot')} · ca. ${escapeHtml(result.hour)}</strong><span>Bei ${Number.isFinite(temp)?Math.round(temp)+'°':'aktuellen Bedingungen'} und ${liveCatchWindLabel(w?.wind_speed_10m)} besonders effektiv · ${result.relevantCount} lokale Fänge analysiert.</span></div>`;
+  }
+  el.innerHTML=`<div class="panel-head live-prediction-head"><div><h3>Live Catch Prediction</h3><span class="meta">Aktuelle Zeit + Standort + Wetter + gefilterte Fangdaten</span></div><div class="live-prediction-actions"><button type="button" id="livePredictionUseLocation" class="btn secondary">Aktuellen Standort verwenden</button><button type="button" id="livePredictionPickMap" class="btn secondary ${liveCatchPredictionState.pickMode?'active':''}">Auf Karte wählen</button></div></div><div class="live-prediction-grid"><label>Breitengrad<input id="livePredictionLat" readonly value="${lat}" placeholder="–"></label><label>Längengrad<input id="livePredictionLng" readonly value="${lng}" placeholder="–"></label><div id="livePredictionMap" class="live-prediction-map"></div>${output}</div>`;
+  initLiveCatchPredictionMap();
+}
+async function updateLiveCatchPredictionLocation(lat,lng){
+  liveCatchPredictionState.lat=Number(lat);liveCatchPredictionState.lng=Number(lng);renderLiveCatchPrediction();
+  if(typeof getWeather==='function'){
+    liveCatchPredictionState.loadingWeather=true;
+    const data=await getWeather(lat,lng);
+    liveCatchPredictionState.weather=data?.current||null;liveCatchPredictionState.loadingWeather=false;renderLiveCatchPrediction();
+  }
+}
+function initLiveCatchPredictionMap(){
+  const mapEl=document.getElementById('livePredictionMap');
+  if(!mapEl||typeof L==='undefined')return;
+  const lat=liveCatchPredictionState.lat||59.442773,lng=liveCatchPredictionState.lng||11.654906;
+  if(!liveCatchPredictionState.map||liveCatchPredictionState.map._container!==mapEl){
+    if(liveCatchPredictionState.map){try{liveCatchPredictionState.map.remove();}catch(e){}}
+    liveCatchPredictionState.map=null;
+    liveCatchPredictionState.marker=null;
+    liveCatchPredictionState.map=L.map(mapEl,{zoomControl:false,attributionControl:false}).setView([lat,lng],8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(liveCatchPredictionState.map);
+    liveCatchPredictionState.map.on('click',e=>{if(liveCatchPredictionState.pickMode)updateLiveCatchPredictionLocation(e.latlng.lat,e.latlng.lng);});
+  }
+  setTimeout(()=>liveCatchPredictionState.map?.invalidateSize(),40);
+  liveCatchPredictionState.map.setView([lat,lng],Number.isFinite(liveCatchPredictionState.lat)?11:8);
+  if(Number.isFinite(liveCatchPredictionState.lat)&&Number.isFinite(liveCatchPredictionState.lng)){
+    if(liveCatchPredictionState.marker)liveCatchPredictionState.marker.setLatLng([liveCatchPredictionState.lat,liveCatchPredictionState.lng]);
+    else liveCatchPredictionState.marker=L.marker([liveCatchPredictionState.lat,liveCatchPredictionState.lng]).addTo(liveCatchPredictionState.map);
+  }
+}
+
 function renderPremiumAnalyticsDashboard(){
   const hero=document.getElementById('analyticsOverviewKpis');
   const summaryEl=document.getElementById('analyticsExecutiveSummary');
@@ -1760,6 +1853,7 @@ function renderPremiumAnalyticsDashboard(){
     window.rerenderAnalyticsView=function(){
       const result=originalRerenderAnalyticsView.apply(this,arguments);
       renderPremiumAnalyticsDashboard();
+      renderLiveCatchPrediction();
       return result;
     };
     try{rerenderAnalyticsView=window.rerenderAnalyticsView;}catch(e){}
@@ -1771,8 +1865,18 @@ function renderPremiumAnalyticsDashboard(){
     const current=Number(item.closest('.analytics-signature-intel')?.dataset.activeSignature);
     refreshPatternSignatureIntelligence(current===next?-1:next);
   });
-  document.addEventListener('DOMContentLoaded',()=>setTimeout(renderPremiumAnalyticsDashboard,0));
-  window.addEventListener('load',()=>setTimeout(renderPremiumAnalyticsDashboard,120));
+  document.addEventListener('click',e=>{
+    if(e.target?.id==='livePredictionUseLocation'){
+      if(!navigator.geolocation)return alert('Geolocation wird auf diesem Gerät nicht unterstützt.');
+      navigator.geolocation.getCurrentPosition(pos=>updateLiveCatchPredictionLocation(pos.coords.latitude,pos.coords.longitude),()=>alert('Standort konnte nicht ermittelt werden. Bitte Berechtigung prüfen.'));
+    }
+    if(e.target?.id==='livePredictionPickMap'){
+      liveCatchPredictionState.pickMode=!liveCatchPredictionState.pickMode;
+      renderLiveCatchPrediction();
+    }
+  });
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{renderPremiumAnalyticsDashboard();renderLiveCatchPrediction();},0));
+  window.addEventListener('load',()=>setTimeout(()=>{renderPremiumAnalyticsDashboard();renderLiveCatchPrediction();},120));
 })();
 
 
