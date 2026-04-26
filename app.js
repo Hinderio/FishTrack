@@ -2309,11 +2309,19 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           );
       
           // 🔥 echter Heatmap-Look
-          gradient.addColorStop(0.0, `rgba(255,255,200,${0.9 * intensity})`);
-          gradient.addColorStop(0.3, `rgba(255,200,0,${0.8 * intensity})`);
-          gradient.addColorStop(0.5, `rgba(255,120,0,${0.7 * intensity})`);
-          gradient.addColorStop(0.7, `rgba(255,0,0,${0.5 * intensity})`);
-          gradient.addColorStop(1.0, `rgba(255,0,0,0)`);
+          const gradient = ctx.createRadialGradient(
+            x, y, 0,
+            x, y, radius
+          );
+          
+          // 🔥 echte Heatmap-Farbskala (wie dein Referenzbild)
+          gradient.addColorStop(0.0, `rgba(255,255,200,${1.0 * intensity})`);  // weiß-gelb
+          gradient.addColorStop(0.15, `rgba(255,220,100,${0.95 * intensity})`);
+          gradient.addColorStop(0.3, `rgba(255,160,0,${0.9 * intensity})`);
+          gradient.addColorStop(0.5, `rgba(255,60,0,${0.75 * intensity})`);
+          gradient.addColorStop(0.7, `rgba(255,0,0,${0.6 * intensity})`);
+          gradient.addColorStop(0.85, `rgba(0,200,120,${0.45 * intensity})`);  // 🔥 GRÜN
+          gradient.addColorStop(1.0, `rgba(0,120,255,0)`);                     // 🔥 BLAU AUSLAUF
       
           ctx.fillStyle = gradient;
           ctx.beginPath();
