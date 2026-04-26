@@ -2268,12 +2268,15 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         console.log('DRAWING POINTS:', this._data.length);
       
-        // 🔥 größer = weichere Flächen
-        const radius = Math.max(60, this._map.getZoom() * 12);
+        // 🔥 stabileres Zoom-Verhalten
+        const zoom = this._map.getZoom();
+        const radius = Math.max(40, Math.pow(2, zoom - 5));
       
-        // 🔥 GRID (Dichte berechnen)
+        // 🔥 feinere Dichte
+        const cellSize = 30;
+      
+        // 🔥 GRID
         const grid = new Map();
-        const cellSize = 40;
       
         this._data.forEach(p => {
           const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
@@ -2289,12 +2292,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 PHASE 1: INTENSITY (NUR WEISS!)
+        // 🔥 PHASE 1: INTENSITY
         // =========================================================
       
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 1;
-        ctx.filter = 'blur(35px)';
+        ctx.filter = 'blur(25px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
@@ -2302,15 +2305,17 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          // 🔥 smoother falloff (WICHTIG!)
-          const intensity = Math.pow(count / max, 0.6);
+          // 🔥 entscheidend: bessere Skalierung
+          let intensity = Math.pow(count / max, 0.35);
+      
+          // 🔥 cap gegen Weiß-Explosion
+          intensity = Math.min(intensity, 0.85);
       
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
       
-          // ❗ NUR WEISS → KEINE FARBEN!
           gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
           gradient.addColorStop(1, `rgba(255,255,255,0)`);
       
@@ -2323,7 +2328,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.filter = 'none';
       
         // =========================================================
-        // 🎨 PHASE 2: COLORIZE (MAGIE)
+        // 🎨 PHASE 2: COLORIZE
         // =========================================================
       
         const imageData = ctx.getImageData(0, 0, size.x, size.y);
@@ -2331,30 +2336,29 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         for (let i = 0; i < pixels.length; i += 4) {
           const alpha = pixels[i + 3] / 255;
-      
           if (alpha === 0) continue;
       
           let r, g, b;
       
-          if (alpha < 0.25) {
-            // 🔵 blau
+          if (alpha < 0.15) {
+            // 🔵 blau → grün
             r = 0;
-            g = 120 * (alpha / 0.25);
+            g = 120 * (alpha / 0.15);
             b = 255;
-          } else if (alpha < 0.5) {
+          } else if (alpha < 0.4) {
             // 🟢 grün
             r = 0;
             g = 200;
-            b = 255 * (1 - (alpha - 0.25) / 0.25);
-          } else if (alpha < 0.75) {
+            b = 255 * (1 - (alpha - 0.15) / 0.25);
+          } else if (alpha < 0.7) {
             // 🟡 gelb
-            r = 255 * ((alpha - 0.5) / 0.25);
+            r = 255 * ((alpha - 0.4) / 0.3);
             g = 255;
             b = 0;
           } else {
             // 🔴 rot
             r = 255;
-            g = 255 * (1 - (alpha - 0.75) / 0.25);
+            g = 255 * (1 - (alpha - 0.7) / 0.3);
             b = 0;
           }
       
