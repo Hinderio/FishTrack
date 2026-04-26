@@ -2268,14 +2268,13 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         console.log('DRAWING POINTS:', this._data.length);
       
-        // 🔥 stabileres Zoom-Verhalten
+        // 🔥 Zoom stabil
         const zoom = this._map.getZoom();
         const radius = Math.max(40, Math.pow(2, zoom - 5));
       
-        // 🔥 feinere Dichte
+        // 🔥 Dichte
         const cellSize = 30;
       
-        // 🔥 GRID
         const grid = new Map();
       
         this._data.forEach(p => {
@@ -2292,12 +2291,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 PHASE 1: INTENSITY
+        // 🔥 DIRECT COLOR HEATMAP (kein Weiß, kein Colorize)
         // =========================================================
       
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 1;
-        ctx.filter = 'blur(25px)';
+        ctx.filter = 'blur(20px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
@@ -2305,19 +2304,20 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          // 🔥 entscheidend: bessere Skalierung
-          let intensity = Math.pow(count / max, 0.35);
-      
-          // 🔥 cap gegen Weiß-Explosion
-          intensity = Math.min(intensity, 0.85);
+          let intensity = Math.pow(count / max, 0.45);
+          intensity = Math.min(intensity, 1);
       
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
       
-          gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
-          gradient.addColorStop(1, `rgba(255,255,255,0)`);
+          // 🔥 Heatmap-Farbskala (nah an deinem Referenzbild)
+          gradient.addColorStop(0.0, `rgba(255,255,0,${1.0 * intensity})`);   // gelb (core)
+          gradient.addColorStop(0.25, `rgba(255,170,0,${0.9 * intensity})`);  // orange
+          gradient.addColorStop(0.5, `rgba(255,0,0,${0.7 * intensity})`);     // rot
+          gradient.addColorStop(0.75, `rgba(0,200,0,${0.45 * intensity})`);   // grün
+          gradient.addColorStop(1.0, `rgba(0,0,255,0)`);                      // blau fade
       
           ctx.fillStyle = gradient;
           ctx.beginPath();
@@ -2325,51 +2325,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           ctx.fill();
         });
       
-        ctx.filter = 'none';
-      
-        // =========================================================
-        // 🎨 PHASE 2: COLORIZE
-        // =========================================================
-      
-        const imageData = ctx.getImageData(0, 0, size.x, size.y);
-        const pixels = imageData.data;
-      
-        for (let i = 0; i < pixels.length; i += 4) {
-          const alpha = pixels[i + 3] / 255;
-          if (alpha === 0) continue;
-      
-          let r, g, b;
-      
-          if (alpha < 0.15) {
-            // 🔵 blau → grün
-            r = 0;
-            g = 120 * (alpha / 0.15);
-            b = 255;
-          } else if (alpha < 0.4) {
-            // 🟢 grün
-            r = 0;
-            g = 200;
-            b = 255 * (1 - (alpha - 0.15) / 0.25);
-          } else if (alpha < 0.7) {
-            // 🟡 gelb
-            r = 255 * ((alpha - 0.4) / 0.3);
-            g = 255;
-            b = 0;
-          } else {
-            // 🔴 rot
-            r = 255;
-            g = 255 * (1 - (alpha - 0.7) / 0.3);
-            b = 0;
-          }
-      
-          pixels[i]     = r;
-          pixels[i + 1] = g;
-          pixels[i + 2] = b;
-        }
-      
-        ctx.putImageData(imageData, 0, 0);
-      
         // 🔥 RESET
+        ctx.filter = 'none';
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
