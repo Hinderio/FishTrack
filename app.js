@@ -163,7 +163,11 @@ async function saveCatchToSupabase(entry) {
   };
 
   // ✅ OPTION A: Wetter IMMER beim Speichern holen (robust & unabhängig)
-  if (entry.location?.lat != null && entry.location?.lng != null) {
+  if (
+  entry.location?.lat != null &&
+  entry.location?.lng != null &&
+  !entry.weather_fetched_at   // 🔥 DIESE ZEILE IST DER FIX
+) {
     try {
       const data = await getWeather(entry.location.lat, entry.location.lng);
 
