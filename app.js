@@ -1022,6 +1022,17 @@ function getZoneFilteredCatches() {
     ? getDashboardCatches()
     : state.catches;
 
+  /* WEATHER CALC START */
+  const weatherSamples = base.filter(c => c.weather_temp_c != null);
+
+  const avgWeather = weatherSamples.length ? {
+    temp: weatherSamples.reduce((s,c)=>s+c.weather_temp_c,0)/weatherSamples.length,
+    wind: weatherSamples.reduce((s,c)=>s+c.weather_wind_ms,0)/weatherSamples.length,
+    clouds: weatherSamples.reduce((s,c)=>s+c.weather_clouds,0)/weatherSamples.length,
+    rain: weatherSamples.reduce((s,c)=>s+c.weather_precip_r,0)/weatherSamples.length,
+  } : null;
+  /* WEATHER CALC END */
+
   if (!window.selectedHeatmapZone) return base;
 
   return base.filter(c => {
