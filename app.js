@@ -2175,10 +2175,18 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   function validHeatmapPoints(){
     return (state?.catches || [])
       .map(c => {
-        const lat = Number(c.latitude ?? c.location?.lat);
-        const lng = Number(c.longitude ?? c.location?.lng);
+        const latRaw = c.latitude ?? c.location?.lat;
+        const lngRaw = c.longitude ?? c.location?.lng;
   
+        // 🚨 KRITISCH: NULL/UNDEFINED vorher prüfen
+        if (latRaw == null || lngRaw == null) return null;
+  
+        const lat = Number(latRaw);
+        const lng = Number(lngRaw);
+  
+        // 🚨 zusätzlich: 0,0 rauswerfen (Fake-Koordinate)
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        if (lat === 0 && lng === 0) return null;
   
         return {
           lat,
