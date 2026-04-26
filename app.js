@@ -1510,6 +1510,70 @@ function buildPremiumAnalyticsModel(){
 function premiumInsightCard(icon,label,value,detail){
   return `<article class="analytics-insight-card"><span class="analytics-insight-icon">${icon}</span><div><small>${escapeHtml(label)}</small><strong>${escapeHtml(String(value||'–'))}</strong><p>${escapeHtml(detail||'')}</p></div></article>`;
 }
+
+function analyticsDateKey(c){
+  const d=new Date(c.timestamp||c.createdAt);
+  if(Number.isNaN(d.getTime()))return null;
+  return d;
+}
+function buildCatchFlowIntelligence(m){
+  const catches=[...m.catches].map(c=>({catch:c,date:analyticsDateKey(c)})).filter(x=>x.date).sort((a,b)=>a.date-b.date);
+  if(!catches.length){
+    return `<article class="analytics-intel-visual analytics-flow-intel"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence</small><h4>Noch keine Fangphasen</h4></div><span>Flow</span></div><div class="analytics-intel-empty">Sobald Fänge vorhanden sind, zeigt diese Fläche automatisch Dichte-Wellen, Peaks und aktive Fangfenster.</div></article>`;
+  }
+  const start=new Date(catches[0].date);start.setHours(0,0,0,0);
+  const end=new Date(catches[catches.length-1].date);end.setHours(0,0,0,0);
+  const dayMs=86400000;
+  const days=Math.max(1,Math.round((end-start)/dayMs)+1);
+  const buckets=Array.from({length:Math.min(Math.max(days,7),14)},()=>({label:'',count:0,weight:0,species:new Map()}));
+  catches.forEach(x=>{
+    const raw=Math.floor((new Date(x.date).setHours(0,0,0,0)-start)/dayMs);
+    const idx=Math.min(buckets.length-1,Math.max(0,Math.floor(raw/Math.max(1,days/buckets.length))));
+    buckets[idx].count+=1;
+    buckets[idx].weight+=Number(x.catch.weightKg||0);
+    const sp=speciesName(x.catch)||'Unbekannt';
+    buckets[idx].species.set(sp,(buckets[idx].species.get(sp)||0)+1);
+  });
+  buckets.forEach((b,i)=>{const d=new Date(start.getTime()+Math.round(i*Math.max(1,days/buckets.length))*dayMs);b.label=d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit'});});
+  const max=Math.max(...buckets.map(b=>b.count),1);
+  const points=buckets.map((b,i)=>({x:8+(i/(Math.max(1,buckets.length-1)))*84,y:74-(b.count/max)*46,count:b.count,label:b.label,weight:b.weight}));
+  const path=points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+  const area=`${path} L 92 86 L 8 86 Z`;
+  const peak=points.reduce((a,b)=>b.count>a.count?b:a,points[0]);
+  const active=buckets.filter(b=>b.count>0).length;
+  const dominant=buckets.reduce((a,b)=>b.count>a.count?b:a,buckets[0]);
+  const topSpecies=[...dominant.species.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'–';
+  return `<article class="analytics-intel-visual analytics-flow-intel"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence</small><h4>Fangphasen als lebendige Dichte-Welle</h4></div><span>${active}/${buckets.length}</span></div><div class="analytics-flow-stage"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".46"/><stop offset="1" stop-color="var(--accent)" stop-opacity=".18"/></linearGradient><filter id="flowGlow"><feGaussianBlur stdDeviation="2.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="flow-area" d="${area}"></path><path class="flow-line flow-line-back" d="${path}"></path><path class="flow-line" d="${path}"></path>${points.map(p=>p.count?`<circle class="flow-dot ${p===peak?'is-peak':''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${(1.7+(p.count/max)*3.4).toFixed(2)}"></circle>`:'').join('')}</svg><div class="flow-axis">${buckets.map((b)=>`<span class="${b.count===max&&b.count?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="analytics-intel-facts"><span><b>${peak.count}</b> Fänge im Peak</span><span><b>${escapeHtml(topSpecies)}</b> dominiert die stärkste Phase</span><span><b>${fmtKg(dominant.weight)}</b> im aktivsten Fenster</span></div></article>`;
+}
+function buildPatternSignatureIntelligence(m){
+  if(!m.catches.length){
+    return `<article class="analytics-intel-visual analytics-signature-intel"><div class="analytics-intel-head"><div><small>Pattern Signature</small><h4>Noch keine Erfolgs-DNA</h4></div><span>DNA</span></div><div class="analytics-intel-empty">Mit Fangdaten verknüpft diese Ansicht Spot, Köder, Zeit und Fischart zu automatisch erkannten Erfolgsmustern.</div></article>`;
+  }
+  const combo=new Map();
+  m.catches.forEach(c=>{
+    const d=new Date(c.timestamp||c.createdAt);
+    const hour=Number.isNaN(d.getTime())?'–':`${String(d.getHours()).padStart(2,'0')}:00`;
+    const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';
+    const bait=c.bait||'Unbekannter Köder';
+    const sp=speciesName(c)||'Unbekannte Art';
+    const key=[spot,bait,hour,sp].join('|||');
+    const item=combo.get(key)||{spot,bait,hour,species:sp,count:0,weight:0,length:0};
+    item.count+=1;item.weight+=Number(c.weightKg||0);item.length+=Number(c.lengthCm||0);combo.set(key,item);
+  });
+  const patterns=[...combo.values()].map(x=>({...x,score:x.count*3+(x.weight||0)*.6+(x.length/(x.count||1))*0.015})).sort((a,b)=>b.score-a.score).slice(0,5);
+  const best=patterns[0];
+  const max=Math.max(...patterns.map(p=>p.score),1);
+  const nodes=[
+    {label:best.spot,type:'Spot',x:50,y:13,size:1},
+    {label:best.bait,type:'Köder',x:84,y:43,size:.86},
+    {label:best.hour,type:'Zeit',x:66,y:82,size:.72},
+    {label:best.species,type:'Art',x:18,y:63,size:.78}
+  ];
+  return `<article class="analytics-intel-visual analytics-signature-intel"><div class="analytics-intel-head"><div><small>Pattern Signature / Erfolgs-DNA</small><h4>Stärkste Kombination aus Spot, Köder, Zeit & Art</h4></div><span>${best.count}×</span></div><div class="signature-stage"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="signatureCore" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".9"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".22"/></radialGradient></defs>${nodes.map(n=>`<line class="signature-link" x1="50" y1="50" x2="${n.x}" y2="${n.y}"></line>`).join('')}<circle class="signature-orbit" cx="50" cy="50" r="31"></circle><circle class="signature-core" cx="50" cy="50" r="11"></circle>${nodes.map(n=>`<circle class="signature-node" cx="${n.x}" cy="${n.y}" r="${(7+n.size*5).toFixed(1)}"></circle>`).join('')}</svg>${nodes.map(n=>`<div class="signature-label" style="left:${n.x}%;top:${n.y}%"><small>${escapeHtml(n.type)}</small><strong>${escapeHtml(n.label)}</strong></div>`).join('')}<div class="signature-center"><small>Match</small><strong>${Math.round((best.score/max)*100)}%</strong></div></div><div class="signature-rank">${patterns.map((p,i)=>`<span style="--rank:${Math.max(.16,p.score/max).toFixed(2)}"><b>#${i+1}</b>${escapeHtml(p.spot)} · ${escapeHtml(p.bait)}</span>`).join('')}</div></article>`;
+}
+function renderAnalyticsIntelligenceVisuals(m){
+  return [buildCatchFlowIntelligence(m),buildPatternSignatureIntelligence(m)].join('');
+}
 function renderPremiumAnalyticsDashboard(){
   const hero=document.getElementById('analyticsOverviewKpis');
   const summaryEl=document.getElementById('analyticsExecutiveSummary');
@@ -1543,12 +1607,7 @@ function renderPremiumAnalyticsDashboard(){
     ].join(''):'<article class="analytics-empty glass">Noch keine Daten für Top Insights.</article>';
   }
   if(intelEl){
-    const cards=[];
-    cards.push(premiumInsightCard('⏰','Aktivitätsmuster',m.bestHour.count?`${String(m.bestHour.hour).padStart(2,'0')}:00 Uhr`:'–',m.bestHour.count?`Stärkstes Zeitfenster mit ${m.bestHour.count} Fang${m.bestHour.count===1?'':'en'}.`:'Noch kein belastbares Zeitmuster.'));
-    cards.push(premiumInsightCard('📅','Bester Wochentag',m.bestDay.count?m.bestDay.day:'–',m.bestDay.count?`${m.bestDay.count} Fang${m.bestDay.count===1?'':'e'} an diesem Wochentag.`:'Noch kein Wochentagsmuster.'));
-    cards.push(premiumInsightCard('🧪','Beste Kombination',m.topCombo?.[0]||'–',m.topCombo?`${m.topCombo[1]} Treffer mit dieser Spot-Köder-Kombi.`:'Noch keine Kombination erkennbar.'));
-    cards.push(premiumInsightCard('⚡','Punkte-Effizienz',m.efficient?.name||'–',m.efficient?`${m.efficient.pointsPerCatch.toFixed(1)} Punkte pro Fang.`:'Noch keine Fangwertung vorhanden.'));
-    intelEl.innerHTML=cards.join('');
+    intelEl.innerHTML=renderAnalyticsIntelligenceVisuals(m);
   }
 }
 
