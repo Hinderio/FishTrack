@@ -2268,8 +2268,31 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         console.log('DRAWING POINTS:', this._data.length);
       
-        ctx.fillStyle = 'red';
-        ctx.fillRect(50, 50, 100, 100);
+        const radius = Math.max(40, this._map.getZoom() * 8);
+        ctx.globalCompositeOperation = 'lighter';
+        
+        this._data.forEach(p => {
+          const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
+        
+          if (!pt) return;
+        
+          const gradient = ctx.createRadialGradient(
+            pt.x, pt.y, 0,
+            pt.x, pt.y, radius
+          );
+        
+          gradient.addColorStop(0, 'rgba(74,215,209,0.9)');
+          gradient.addColorStop(0.3, 'rgba(74,215,209,0.6)');
+          gradient.addColorStop(0.6, 'rgba(74,215,209,0.25)');
+          gradient.addColorStop(1, 'rgba(74,215,209,0)');
+        
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        
+        ctx.globalCompositeOperation = 'source-over';
       }
     });
   }
