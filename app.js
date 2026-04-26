@@ -720,7 +720,7 @@ if (typeof renderMap === 'function') {
         fitAllNew(points);
       
         // ✅ exakt gleiche Logik wie Button
-      const btn = document.querySelector('[data-action="show-all"], #showAllBtn, .show-all-btn');
+      const btn = document.querySelector('.map-action-btn');
       if (btn) btn.classList.add('active');
       
         initialFitAllDone = true;
