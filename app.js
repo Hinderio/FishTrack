@@ -2219,31 +2219,32 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       onAdd(mapInstance){
         this._map = mapInstance;
       
-        this._canvas = L.DomUtil.create(
-          'canvas',
-          'analytics-catch-heatmap-canvas leaflet-zoom-animated'
-        );
+        this._canvas = document.createElement('canvas');
+        this._canvas.className = 'analytics-catch-heatmap-canvas';
       
-        // 👉 Canvas sichtbar machen
         this._canvas.style.position = 'absolute';
+        this._canvas.style.inset = '0';
+        this._canvas.style.width = '100%';
+        this._canvas.style.height = '100%';
         this._canvas.style.pointerEvents = 'none';
+        this._canvas.style.zIndex = '99999';
         this._canvas.style.mixBlendMode = 'normal';
-        this._canvas.style.zIndex = '10000';
       
-        // 👉 🔥 DAS HIER HAT DIR GEFÄHLT
-        const panes = mapInstance.getPanes();
-        panes.overlayPane.style.zIndex = 10000;
+        mapInstance.getContainer().appendChild(this._canvas);
       
-        panes.overlayPane.appendChild(this._canvas);
-      
-        mapInstance.on('moveend zoomend resize viewreset', this._scheduleDraw, this);
+        mapInstance.on('move zoom moveend zoomend resize viewreset', this._scheduleDraw, this);
         this._scheduleDraw();
       },
       onRemove(mapInstance){
-        mapInstance.off('moveend zoomend resize viewreset',this._scheduleDraw,this);
-        if(this._frame)cancelAnimationFrame(this._frame);
-        if(this._canvas&&this._canvas.parentNode)this._canvas.parentNode.removeChild(this._canvas);
-        this._canvas=null;
+        mapInstance.off('move zoom moveend zoomend resize viewreset', this._scheduleDraw, this);
+      
+        if(this._frame) cancelAnimationFrame(this._frame);
+      
+        if(this._canvas && this._canvas.parentNode){
+          this._canvas.parentNode.removeChild(this._canvas);
+        }
+      
+        this._canvas = null;
       },
       _scheduleDraw(){
         if(this._frame)cancelAnimationFrame(this._frame);
@@ -2253,8 +2254,6 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         if(!this._map || !this._canvas) return;
       
         const size = this._map.getSize();
-        const topLeft = this._map.containerPointToLayerPoint([0,0]);
-        L.DomUtil.setPosition(this._canvas, topLeft);
       
         const ratio = window.devicePixelRatio || 1;
         this._canvas.width = Math.max(1, Math.round(size.x * ratio));
