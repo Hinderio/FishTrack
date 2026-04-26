@@ -1664,8 +1664,8 @@ function buildPatternSignatureIntelligence(m,activeIndex=-1){
     const bait=c.bait||'Unbekannter Köder';
     const sp=speciesName(c)||'Unbekannte Art';
     const key=[spot,bait,hour,sp].join('|||');
-    const item=combo.get(key)||{spot,bait,hour,species:sp,count:0,weight:0,length:0};
-    item.count+=1;item.weight+=Number(c.weightKg||0);item.length+=Number(c.lengthCm||0);combo.set(key,item);
+    const item=combo.get(key)||{spot,bait,hour,species:sp,count:0,weight:0,length:0,catches:[]};
+    item.count+=1;item.weight+=Number(c.weightKg||0);item.length+=Number(c.lengthCm||0);item.catches.push(c);combo.set(key,item);
   });
   const patterns=[...combo.values()].map(x=>({...x,score:x.count*4+(x.weight||0)*.75+(x.length/(x.count||1))*0.018})).sort((a,b)=>b.score-a.score).slice(0,6);
   const max=Math.max(...patterns.map(p=>p.score),1);
@@ -1673,7 +1673,7 @@ function buildPatternSignatureIntelligence(m,activeIndex=-1){
   const isMaster=Number.isNaN(requestedIndex)||requestedIndex<0;
   const selectedIndex=isMaster?-1:Math.max(0,Math.min(patterns.length-1,requestedIndex));
   const topFrom=(field,fallback)=>{const map=new Map();patterns.forEach(p=>map.set(p[field],(map.get(p[field])||0)+p.count));return [...map.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||fallback;};
-  const best=isMaster?{spot:topFrom('spot','Alle Spots'),bait:topFrom('bait','Alle Köder'),hour:topFrom('hour','Alle Zeiten'),species:topFrom('species','Alle Arten'),count:patterns.reduce((sum,p)=>sum+p.count,0),weight:patterns.reduce((sum,p)=>sum+p.weight,0),length:patterns.reduce((sum,p)=>sum+p.length,0),score:patterns.reduce((sum,p)=>sum+p.score,0)}:(patterns[selectedIndex]||patterns[0]);
+  const best=isMaster?{spot:topFrom('spot','Alle Spots'),bait:topFrom('bait','Alle Köder'),hour:topFrom('hour','Alle Zeiten'),species:topFrom('species','Alle Arten'),count:patterns.reduce((sum,p)=>sum+p.count,0),weight:patterns.reduce((sum,p)=>sum+p.weight,0),length:patterns.reduce((sum,p)=>sum+p.length,0),score:patterns.reduce((sum,p)=>sum+p.score,0),catches:m.catches}:(patterns[selectedIndex]||patterns[0]);
   const dim=[
     {key:'spot',type:'Spot',label:best.spot,x:50,y:21},
     {key:'bait',type:'Köder',label:best.bait,x:74,y:50},
@@ -1688,7 +1688,7 @@ function buildPatternSignatureIntelligence(m,activeIndex=-1){
   const headTitle=isMaster?'Aggregierte Master-Signatur':'Dominante Erfolgs-Signatur';
   const headValue=isMaster?'100%':`${Math.round(best.score/max*100)}%`;
   const centerLabel=isMaster?'Master DNA':'Signature';
-  const catchesWithData=m.catches||[];
+  const catchesWithData=best.catches||m.catches||[];
   const avgLength=catchesWithData.length>0?catchesWithData.reduce((sum,c)=>sum+Number(c.lengthCm??c.length_cm??0),0)/catchesWithData.length:null;
   const weatherData=catchesWithData.filter(c=>c.weather_temp_c!=null||c.weather_wind_ms!=null||c.weather_clouds!=null||c.weather_precip_mm!=null);
   const weatherAvg=weatherData.length?(()=>{const avg=key=>weatherData.reduce((sum,c)=>sum+Number(c[key]||0),0)/weatherData.length;return {temp:avg('weather_temp_c'),wind:avg('weather_wind_ms'),clouds:avg('weather_clouds'),rain:avg('weather_precip_mm')};})():null;
