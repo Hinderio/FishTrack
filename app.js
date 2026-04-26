@@ -1489,10 +1489,8 @@ function analyticsAvg(values){
   const nums=values.map(Number).filter(Number.isFinite);
   return nums.length?nums.reduce((s,v)=>s+v,0)/nums.length:0;
 }
-function buildPremiumAnalyticsModel(catchesOverride){
-  const catches=[...(Array.isArray(catchesOverride)?catchesOverride:(state.catches||[]))];
-  const originalCatches=state.catches;
-  if(Array.isArray(catchesOverride)) state.catches=catches;
+function buildPremiumAnalyticsModel(){
+  const catches=[...(state.catches||[])];
   const summary=typeof computeSummary==='function'?computeSummary():null;
   const species=analyticsCountBy(catches,c=>speciesName(c));
   const spots=analyticsCountBy(catches,c=>c.spotLabel||c.location?.label||'Unbekannter Spot');
@@ -1506,7 +1504,6 @@ function buildPremiumAnalyticsModel(catchesOverride){
   catches.forEach(c=>{const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';const bait=c.bait||'Unbekannter Köder';const key=`${spot} × ${bait}`;comboMap.set(key,(comboMap.get(key)||0)+1);});
   const topCombo=[...comboMap.entries()].sort((a,b)=>b[1]-a[1])[0];
   const pStats=typeof computeParticipantStats==='function'?computeParticipantStats():[];
-  if(Array.isArray(catchesOverride)) state.catches=originalCatches;
   const efficient=[...pStats].filter(p=>p.count>0).map(p=>({...p,pointsPerCatch:p.points/p.count})).sort((a,b)=>b.pointsPerCatch-a.pointsPerCatch)[0];
   return {catches,summary,species,spots,baits,hours,weekdays,bestHour,bestDay,topCombo,pStats,efficient,totalWeight:catches.reduce((s,c)=>s+Number(c.weightKg||0),0),avgLength:analyticsAvg(catches.map(c=>c.lengthCm)),avgWeight:analyticsAvg(catches.map(c=>c.weightKg))};
 }
@@ -1588,7 +1585,7 @@ function buildCatchFlowIntelligence(m){
   const pred=analyticsPredictionHint(m,'Flow');
   return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Automatisch erkannte Fangphasen</h4></div><span>${top.phase}</span></div><div class="flow-v2-stage"><div class="flow-zone-rail">${segments}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowV2A" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".12"/><stop offset=".52" stop-color="var(--accent)" stop-opacity=".36"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".10"/></linearGradient><filter id="flowV2Glow"><feGaussianBlur stdDeviation="3.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="flow-v2-band flow-v2-low" d="${waveLow}"></path><path class="flow-v2-band flow-v2-mid" d="${waveMid}"></path><path class="flow-v2-band flow-v2-high" d="${waveHigh}"></path><path class="flow-v2-spine" d="${path}"></path>${points.map((p,i)=>p.count?`<circle class="flow-v2-pulse ${i===topIdx?'is-core':''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${(2+p.density*5).toFixed(2)}"></circle>`:'').join('')}<circle class="flow-v2-aura" cx="${top.x.toFixed(2)}" cy="${top.y.toFixed(2)}" r="${(top.r+6).toFixed(2)}"></circle></svg><div class="flow-v2-axis">${smooth.map((b,i)=>`<span class="${i===topIdx?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="intel-prediction-card"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.species)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="analytics-intel-facts"><span><b>${top.count}</b> Peak-Fänge</span><span><b>${escapeHtml(topSpecies)}</b> stärkste Phase</span><span><b>${fmtKg(top.weight)}</b> Peak-Gewicht</span></div></article>`;
 }
-function buildPatternSignatureIntelligence(m,activeIndex=0){
+function buildPatternSignatureIntelligence(m){
   if(!m.catches.length){
     return `<article class="analytics-intel-visual analytics-signature-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Pattern DNA v2</small><h4>Noch keine Erfolgs-DNA</h4></div><span>DNA</span></div><div class="analytics-intel-empty">Mit Fangdaten verknüpft diese Ansicht Spot, Köder, Zeit und Fischart zu automatisch erkannten Erfolgsmustern.</div></article>`;
   }
@@ -1604,35 +1601,22 @@ function buildPatternSignatureIntelligence(m,activeIndex=0){
     item.count+=1;item.weight+=Number(c.weightKg||0);item.length+=Number(c.lengthCm||0);combo.set(key,item);
   });
   const patterns=[...combo.values()].map(x=>({...x,score:x.count*4+(x.weight||0)*.75+(x.length/(x.count||1))*0.018})).sort((a,b)=>b.score-a.score).slice(0,6);
-  activeIndex=Math.max(0,Math.min(patterns.length-1,Number(activeIndex)||0));
-  const best=patterns[activeIndex]||patterns[0];
+  const best=patterns[0];
   const max=Math.max(...patterns.map(p=>p.score),1);
   const dim=[
-    {key:'spot',type:'Spot',label:best.spot,x:50,y:18},
-    {key:'bait',type:'Köder',label:best.bait,x:78,y:50},
-    {key:'hour',type:'Zeit',label:best.hour,x:50,y:82},
-    {key:'species',type:'Art',label:best.species,x:22,y:50}
+    {key:'spot',type:'Spot',label:best.spot,x:50,y:14},
+    {key:'bait',type:'Köder',label:best.bait,x:84,y:43},
+    {key:'hour',type:'Zeit',label:best.hour,x:66,y:82},
+    {key:'species',type:'Art',label:best.species,x:18,y:63}
   ];
-  const alt=patterns.filter((_,i)=>i!==activeIndex).slice(0,4).map((p,i)=>({label:p.spot===best.spot?p.bait:p.spot,score:p.score,x:[32,68,32,68][i],y:[30,30,70,70][i]}));
-  const selectedScale=analyticsSafePct(best.score/max,.42);
-  const links=dim.map((n,i)=>`<line class="dna-link dna-link-main" style="--w:${(1.45+selectedScale*1.25).toFixed(2)}" x1="50" y1="50" x2="${n.x}" y2="${n.y}"></line>`).join('')+
-    alt.map(a=>`<line class="dna-link dna-link-alt" style="--w:${(.72+a.score/max*.9).toFixed(2)}" x1="50" y1="50" x2="${a.x}" y2="${a.y}"></line>`).join('');
+  const alt=patterns.slice(1,5).map((p,i)=>({label:p.spot===best.spot?p.bait:p.spot,score:p.score,x:[27,74,33,78][i],y:[28,28,82,70][i]}));
+  const links=dim.map((n,i)=>`<line class="dna-link dna-link-main" style="--w:${(2.2+(best.score/max)*4).toFixed(2)}" x1="50" y1="50" x2="${n.x}" y2="${n.y}"></line>`).join('')+
+    alt.map(a=>`<line class="dna-link dna-link-alt" style="--w:${(1+a.score/max*2.5).toFixed(2)}" x1="50" y1="50" x2="${a.x}" y2="${a.y}"></line>`).join('');
   const pred=analyticsPredictionHint(m,'DNA');
-  return `<article class="analytics-intel-visual analytics-signature-intel analytics-intel-v2" data-active-signature="${activeIndex}"><div class="analytics-intel-head"><div><small>Pattern DNA v2 + Prediction</small><h4>Dominante Erfolgs-Signatur</h4></div><span>${Math.round(best.score/max*100)}%</span></div><div class="dna-v2-stage"><svg viewBox="0 0 100 100" aria-hidden="true" preserveAspectRatio="xMidYMid meet"><defs><radialGradient id="dnaCoreV2" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".82"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".14"/></radialGradient></defs><circle class="dna-orbit dna-orbit-a" cx="50" cy="50" r="31"></circle><circle class="dna-orbit dna-orbit-b" cx="50" cy="50" r="19"></circle>${links}<circle class="dna-core-v2" cx="50" cy="50" r="9.2"></circle>${alt.map(a=>`<circle class="dna-alt-node" style="--s:${analyticsSafePct(a.score/max,.2).toFixed(2)}" cx="${a.x}" cy="${a.y}" r="${(3.6+a.score/max*2.8).toFixed(2)}"></circle>`).join('')}${dim.map(n=>`<circle class="dna-main-node" cx="${n.x}" cy="${n.y}" r="7.2"></circle>`).join('')}</svg>${dim.map(n=>`<div class="dna-label dna-label-${n.key}" style="left:${n.x}%;top:${n.y}%"><small>${escapeHtml(n.type)}</small><strong>${escapeHtml(n.label)}</strong></div>`).join('')}<div class="dna-center"><small>Signature</small><strong>${best.count}×</strong><span>${fmtKg(best.weight)}</span></div></div><div class="intel-prediction-card dna-prediction"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.spot)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="signature-rank signature-rank-v2">${patterns.map((p,i)=>`<button type="button" class="signature-rank-item ${i===activeIndex?'is-active':''} ${i<2?'is-clickable':''}" data-signature-index="${i}" ${i<2?'':'disabled'} style="--rank:${Math.max(.16,p.score/max).toFixed(2)}"><b>#${i+1}</b>${escapeHtml(p.spot)} · ${escapeHtml(p.bait)} · ${escapeHtml(p.hour)}</button>`).join('')}</div></article>`;
+  return `<article class="analytics-intel-visual analytics-signature-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Pattern DNA v2 + Prediction</small><h4>Dominante Erfolgs-Signatur</h4></div><span>${Math.round(best.score/max*100)}%</span></div><div class="dna-v2-stage"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="dnaCoreV2" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".92"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".16"/></radialGradient></defs><circle class="dna-orbit dna-orbit-a" cx="50" cy="50" r="34"></circle><circle class="dna-orbit dna-orbit-b" cx="50" cy="50" r="23"></circle>${links}<circle class="dna-core-v2" cx="50" cy="50" r="12"></circle>${alt.map(a=>`<circle class="dna-alt-node" style="--s:${analyticsSafePct(a.score/max,.2).toFixed(2)}" cx="${a.x}" cy="${a.y}" r="${(4+a.score/max*5).toFixed(2)}"></circle>`).join('')}${dim.map(n=>`<circle class="dna-main-node" cx="${n.x}" cy="${n.y}" r="9.5"></circle>`).join('')}</svg>${dim.map(n=>`<div class="dna-label dna-label-${n.key}" style="left:${n.x}%;top:${n.y}%"><small>${escapeHtml(n.type)}</small><strong>${escapeHtml(n.label)}</strong></div>`).join('')}<div class="dna-center"><small>Signature</small><strong>${best.count}×</strong><span>${fmtKg(best.weight)}</span></div></div><div class="intel-prediction-card dna-prediction"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.spot)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="signature-rank signature-rank-v2">${patterns.map((p,i)=>`<span style="--rank:${Math.max(.16,p.score/max).toFixed(2)}"><b>#${i+1}</b>${escapeHtml(p.spot)} · ${escapeHtml(p.bait)} · ${escapeHtml(p.hour)}</span>`).join('')}</div></article>`;
 }
-function renderAnalyticsIntelligenceVisuals(m,activeSignatureIndex=0){
-  return [buildCatchFlowIntelligence(m),buildPatternSignatureIntelligence(m,activeSignatureIndex)].join('');
-}
-function getFilteredPremiumAnalyticsModel(){
-  const catches=typeof getAnalyticsCatches==='function'?getAnalyticsCatches():(state.catches||[]);
-  return buildPremiumAnalyticsModel(catches);
-}
-function refreshPatternSignatureIntelligence(activeIndex){
-  const intelEl=document.getElementById('analyticsIntelligenceGrid');
-  const current=intelEl?.querySelector('.analytics-signature-intel');
-  if(!intelEl||!current)return;
-  const m=getFilteredPremiumAnalyticsModel();
-  current.outerHTML=buildPatternSignatureIntelligence(m,activeIndex);
+function renderAnalyticsIntelligenceVisuals(m){
+  return [buildCatchFlowIntelligence(m),buildPatternSignatureIntelligence(m)].join('');
 }
 function renderPremiumAnalyticsDashboard(){
   const hero=document.getElementById('analyticsOverviewKpis');
@@ -1667,8 +1651,7 @@ function renderPremiumAnalyticsDashboard(){
     ].join(''):'<article class="analytics-empty glass">Noch keine Daten für Top Insights.</article>';
   }
   if(intelEl){
-    const intelModel=getFilteredPremiumAnalyticsModel();
-    intelEl.innerHTML=renderAnalyticsIntelligenceVisuals(intelModel,0);
+    intelEl.innerHTML=renderAnalyticsIntelligenceVisuals(m);
   }
 }
 
@@ -1682,11 +1665,6 @@ function renderPremiumAnalyticsDashboard(){
     };
     try{rerenderAnalyticsView=window.rerenderAnalyticsView;}catch(e){}
   }
-  document.addEventListener('click',e=>{
-    const item=e.target.closest('.signature-rank-item.is-clickable');
-    if(!item||!document.getElementById('analyticsIntelligenceGrid')?.contains(item))return;
-    refreshPatternSignatureIntelligence(Number(item.dataset.signatureIndex)||0);
-  });
   document.addEventListener('DOMContentLoaded',()=>setTimeout(renderPremiumAnalyticsDashboard,0));
   window.addEventListener('load',()=>setTimeout(renderPremiumAnalyticsDashboard,120));
 })();
