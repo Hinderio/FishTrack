@@ -718,6 +718,11 @@ if (typeof renderMap === 'function') {
       // ✅ DEFAULT: „Alle Fänge zeigen“ beim ersten Laden
       if (!initialFitAllDone) {
         fitAllNew(points);
+      
+        // ✅ exakt gleiche Logik wie Button
+      const btn = document.querySelector('[data-action="show-all"], #showAllBtn, .show-all-btn');
+      if (btn) btn.classList.add('active');
+      
         initialFitAllDone = true;
       }
 
@@ -765,8 +770,16 @@ if (typeof renderMap === 'function') {
     if (showAllBtn) {
       showAllBtn.addEventListener('click', () => {
         const bonusMap = getTournamentBonusMap();
-  const points = state.catches.filter(c => c.location && c.location.lat != null && c.location.lng != null);
+        const points = state.catches.filter(c => 
+          c.location && 
+          c.location.lat != null && 
+          c.location.lng != null
+        );
+      
         fitAllNew(points);
+      
+        // ✅ VISUELLER STATE (neu, aber minimal)
+        showAllBtn.classList.add('active');
       });
     }
   });
