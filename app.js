@@ -146,61 +146,40 @@ if (typeof refreshAnalyticsTournamentSelect === 'function') refreshAnalyticsTour
 async function saveCatchToSupabase(entry) {
   if (!db) return;
 
-  const weather = window.__lastWeatherData || null;
-
-  const weatherFields = weather ? {
-    weather_temp_c: weather.temperature_2m ?? null,
-    weather_feels_like_c: weather.apparent_temperature ?? null,
-    weather_wind_ms: weather.wind_speed_10m ?? null,
-    weather_humidity: weather.relative_humidity_2m ?? null,
-    weather_clouds: weather.cloud_cover ?? null,
-    weather_precip_mm: weather.precipitation ?? null,
-    weather_condition: (typeof weatherDescription === 'function' ? weatherDescription(weather.weather_code) : null),
-    weather_icon: weather.weather_code ?? null,
-    weather_fetched_at: weather.time ?? null
-  } : {};
-
-  if (!db) return;
-
   const payload = {
-  ...weatherFields,
-  id: entry.id,
-  tournament_id: entry.tournamentId || null,
-  angler: entry.participantId || '',
-  species: entry.species || 'Andere',
-  weight_kg: entry.weightKg ? Number(entry.weightKg) : null,
-  length_cm: entry.lengthCm ? Number(entry.lengthCm) : null,
-  country: 'Norway',
-  latitude: entry.location?.lat != null ? Number(entry.location.lat) : null,
-  longitude: entry.location?.lng != null ? Number(entry.location.lng) : null,
-  caught_at: entry.timestamp,
-  bait: entry.bait || null,
-  spot_label: entry.spotLabel || null,
-  note: entry.note || null
-};
+    id: entry.id,
+    tournament_id: entry.tournamentId || null,
+    angler: entry.participantId || '',
+    species: entry.species || 'Andere',
+    weight_kg: entry.weightKg ? Number(entry.weightKg) : null,
+    length_cm: entry.lengthCm ? Number(entry.lengthCm) : null,
+    country: 'Norway',
+    latitude: entry.location?.lat != null ? Number(entry.location.lat) : null,
+    longitude: entry.location?.lng != null ? Number(entry.location.lng) : null,
+    caught_at: entry.timestamp,
+    bait: entry.bait || null,
+    spot_label: entry.spotLabel || null,
+    note: entry.note || null
+  };
 
-// 👉 NEU (direkt darunter einfügen)
-if (window.__lastWeatherData) {
-  const w = window.__lastWeatherData;
+  // ✅ EINZIGE Stelle für Weather
+  if (window.__lastWeatherData) {
+    const w = window.__lastWeatherData;
 
-  payload.weather_temp_c = w.temperature_2m ?? null;
-  payload.weather_feels_like_c = w.apparent_temperature ?? null;
-  payload.weather_wind_ms = w.wind_speed_10m ?? null;
-  payload.weather_humidity = w.relative_humidity_2m ?? null;
-  payload.weather_clouds = w.cloud_cover ?? null;
-  payload.weather_precip_mm = w.precipitation ?? null;
-  payload.weather_condition = weatherDescription(w.weather_code);
-  payload.weather_icon = w.weather_code ?? null;
-  payload.weather_fetched_at = w.time ?? null;
-}
+    payload.weather_temp_c = w.temperature_2m ?? null;
+    payload.weather_feels_like_c = w.apparent_temperature ?? null;
+    payload.weather_wind_ms = w.wind_speed_10m ?? null;
+    payload.weather_humidity = w.relative_humidity_2m ?? null;
+    payload.weather_clouds = w.cloud_cover ?? null;
+    payload.weather_precip_mm = w.precipitation ?? null;
+    payload.weather_condition = weatherDescription(w.weather_code);
+    payload.weather_icon = w.weather_code ?? null;
+    payload.weather_fetched_at = w.time ?? null;
+  }
 
-const { error, data } = await db
-  .from('catches')
-  .upsert(payload, { onConflict: 'id' })
-  .select();
-
-  console.log('payload:', payload);
-  console.log('result:', data);
+  const { error } = await db
+    .from('catches')
+    .upsert(payload, { onConflict: 'id' });
 
   if (error) {
     console.error('Catch speichern fehlgeschlagen:', error);
