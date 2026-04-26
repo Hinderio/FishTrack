@@ -2899,3 +2899,61 @@ setInterval(injectWeatherIntoCatchCards, 800);
     openBtn.click();
   };
 })();
+
+/* Analytics live prediction picker visibility fix – override bridge only, no map duplication */
+(function(){
+  window.useExistingLocationPicker=function(onSelect,opts={}){
+    const openBtn=document.getElementById('pickOnMap');
+    const confirmBtn=document.getElementById('confirmMapLocation');
+    const modal=document.getElementById('mapPickerModal');
+    const title=modal?.querySelector('.panel-head h3');
+    const latInput=document.querySelector('[name="lat"]');
+    const lngInput=document.querySelector('[name="lng"]');
+    if(!openBtn||!confirmBtn||!modal||!latInput||!lngInput)return;
+
+    const oldLat=latInput.value;
+    const oldLng=lngInput.value;
+    const oldTitle=title?title.textContent:'';
+    const originalParent=modal.parentNode;
+    const originalNext=modal.nextSibling;
+    let restored=false;
+
+    const restore=()=>{
+      if(restored)return;
+      restored=true;
+      latInput.value=oldLat;
+      lngInput.value=oldLng;
+      if(typeof window.updateCatchLocationPreview==='function'&&Number.isFinite(Number(oldLat))&&Number.isFinite(Number(oldLng))){
+        window.updateCatchLocationPreview(Number(oldLat),Number(oldLng));
+      }
+      if(title)title.textContent=oldTitle;
+      if(originalParent&&modal.parentNode!==originalParent){
+        originalParent.insertBefore(modal,originalNext);
+      }
+    };
+
+    if(title&&opts.title)title.textContent=opts.title;
+    if(modal.parentNode!==document.body){
+      document.body.appendChild(modal);
+    }
+
+    const confirmHandler=()=>{
+      setTimeout(()=>{
+        const lat=Number(latInput.value);
+        const lng=Number(lngInput.value);
+        restore();
+        if(Number.isFinite(lat)&&Number.isFinite(lng)&&typeof onSelect==='function')onSelect({lat,lng});
+      },0);
+    };
+
+    const closeHandler=(e)=>{
+      if(e.target?.id==='closeMapPicker'||e.target===modal){
+        setTimeout(restore,0);
+      }
+    };
+
+    confirmBtn.addEventListener('click',confirmHandler,{once:true});
+    modal.addEventListener('click',closeHandler,{once:true});
+    openBtn.click();
+  };
+})();
