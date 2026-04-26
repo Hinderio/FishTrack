@@ -151,8 +151,8 @@
                   </div>
                 </div>
                 <div class="grid two-equal">
-                  <label><span>Breitengrad</span><input type="number" name="lat" step="0.000001" placeholder="60.123456" /></label>
-                  <label><span>Längengrad</span><input type="number" name="lng" step="0.000001" placeholder="11.654321" /></label>
+                  <label><span>Breitengrad</span><input type="number" name="lat" step="0.000001" id="pred-lat" placeholder="60.123456" /></label>
+                  <label><span>Längengrad</span><input type="number" name="lng" step="0.000001" id="pred-lng" placeholder="11.654321" /></label>
                 </div>
                 <div id="locationPreviewMap" aria-label="Standortvorschau"></div>
               </div>
@@ -413,5 +413,9 @@
 
 
 
+
+<div id="prediction-section-extra" style="padding:16px">
+  <div id="prediction-map" style="height:220px;border-radius:16px;overflow:hidden;margin-top:12px"></div>
+</div>
 </body>
 </html>
