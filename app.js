@@ -2221,7 +2221,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._canvas=L.DomUtil.create('canvas','analytics-catch-heatmap-canvas leaflet-zoom-animated');
         this._canvas.style.position='absolute';
         this._canvas.style.pointerEvents='none';
-        this._canvas.style.mixBlendMode='normal';
+        this._canvas.style.mixBlendMode='screen';
         this._canvas.style.zIndex='420';
         mapInstance.getPanes().overlayPane.appendChild(this._canvas);
         mapInstance.on('moveend zoomend resize viewreset',this._scheduleDraw,this);
@@ -2238,6 +2238,14 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._frame=requestAnimationFrame(()=>this._draw());
       },
       _draw(){
+        console.log('DRAWING POINTS:', this._data.length);
+
+        const ctxTest = this._canvas?.getContext('2d');
+        if(ctxTest){
+          ctxTest.fillStyle = 'red';
+          ctxTest.fillRect(50, 50, 100, 100);
+        }
+        
         if(!this._map||!this._canvas)return;
         const size=this._map.getSize();
         const topLeft=this._map.containerPointToLayerPoint([0,0]);
