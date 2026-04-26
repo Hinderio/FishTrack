@@ -2247,8 +2247,11 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._canvas = null;
       },
       _scheduleDraw(){
-        if(this._frame)cancelAnimationFrame(this._frame);
-        this._frame=requestAnimationFrame(()=>this._draw());
+        if (this._frame) cancelAnimationFrame(this._frame);
+      
+        this._frame = requestAnimationFrame(() => {
+          requestAnimationFrame(() => this._draw());
+        });
       },
       _draw(){
         if(!this._map || !this._canvas) return;
@@ -2264,7 +2267,16 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const ctx = this._canvas.getContext('2d');
         ctx.setTransform(ratio,0,0,ratio,0,0);
       
-        ctx.clearRect(0,0,size.x,size.y);
+        // =========================================================
+        // 🔥 BUFFER (kein Flackern!)
+        // =========================================================
+      
+        const buffer = document.createElement('canvas');
+        buffer.width = this._canvas.width;
+        buffer.height = this._canvas.height;
+      
+        const bctx = buffer.getContext('2d');
+        bctx.setTransform(ratio,0,0,ratio,0,0);
       
         console.log('DRAWING POINTS:', this._data.length);
       
@@ -2272,10 +2284,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const zoom = this._map.getZoom();
         const radius = Math.max(40, Math.pow(2, zoom - 5));
       
-        // 🔥 feinere Dichte
         const cellSize = 30;
       
-        // 🔥 GRID
         const grid = new Map();
       
         this._data.forEach(p => {
@@ -2292,12 +2302,12 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 PHASE 1: INTENSITY
+        // 🔥 PHASE 1: INTENSITY (auf BUFFER!)
         // =========================================================
       
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = 1;
-        ctx.filter = 'blur(25px)';
+        bctx.globalCompositeOperation = 'lighter';
+        bctx.globalAlpha = 1;
+        bctx.filter = 'blur(25px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
@@ -2305,13 +2315,10 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          // 🔥 entscheidend: bessere Skalierung
           let intensity = Math.pow(count / max, 0.35);
-      
-          // 🔥 cap gegen Weiß-Explosion
           intensity = Math.min(intensity, 0.85);
       
-          const gradient = ctx.createRadialGradient(
+          const gradient = bctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
@@ -2319,19 +2326,19 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
           gradient.addColorStop(1, `rgba(255,255,255,0)`);
       
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.arc(x, y, radius, 0, Math.PI * 2);
-          ctx.fill();
+          bctx.fillStyle = gradient;
+          bctx.beginPath();
+          bctx.arc(x, y, radius, 0, Math.PI * 2);
+          bctx.fill();
         });
       
-        ctx.filter = 'none';
+        bctx.filter = 'none';
       
         // =========================================================
-        // 🎨 PHASE 2: COLORIZE
+        // 🎨 PHASE 2: COLORIZE (auf BUFFER!)
         // =========================================================
       
-        const imageData = ctx.getImageData(0, 0, size.x, size.y);
+        const imageData = bctx.getImageData(0, 0, size.x, size.y);
         const pixels = imageData.data;
       
         for (let i = 0; i < pixels.length; i += 4) {
@@ -2341,22 +2348,18 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           let r, g, b;
       
           if (alpha < 0.15) {
-            // 🔵 blau → grün
             r = 0;
             g = 120 * (alpha / 0.15);
             b = 255;
           } else if (alpha < 0.4) {
-            // 🟢 grün
             r = 0;
             g = 200;
             b = 255 * (1 - (alpha - 0.15) / 0.25);
           } else if (alpha < 0.7) {
-            // 🟡 gelb
             r = 255 * ((alpha - 0.4) / 0.3);
             g = 255;
             b = 0;
           } else {
-            // 🔴 rot
             r = 255;
             g = 255 * (1 - (alpha - 0.7) / 0.3);
             b = 0;
@@ -2367,9 +2370,15 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           pixels[i + 2] = b;
         }
       
-        ctx.putImageData(imageData, 0, 0);
+        bctx.putImageData(imageData, 0, 0);
       
-        // 🔥 RESET
+        // =========================================================
+        // 🔥 FINAL DRAW (nur fertiges Bild!)
+        // =========================================================
+      
+        ctx.clearRect(0,0,size.x,size.y);
+        ctx.drawImage(buffer, 0, 0);
+      
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
