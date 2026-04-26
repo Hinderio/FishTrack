@@ -179,6 +179,21 @@ async function saveCatchToSupabase(entry) {
   note: entry.note || null
 };
 
+// 👉 NEU (direkt darunter einfügen)
+if (window.__lastWeatherData) {
+  const w = window.__lastWeatherData;
+
+  payload.weather_temp_c = w.temperature_2m ?? null;
+  payload.weather_feels_like_c = w.apparent_temperature ?? null;
+  payload.weather_wind_ms = w.wind_speed_10m ?? null;
+  payload.weather_humidity = w.relative_humidity_2m ?? null;
+  payload.weather_clouds = w.cloud_cover ?? null;
+  payload.weather_precip_mm = w.precipitation ?? null;
+  payload.weather_condition = weatherDescription(w.weather_code);
+  payload.weather_icon = w.weather_code ?? null;
+  payload.weather_fetched_at = w.time ?? null;
+}
+
 const { error, data } = await db
   .from('catches')
   .upsert(payload, { onConflict: 'id' })
@@ -212,7 +227,6 @@ async function saveTournamentToSupabase(tournament) {
   if (!db) return;
 
   const payload = {
-  ...weatherFields,
     id: tournament.id,
     name: tournament.name,
     country: 'Norway',
