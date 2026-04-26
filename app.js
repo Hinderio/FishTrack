@@ -1510,6 +1510,114 @@ function buildPremiumAnalyticsModel(){
 function premiumInsightCard(icon,label,value,detail){
   return `<article class="analytics-insight-card"><span class="analytics-insight-icon">${icon}</span><div><small>${escapeHtml(label)}</small><strong>${escapeHtml(String(value||'–'))}</strong><p>${escapeHtml(detail||'')}</p></div></article>`;
 }
+
+function analyticsDateKey(c){
+  const d=new Date(c.timestamp||c.createdAt);
+  if(Number.isNaN(d.getTime()))return null;
+  return d;
+}
+function analyticsSafePct(v,min=.08){
+  const n=Number(v);
+  return Number.isFinite(n)?Math.max(min,Math.min(1,n)):min;
+}
+function analyticsHourLabel(hour){
+  const h=Math.max(0,Math.min(23,Number(hour)||0));
+  return `${String(h).padStart(2,'0')}:00`;
+}
+function analyticsPredictionHint(m,focus){
+  const catches=m.catches||[];
+  if(!catches.length)return null;
+  const hourScores=Array.from({length:24},(_,hour)=>({hour,score:0,count:0,weight:0,species:new Map(),bait:new Map(),spot:new Map()}));
+  catches.forEach(c=>{
+    const d=analyticsDateKey(c);if(!d)return;
+    const h=d.getHours();
+    const weight=Number(c.weightKg||0);
+    const length=Number(c.lengthCm||0);
+    const score=1+(weight*.42)+(length*.012);
+    const bucket=hourScores[h];
+    bucket.score+=score;bucket.count+=1;bucket.weight+=weight;
+    const sp=speciesName(c)||'Unbekannte Art';
+    const bait=c.bait||'Unbekannter Köder';
+    const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';
+    bucket.species.set(sp,(bucket.species.get(sp)||0)+1);
+    bucket.bait.set(bait,(bucket.bait.get(bait)||0)+1);
+    bucket.spot.set(spot,(bucket.spot.get(spot)||0)+1);
+  });
+  const best=hourScores.sort((a,b)=>b.score-a.score||b.count-a.count)[0];
+  const top=(map)=>[...map.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'–';
+  return {hour:best.hour,label:analyticsHourLabel(best.hour),confidence:Math.round(Math.min(96,42+(best.count/Math.max(1,catches.length))*210+(best.score/Math.max(1,catches.length))*9)),species:top(best.species),bait:top(best.bait),spot:top(best.spot),focus};
+}
+function buildCatchFlowIntelligence(m){
+  const catches=[...m.catches].map(c=>({catch:c,date:analyticsDateKey(c)})).filter(x=>x.date).sort((a,b)=>a.date-b.date);
+  if(!catches.length){
+    return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Noch keine Fangphasen</h4></div><span>Flow</span></div><div class="analytics-intel-empty">Sobald Fänge vorhanden sind, erkennt diese Fläche automatisch Aktivitätszonen, Peaks und den besten nächsten Fangslot.</div></article>`;
+  }
+  const start=new Date(catches[0].date);start.setHours(0,0,0,0);
+  const end=new Date(catches[catches.length-1].date);end.setHours(0,0,0,0);
+  const dayMs=86400000;
+  const days=Math.max(1,Math.round((end-start)/dayMs)+1);
+  const bucketCount=Math.min(Math.max(days,9),18);
+  const buckets=Array.from({length:bucketCount},()=>({label:'',count:0,weight:0,length:0,species:new Map()}));
+  catches.forEach(x=>{
+    const raw=Math.floor((new Date(x.date).setHours(0,0,0,0)-start)/dayMs);
+    const idx=Math.min(buckets.length-1,Math.max(0,Math.floor(raw/Math.max(1,days/buckets.length))));
+    const b=buckets[idx];
+    b.count+=1;b.weight+=Number(x.catch.weightKg||0);b.length+=Number(x.catch.lengthCm||0);
+    const sp=speciesName(x.catch)||'Unbekannt';
+    b.species.set(sp,(b.species.get(sp)||0)+1);
+  });
+  buckets.forEach((b,i)=>{const d=new Date(start.getTime()+Math.round(i*Math.max(1,days/buckets.length))*dayMs);b.label=d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit'});});
+  const rawMax=Math.max(...buckets.map(b=>b.count),1);
+  const smooth=buckets.map((b,i)=>{
+    const prev=buckets[i-1]?.count||0,next=buckets[i+1]?.count||0;
+    const density=(prev*.32+b.count*.88+next*.32)/Math.max(1,rawMax*1.52);
+    return {...b,density:analyticsSafePct(density,.04),phase:density>.72?'Peak':density>.42?'Build-Up':b.count?'Active':'Low'};
+  });
+  const points=smooth.map((b,i)=>({x:6+(i/(Math.max(1,smooth.length-1)))*88,y:74-(b.density*48),r:5+b.density*22,...b}));
+  const top=points.reduce((a,b)=>b.density>a.density?b:a,points[0]);
+  const topIdx=points.indexOf(top);
+  const path=points.map((p,i)=>`${i?'S':'M'} ${i?((points[i-1].x+p.x)/2).toFixed(2):p.x.toFixed(2)} ${p.y.toFixed(2)} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+  const waveLow=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(82-(p.density*9)).toFixed(2)}`).join(' ')} L 94 89 L 6 89 Z`;
+  const waveMid=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(78-(p.density*24)).toFixed(2)}`).join(' ')} L 94 89 L 6 89 Z`;
+  const waveHigh=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(73-(p.density*42)).toFixed(2)}`).join(' ')} L 94 89 L 6 89 Z`;
+  const segments=points.map((p,i)=>{const w=88/Math.max(1,points.length);return `<span class="flow-zone is-${p.phase.toLowerCase().replace('-','')}" style="left:${Math.max(3,p.x-w/2).toFixed(2)}%;width:${Math.min(94,w).toFixed(2)}%"><b>${escapeHtml(p.phase)}</b></span>`;}).join('');
+  const topSpecies=[...top.species.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'–';
+  const pred=analyticsPredictionHint(m,'Flow');
+  return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Automatisch erkannte Fangphasen</h4></div><span>${top.phase}</span></div><div class="flow-v2-stage"><div class="flow-zone-rail">${segments}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowV2A" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".12"/><stop offset=".52" stop-color="var(--accent)" stop-opacity=".36"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".10"/></linearGradient><filter id="flowV2Glow"><feGaussianBlur stdDeviation="3.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="flow-v2-band flow-v2-low" d="${waveLow}"></path><path class="flow-v2-band flow-v2-mid" d="${waveMid}"></path><path class="flow-v2-band flow-v2-high" d="${waveHigh}"></path><path class="flow-v2-spine" d="${path}"></path>${points.map((p,i)=>p.count?`<circle class="flow-v2-pulse ${i===topIdx?'is-core':''}" cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="${(2+p.density*5).toFixed(2)}"></circle>`:'').join('')}<circle class="flow-v2-aura" cx="${top.x.toFixed(2)}" cy="${top.y.toFixed(2)}" r="${(top.r+6).toFixed(2)}"></circle></svg><div class="flow-v2-axis">${smooth.map((b,i)=>`<span class="${i===topIdx?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="intel-prediction-card"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.species)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="analytics-intel-facts"><span><b>${top.count}</b> Peak-Fänge</span><span><b>${escapeHtml(topSpecies)}</b> stärkste Phase</span><span><b>${fmtKg(top.weight)}</b> Peak-Gewicht</span></div></article>`;
+}
+function buildPatternSignatureIntelligence(m){
+  if(!m.catches.length){
+    return `<article class="analytics-intel-visual analytics-signature-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Pattern DNA v2</small><h4>Noch keine Erfolgs-DNA</h4></div><span>DNA</span></div><div class="analytics-intel-empty">Mit Fangdaten verknüpft diese Ansicht Spot, Köder, Zeit und Fischart zu automatisch erkannten Erfolgsmustern.</div></article>`;
+  }
+  const combo=new Map();
+  m.catches.forEach(c=>{
+    const d=new Date(c.timestamp||c.createdAt);
+    const hour=Number.isNaN(d.getTime())?'–':analyticsHourLabel(d.getHours());
+    const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';
+    const bait=c.bait||'Unbekannter Köder';
+    const sp=speciesName(c)||'Unbekannte Art';
+    const key=[spot,bait,hour,sp].join('|||');
+    const item=combo.get(key)||{spot,bait,hour,species:sp,count:0,weight:0,length:0};
+    item.count+=1;item.weight+=Number(c.weightKg||0);item.length+=Number(c.lengthCm||0);combo.set(key,item);
+  });
+  const patterns=[...combo.values()].map(x=>({...x,score:x.count*4+(x.weight||0)*.75+(x.length/(x.count||1))*0.018})).sort((a,b)=>b.score-a.score).slice(0,6);
+  const best=patterns[0];
+  const max=Math.max(...patterns.map(p=>p.score),1);
+  const dim=[
+    {key:'spot',type:'Spot',label:best.spot,x:50,y:14},
+    {key:'bait',type:'Köder',label:best.bait,x:84,y:43},
+    {key:'hour',type:'Zeit',label:best.hour,x:66,y:82},
+    {key:'species',type:'Art',label:best.species,x:18,y:63}
+  ];
+  const alt=patterns.slice(1,5).map((p,i)=>({label:p.spot===best.spot?p.bait:p.spot,score:p.score,x:[27,74,33,78][i],y:[28,28,82,70][i]}));
+  const links=dim.map((n,i)=>`<line class="dna-link dna-link-main" style="--w:${(2.2+(best.score/max)*4).toFixed(2)}" x1="50" y1="50" x2="${n.x}" y2="${n.y}"></line>`).join('')+
+    alt.map(a=>`<line class="dna-link dna-link-alt" style="--w:${(1+a.score/max*2.5).toFixed(2)}" x1="50" y1="50" x2="${a.x}" y2="${a.y}"></line>`).join('');
+  const pred=analyticsPredictionHint(m,'DNA');
+  return `<article class="analytics-intel-visual analytics-signature-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Pattern DNA v2 + Prediction</small><h4>Dominante Erfolgs-Signatur</h4></div><span>${Math.round(best.score/max*100)}%</span></div><div class="dna-v2-stage"><svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="dnaCoreV2" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="var(--accent)" stop-opacity=".92"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".16"/></radialGradient></defs><circle class="dna-orbit dna-orbit-a" cx="50" cy="50" r="34"></circle><circle class="dna-orbit dna-orbit-b" cx="50" cy="50" r="23"></circle>${links}<circle class="dna-core-v2" cx="50" cy="50" r="12"></circle>${alt.map(a=>`<circle class="dna-alt-node" style="--s:${analyticsSafePct(a.score/max,.2).toFixed(2)}" cx="${a.x}" cy="${a.y}" r="${(4+a.score/max*5).toFixed(2)}"></circle>`).join('')}${dim.map(n=>`<circle class="dna-main-node" cx="${n.x}" cy="${n.y}" r="9.5"></circle>`).join('')}</svg>${dim.map(n=>`<div class="dna-label dna-label-${n.key}" style="left:${n.x}%;top:${n.y}%"><small>${escapeHtml(n.type)}</small><strong>${escapeHtml(n.label)}</strong></div>`).join('')}<div class="dna-center"><small>Signature</small><strong>${best.count}×</strong><span>${fmtKg(best.weight)}</span></div></div><div class="intel-prediction-card dna-prediction"><small>Prediction Hint</small><strong>${pred?escapeHtml(pred.label):'–'}</strong><span>${pred?`${escapeHtml(pred.spot)} · ${escapeHtml(pred.bait)} · ${pred.confidence}% Muster-Fit`:'Zu wenig Daten für Prognose'}</span></div><div class="signature-rank signature-rank-v2">${patterns.map((p,i)=>`<span style="--rank:${Math.max(.16,p.score/max).toFixed(2)}"><b>#${i+1}</b>${escapeHtml(p.spot)} · ${escapeHtml(p.bait)} · ${escapeHtml(p.hour)}</span>`).join('')}</div></article>`;
+}
+function renderAnalyticsIntelligenceVisuals(m){
+  return [buildCatchFlowIntelligence(m),buildPatternSignatureIntelligence(m)].join('');
+}
 function renderPremiumAnalyticsDashboard(){
   const hero=document.getElementById('analyticsOverviewKpis');
   const summaryEl=document.getElementById('analyticsExecutiveSummary');
@@ -1543,12 +1651,7 @@ function renderPremiumAnalyticsDashboard(){
     ].join(''):'<article class="analytics-empty glass">Noch keine Daten für Top Insights.</article>';
   }
   if(intelEl){
-    const cards=[];
-    cards.push(premiumInsightCard('⏰','Aktivitätsmuster',m.bestHour.count?`${String(m.bestHour.hour).padStart(2,'0')}:00 Uhr`:'–',m.bestHour.count?`Stärkstes Zeitfenster mit ${m.bestHour.count} Fang${m.bestHour.count===1?'':'en'}.`:'Noch kein belastbares Zeitmuster.'));
-    cards.push(premiumInsightCard('📅','Bester Wochentag',m.bestDay.count?m.bestDay.day:'–',m.bestDay.count?`${m.bestDay.count} Fang${m.bestDay.count===1?'':'e'} an diesem Wochentag.`:'Noch kein Wochentagsmuster.'));
-    cards.push(premiumInsightCard('🧪','Beste Kombination',m.topCombo?.[0]||'–',m.topCombo?`${m.topCombo[1]} Treffer mit dieser Spot-Köder-Kombi.`:'Noch keine Kombination erkennbar.'));
-    cards.push(premiumInsightCard('⚡','Punkte-Effizienz',m.efficient?.name||'–',m.efficient?`${m.efficient.pointsPerCatch.toFixed(1)} Punkte pro Fang.`:'Noch keine Fangwertung vorhanden.'));
-    intelEl.innerHTML=cards.join('');
+    intelEl.innerHTML=renderAnalyticsIntelligenceVisuals(m);
   }
 }
 
@@ -2438,38 +2541,3 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   });
   window.addEventListener('resize',()=>{try{renderAnalyticsCatchHeatmap();}catch(e){}});
 })();
-
-
-// === INTELLIGENCE LAYER V3 (isolated, no side effects) ===
-window.intelligenceFilter = null;
-
-function getIntelligenceData(){
-  if(window.filteredCatches && window.filteredCatches.length){
-    return window.filteredCatches;
-  }
-  return window.catches || [];
-}
-
-function getFilteredIntelligenceData(){
-  const base = getIntelligenceData();
-  if(!window.intelligenceFilter) return base;
-
-  return base.filter(c=>{
-    return (!window.intelligenceFilter.spot || c.spot===window.intelligenceFilter.spot) &&
-           (!window.intelligenceFilter.bait || c.bait===window.intelligenceFilter.bait);
-  });
-}
-
-function applyPatternFilter(pattern){
-  if(JSON.stringify(window.intelligenceFilter)===JSON.stringify(pattern)){
-    window.intelligenceFilter = null;
-  } else {
-    window.intelligenceFilter = pattern;
-  }
-  renderIntelligenceLayer && renderIntelligenceLayer();
-}
-
-function explainPattern(data){
-  if(!data.length) return "Zu wenig Daten";
-  return "Top Aktivität mit "+data.length+" Fängen im Muster";
-}
