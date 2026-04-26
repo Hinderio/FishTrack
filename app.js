@@ -162,19 +162,27 @@ async function saveCatchToSupabase(entry) {
     note: entry.note || null
   };
 
-  // ✅ EINZIGE Stelle für Weather
-  if (window.__lastWeatherData) {
-    const w = window.__lastWeatherData;
+  // ✅ OPTION A: Wetter IMMER beim Speichern holen (robust & unabhängig)
+  if (entry.location?.lat != null && entry.location?.lng != null) {
+    try {
+      const data = await getWeather(entry.location.lat, entry.location.lng);
 
-    payload.weather_temp_c = w.temperature_2m ?? null;
-    payload.weather_feels_like_c = w.apparent_temperature ?? null;
-    payload.weather_wind_ms = w.wind_speed_10m ?? null;
-    payload.weather_humidity = w.relative_humidity_2m ?? null;
-    payload.weather_clouds = w.cloud_cover ?? null;
-    payload.weather_precip_mm = w.precipitation ?? null;
-    payload.weather_condition = weatherDescription(w.weather_code);
-    payload.weather_icon = w.weather_code ?? null;
-    payload.weather_fetched_at = w.time ?? null;
+      if (data?.current) {
+        const w = data.current;
+
+        payload.weather_temp_c = w.temperature_2m ?? null;
+        payload.weather_feels_like_c = w.apparent_temperature ?? null;
+        payload.weather_wind_ms = w.wind_speed_10m ?? null;
+        payload.weather_humidity = w.relative_humidity_2m ?? null;
+        payload.weather_clouds = w.cloud_cover ?? null;
+        payload.weather_precip_mm = w.precipitation ?? null;
+        payload.weather_condition = weatherDescription(w.weather_code);
+        payload.weather_icon = w.weather_code ?? null;
+        payload.weather_fetched_at = w.time ?? null;
+      }
+    } catch (e) {
+      console.warn('Weather fetch beim Speichern fehlgeschlagen', e);
+    }
   }
 
   const { error } = await db
@@ -184,7 +192,7 @@ async function saveCatchToSupabase(entry) {
   if (error) {
     console.error('Catch speichern fehlgeschlagen:', error);
   } else {
-    console.log('Catch gespeichert');
+    console.log('Catch gespeichert (inkl. Wetter wenn verfügbar)');
   }
 }
 
