@@ -2699,7 +2699,13 @@ function injectWeatherIntoCatchCards(){
       row.innerHTML += `<div class="weather-chip">${match.weather_icon || '☁️'} ${match.weather_condition}</div>`;
     }
 
-    card.appendChild(row);
+    const actions = card.querySelector('.list-actions');
+    
+    if (actions) {
+      card.insertBefore(row, actions);
+    } else {
+      card.appendChild(row); // fallback (100% safe)
+    }
     card.dataset.weatherInjected = "1";
   });
 }
