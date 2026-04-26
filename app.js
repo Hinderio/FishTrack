@@ -2265,33 +2265,57 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.setTransform(ratio,0,0,ratio,0,0);
       
         ctx.clearRect(0,0,size.x,size.y);
+
+        ctx.globalAlpha = 0.9;
       
         console.log('DRAWING POINTS:', this._data.length);
       
-        const radius = Math.max(40, this._map.getZoom() * 8);
+        const radius = Math.max(20, this._map.getZoom() * 4);
+        
         ctx.globalCompositeOperation = 'lighter';
+        
+        // 🔥 STEP 1: Punkte sammeln (für Dichte)
+        const grid = new Map();
+        const cellSize = 40;
         
         this._data.forEach(p => {
           const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
-        
           if (!pt) return;
+        
+          const key = `${Math.round(pt.x / cellSize)}_${Math.round(pt.y / cellSize)}`;
+          grid.set(key, (grid.get(key) || 0) + 1);
+        });
+        
+        // 🔥 STEP 2: max intensity
+        const max = Math.max(1, ...grid.values());
+        
+        // 🔥 STEP 3: render
+        this._data.forEach(p => {
+          const pt = this._map.latLngToContainerPoint([p.lat, p.lng]);
+          if (!pt) return;
+        
+          const key = `${Math.round(pt.x / cellSize)}_${Math.round(pt.y / cellSize)}`;
+          const intensity = grid.get(key) / max;
         
           const gradient = ctx.createRadialGradient(
             pt.x, pt.y, 0,
             pt.x, pt.y, radius
           );
         
-          gradient.addColorStop(0, 'rgba(74,215,209,0.9)');
-          gradient.addColorStop(0.3, 'rgba(74,215,209,0.6)');
-          gradient.addColorStop(0.6, 'rgba(74,215,209,0.25)');
-          gradient.addColorStop(1, 'rgba(74,215,209,0)');
+          // 🔥 echte Heatmap Colors
+          gradient.addColorStop(0, `rgba(255,140,0,${0.9 * intensity})`);
+          gradient.addColorStop(0.25, `rgba(255,80,0,${0.8 * intensity})`);
+          gradient.addColorStop(0.5, `rgba(255,0,0,${0.6 * intensity})`);
+          gradient.addColorStop(0.75, `rgba(180,0,0,${0.4 * intensity})`);
+          gradient.addColorStop(1, 'rgba(0,0,0,0)');
         
           ctx.fillStyle = gradient;
           ctx.beginPath();
           ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
           ctx.fill();
         });
-        
+
+        ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = 'source-over';
       }
     });
