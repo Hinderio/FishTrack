@@ -2310,7 +2310,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
 
 /* Isolated Analytics catch-density map heatmap
  * Additive only: creates a separate Leaflet map inside the Analytics Behaviour Layer.
- * It reads the current state.catches collection and never touches the original catch map,
+ * It reads the existing Analytics catch selector and never touches the original catch map,
  * marker layer, filters, or map controls.
  */
 (function(){
@@ -2319,7 +2319,11 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   let analyticsHeatmapTileLayer=null;
 
   function validHeatmapPoints(){
-    return (state?.catches || [])
+    const catches = typeof getAnalyticsCatches === 'function'
+      ? getAnalyticsCatches()
+      : (state?.catches || []);
+
+    return catches
       .map(c => {
         const latRaw = c.latitude ?? c.location?.lat;
         const lngRaw = c.longitude ?? c.location?.lng;
