@@ -2632,7 +2632,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
 
 /* === Weather UI Injection (safe, append-only) === */
 function injectWeatherIntoCatchCards(){
-  const cards = document.querySelectorAll('.card');
+  const cards = document.querySelectorAll('.catch-item');
   const catches = window.state?.catches || [];
 
   cards.forEach(card => {
@@ -2645,7 +2645,7 @@ function injectWeatherIntoCatchCards(){
       if (!c.lengthCm || !c.created_at) return false;
 
       const length = `${Math.round(c.lengthCm)} cm`;
-      const date = new Date(c.created_at)
+      const date = new Date(c.timestamp)
         .toLocaleDateString('de-DE', { day:'2-digit', month:'2-digit' });
 
       return text.includes(length) && text.includes(date);
