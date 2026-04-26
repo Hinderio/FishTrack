@@ -1596,19 +1596,38 @@ function buildCatchFlowIntelligence(m){
     return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Noch keine Fangphasen</h4></div><span>Flow</span></div><div class="analytics-intel-empty">Sobald Fänge vorhanden sind, erkennt diese Fläche automatisch Aktivitätszonen, Peaks und den besten nächsten Fangslot.</div></article>`;
   }
   const bucketCount=8;
-  const buckets=Array.from({length:bucketCount},(_,i)=>({label:analyticsHourLabel(i*3),count:0,weight:0,length:0,species:new Map()}));
+  const buckets=Array.from({length:bucketCount},(_,i)=>({label:analyticsHourLabel(i*3),count:0,weight:0,length:0,species:new Map(),weatherTemp:[],weatherWind:[],weatherPrecip:[],weatherClouds:[],weatherConditions:new Map()}));
   catches.forEach(x=>{
     const idx=Math.min(bucketCount-1,Math.max(0,Math.floor(x.date.getHours()/3)));
     const b=buckets[idx];
     b.count+=1;b.weight+=Number(x.catch.weightKg||0);b.length+=Number(x.catch.lengthCm||0);
     const sp=speciesName(x.catch)||'Unbekannt';
     b.species.set(sp,(b.species.get(sp)||0)+1);
+    const temp=Number(x.catch.weather_temp_c),wind=Number(x.catch.weather_wind_ms),precip=Number(x.catch.weather_precip_mm),clouds=Number(x.catch.weather_clouds);
+    if(Number.isFinite(temp))b.weatherTemp.push(temp);
+    if(Number.isFinite(wind))b.weatherWind.push(wind);
+    if(Number.isFinite(precip))b.weatherPrecip.push(precip);
+    if(Number.isFinite(clouds))b.weatherClouds.push(clouds);
+    if(x.catch.weather_condition)b.weatherConditions.set(x.catch.weather_condition,(b.weatherConditions.get(x.catch.weather_condition)||0)+1);
   });
   const rawMax=Math.max(...buckets.map(b=>b.count),1);
+  const avg=arr=>arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  const scoreWeather=b=>{
+    const temp=avg(b.weatherTemp),wind=avg(b.weatherWind),precip=avg(b.weatherPrecip),clouds=avg(b.weatherClouds);
+    if(temp==null&&wind==null&&precip==null&&clouds==null)return null;
+    let score=100;
+    if(temp!=null)score-=Math.min(32,Math.abs(temp-12)*2.1);
+    if(wind!=null)score-=Math.min(30,wind*4.2);
+    if(precip!=null)score-=Math.min(24,precip*16);
+    if(clouds!=null)score-=Math.min(14,Math.abs(clouds-55)*.18);
+    return Math.round(Math.max(8,Math.min(99,score)));
+  };
   const smooth=buckets.map((b,i)=>{
     const prev=buckets[i-1]?.count||0,next=buckets[i+1]?.count||0;
     const density=(prev*.32+b.count*.88+next*.32)/Math.max(1,rawMax*1.52);
-    return {...b,density:analyticsSafePct(density,.04),phase:density>.72?'Peak':density>.42?'Build-Up':b.count?'Active':'Low'};
+    const weatherScore=scoreWeather(b);
+    const topCondition=[...b.weatherConditions.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+    return {...b,density:analyticsSafePct(density,.04),phase:density>.72?'Peak':density>.42?'Build-Up':b.count?'Active':'Low',weatherScore,topCondition,avgTemp:avg(b.weatherTemp),avgWind:avg(b.weatherWind),avgPrecip:avg(b.weatherPrecip)};
   });
   const points=smooth.map((b,i)=>({x:6+(i/(Math.max(1,smooth.length-1)))*88,y:74-(b.density*48),...b}));
   const top=points.reduce((a,b)=>b.density>a.density?b:a,points[0]);
@@ -1618,6 +1637,7 @@ function buildCatchFlowIntelligence(m){
   const waveMid=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(80-(p.density*18)).toFixed(2)}`).join(' ')} L 94 90 L 6 90 Z`;
   const waveHigh=`${points.map((p,i)=>`${i?'L':'M'} ${p.x.toFixed(2)} ${(76-(p.density*34)).toFixed(2)}`).join(' ')} L 94 90 L 6 90 Z`;
   const segments=points.map((p,i)=>{const w=88/Math.max(1,points.length);return `<span class="flow-zone is-${p.phase.toLowerCase().replace('-','')}" style="left:${Math.max(3,p.x-w/2).toFixed(2)}%;width:${Math.min(94,w).toFixed(2)}%"><b>${escapeHtml(p.phase)}</b></span>`;}).join('');
+  const weatherSegments=points.map((p,i)=>{const w=88/Math.max(1,points.length),score=p.weatherScore,strength=score==null?.12:Math.max(.18,Math.min(.92,score/100)),label=score==null?'Wetter offen':`${score}% Weather Fit`;return `<span class="flow-weather-segment ${score==null?'is-empty':''}" style="left:${Math.max(3,p.x-w/2).toFixed(2)}%;width:${Math.min(94,w).toFixed(2)}%;--weather:${strength.toFixed(2)}" title="${escapeHtml(label)}"></span>`;}).join('');
   const topSpecies=[...top.species.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'–';
   const avgPerHour=(catches.length/24).toFixed(1).replace('.',',');
   const activeWindow=`${escapeHtml(top.label)}–${escapeHtml(analyticsHourLabel((topIdx*3+3)%24))}`;
@@ -1625,7 +1645,12 @@ function buildCatchFlowIntelligence(m){
   const avgDensity=densities.reduce((a,b)=>a+b,0)/Math.max(1,densities.length);
   const variance=densities.reduce((sum,d)=>sum+Math.pow(d-avgDensity,2),0)/Math.max(1,densities.length);
   const stability=Math.round(Math.max(0,Math.min(99,(1-Math.sqrt(variance))*100)));
-  return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Automatisch erkannte Fangphasen</h4></div><span>${top.phase}</span></div><div class="flow-v2-stage"><div class="flow-zone-rail">${segments}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowV2A" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".10"/><stop offset=".52" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".08"/></linearGradient><filter id="flowV2Glow"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path class="flow-v2-band flow-v2-low" d="${waveLow}"></path><path class="flow-v2-band flow-v2-mid" d="${waveMid}"></path><path class="flow-v2-band flow-v2-high" d="${waveHigh}"></path><path class="flow-v2-spine" d="${path}"></path></svg><div class="flow-v2-axis">${smooth.map((b,i)=>`<span class="${i===topIdx?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="analytics-intel-facts analytics-flow-facts-v2"><span><b>${top.count}</b> Peak-Fänge</span><span><b>${escapeHtml(topSpecies)}</b> stärkste Phase</span><span><b>${fmtKg(top.weight)}</b> Peak-Gewicht</span><span><b>${avgPerHour}</b> Ø Fänge / h</span><span><b>${activeWindow}</b> aktivstes Zeitfenster</span><span><b>${stability}%</b> Flow Stability</span></div></article>`;
+  const weatherPoints=points.filter(p=>p.weatherScore!=null);
+  const bestWeather=[...weatherPoints].sort((a,b)=>b.weatherScore-a.weatherScore||b.count-a.count)[0];
+  const avgWeatherScore=weatherPoints.length?Math.round(weatherPoints.reduce((s,p)=>s+p.weatherScore,0)/weatherPoints.length):null;
+  const weatherScoreLabel=avgWeatherScore==null?'–':`${avgWeatherScore}%`;
+  const weatherWindow=bestWeather?`${escapeHtml(bestWeather.label)} · ${bestWeather.avgTemp==null?'–':Math.round(bestWeather.avgTemp)+'°C'} / ${bestWeather.avgWind==null?'–':bestWeather.avgWind.toFixed(1).replace('.',',')+' m/s'}`:'keine Wetterdaten';
+  return `<article class="analytics-intel-visual analytics-flow-intel analytics-intel-v2"><div class="analytics-intel-head"><div><small>Catch Flow Intelligence v2</small><h4>Automatisch erkannte Fangphasen</h4></div><span>${top.phase}</span></div><div class="flow-v2-stage"><div class="flow-zone-rail">${segments}</div><div class="flow-weather-rail" aria-hidden="true">${weatherSegments}</div><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="flowV2A" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--primary)" stop-opacity=".10"/><stop offset=".52" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".08"/></linearGradient><linearGradient id="flowWeatherGlow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--primary)" stop-opacity=".04"/><stop offset=".48" stop-color="var(--accent)" stop-opacity=".18"/><stop offset="1" stop-color="var(--primary)" stop-opacity=".06"/></linearGradient><filter id="flowV2Glow"><feGaussianBlur stdDeviation="2.2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect class="flow-weather-haze" x="5" y="35" width="90" height="45" rx="18"></rect><path class="flow-v2-band flow-v2-low" d="${waveLow}"></path><path class="flow-v2-band flow-v2-mid" d="${waveMid}"></path><path class="flow-v2-band flow-v2-high" d="${waveHigh}"></path><path class="flow-v2-spine" d="${path}"></path></svg><div class="flow-v2-axis">${smooth.map((b,i)=>`<span class="${i===topIdx?'is-hot':''}">${escapeHtml(b.label)}</span>`).join('')}</div></div><div class="analytics-intel-facts analytics-flow-facts-v2"><span><b>${top.count}</b> Peak-Fänge</span><span><b>${escapeHtml(topSpecies)}</b> stärkste Phase</span><span><b>${fmtKg(top.weight)}</b> Peak-Gewicht</span><span><b>${avgPerHour}</b> Ø Fänge / h</span><span><b>${activeWindow}</b> aktivstes Zeitfenster</span><span><b>${stability}%</b> Flow Stability</span><span><b>${weatherScoreLabel}</b> Weather Fit</span><span><b>${weatherWindow}</b> Best Conditions</span></div></article>`;
 }
 function buildPatternSignatureIntelligence(m,activeIndex=-1){
   if(!m.catches.length){
