@@ -2557,3 +2557,22 @@ body.light .analytics-flow-intel .flow-weather-rail{background:rgba(255,255,255,
 .analytics-signature-intel .weather-ring-node-left{left:13%;top:50%}
 body.light .analytics-signature-intel .weather-ring-node{background:rgba(255,255,255,.7);border-color:rgba(17,36,58,.08);color:rgba(13,24,39,.78)}
 @media (max-width:680px){.analytics-signature-intel .weather-ring-node{padding:5px 8px;font-size:11px}.analytics-signature-intel .weather-ring-node-right{left:86%}.analytics-signature-intel .weather-ring-node-left{left:14%}}
+
+/* Live Catch Prediction v2 – isolated, additive styles */
+.live-catch-prediction{overflow:hidden}
+.live-prediction-location-card{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:20px;background:rgba(255,255,255,.035)}
+.live-prediction-location-card>div:first-child{display:grid;gap:4px;min-width:0}
+.live-prediction-location-card strong{color:var(--text)}
+.live-prediction-location-card span{color:var(--muted);font-size:.88rem}
+.live-prediction-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.live-prediction-output{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px;border-radius:22px;background:linear-gradient(135deg,rgba(74,215,209,.08),rgba(143,240,167,.045));border:1px solid rgba(80,255,200,.16)}
+.live-prediction-output.is-muted{display:block;color:var(--muted);background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.07)}
+.live-prediction-output small{display:block;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.live-prediction-output strong{display:block;font-size:1.05rem;color:var(--text);margin-bottom:4px}
+.live-prediction-output span{display:block;color:var(--muted);font-size:.9rem}
+.confidence-badge{flex:0 0 auto;min-width:92px;min-height:76px;display:grid;place-items:center;padding:10px;border-radius:18px;background:rgba(80,255,200,0.08);border:1px solid rgba(80,255,200,0.2);box-shadow:0 0 18px rgba(80,255,200,.16)}
+.confidence-badge b{font-size:1.35rem;color:var(--accent);line-height:1}
+.confidence-badge small{margin:0;font-size:.66rem;color:var(--muted)}
+body.light .live-prediction-location-card{background:rgba(255,255,255,.64);border-color:rgba(17,36,58,.08)}
+body.light .live-prediction-output{background:linear-gradient(135deg,rgba(74,215,209,.12),rgba(143,240,167,.08));border-color:rgba(17,36,58,.08)}
+@media (max-width:680px){.live-prediction-location-card,.live-prediction-output{align-items:stretch;flex-direction:column}.live-prediction-actions{justify-content:stretch}.live-prediction-actions .pill{flex:1}.confidence-badge{min-width:100%;min-height:58px}}
