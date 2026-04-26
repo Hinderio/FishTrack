@@ -2296,7 +2296,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = 1;
-        ctx.filter = 'blur(25px)';
+        ctx.filter = 'blur(18px)';
       
         grid.forEach((count, key) => {
           const [gx, gy] = key.split('_').map(Number);
@@ -2313,13 +2313,11 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
-          );
-      
-          // 🔥 GREEN GLOW (wie dein Screenshot)
-          gradient.addColorStop(0, `rgba(0,255,180,${0.9 * intensity})`);
-          gradient.addColorStop(0.4, `rgba(0,220,140,${0.6 * intensity})`);
-          gradient.addColorStop(0.7, `rgba(0,180,120,${0.3 * intensity})`);
-          gradient.addColorStop(1, `rgba(0,150,100,0)`);
+          );      
+          
+          gradient.addColorStop(0, `rgba(60,180,140,${0.3 * intensity})`);
+          gradient.addColorStop(0.5, `rgba(40,150,120,${0.2 * intensity})`);
+          gradient.addColorStop(1, `rgba(30,120,100,0)`);
       
           ctx.fillStyle = gradient;
           ctx.beginPath();
