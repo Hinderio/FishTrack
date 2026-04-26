@@ -1705,7 +1705,9 @@ function renderSpotBaitMatrix(){
   const container=document.getElementById('spotBaitMatrix');
   if(!container) return;
 
-  const catches=[...state.catches];
+  const catches = (typeof getDashboardCatches === 'function')
+  ? getDashboardCatches()
+  : state.catches;
   const spots=[...new Set(catches.map(c=>c.spotLabel||'Unbekannt'))];
   const baits=[...new Set(catches.map(c=>c.bait||'Unbekannt'))];
 
