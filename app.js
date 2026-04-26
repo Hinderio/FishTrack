@@ -2238,45 +2238,27 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         this._frame=requestAnimationFrame(()=>this._draw());
       },
       _draw(){
-        console.log('DRAWING POINTS:', this._data.length);
-
-        const ctxTest = this._canvas?.getContext('2d');
-        if(ctxTest){
-          ctxTest.fillStyle = 'red';
-          ctxTest.fillRect(50, 50, 100, 100);
-        }
-        
-        if(!this._map||!this._canvas)return;
-        const size=this._map.getSize();
-        const topLeft=this._map.containerPointToLayerPoint([0,0]);
-        L.DomUtil.setPosition(this._canvas,topLeft);
-        const ratio=window.devicePixelRatio||1;
-        this._canvas.width=Math.max(1,Math.round(size.x*ratio));
-        this._canvas.height=Math.max(1,Math.round(size.y*ratio));
-        this._canvas.style.width=size.x+'px';
-        this._canvas.style.height=size.y+'px';
-        const ctx=this._canvas.getContext('2d');
+        if(!this._map || !this._canvas) return;
+      
+        const size = this._map.getSize();
+        const topLeft = this._map.containerPointToLayerPoint([0,0]);
+        L.DomUtil.setPosition(this._canvas, topLeft);
+      
+        const ratio = window.devicePixelRatio || 1;
+        this._canvas.width = Math.max(1, Math.round(size.x * ratio));
+        this._canvas.height = Math.max(1, Math.round(size.y * ratio));
+        this._canvas.style.width = size.x + 'px';
+        this._canvas.style.height = size.y + 'px';
+      
+        const ctx = this._canvas.getContext('2d');
         ctx.setTransform(ratio,0,0,ratio,0,0);
+      
         ctx.clearRect(0,0,size.x,size.y);
-        ctx.globalCompositeOperation='source-over';
-        const zoom=this._map.getZoom();
-        const radius = 120;
-        const maxWeight=Math.max(1,...this._data.map(p=>p.weight||1));
-        this._data.forEach(p=>{
-          const pt=this._map.latLngToContainerPoint([p.lat,p.lng]);
-          if(pt.x<-radius||pt.y<-radius||pt.x>size.x+radius||pt.y>size.y+radius)return;
-          const power = 1;
-          const gradient=ctx.createRadialGradient(pt.x,pt.y,0,pt.x,pt.y,radius);
-          gradient.addColorStop(0,`rgba(174,255,230,${power})`);
-          gradient.addColorStop(.26,`rgba(87,236,220,${power*.72})`);
-          gradient.addColorStop(.58,`rgba(39,177,170,${power*.34})`);
-          gradient.addColorStop(1,'rgba(5,34,42,0)');
-          ctx.fillStyle=gradient;
-          ctx.beginPath();
-          ctx.arc(pt.x,pt.y,radius,0,Math.PI*2);
-          ctx.fill();
-        });
-        ctx.globalCompositeOperation='source-over';
+      
+        console.log('DRAWING POINTS:', this._data.length);
+      
+        ctx.fillStyle = 'red';
+        ctx.fillRect(50, 50, 100, 100);
       }
     });
   }
