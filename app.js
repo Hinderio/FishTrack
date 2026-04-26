@@ -2256,24 +2256,29 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const size = this._map.getSize();
       
         const ratio = window.devicePixelRatio || 1;
-        this._canvas.width = Math.max(1, Math.round(size.x * ratio));
-        this._canvas.height = Math.max(1, Math.round(size.y * ratio));
+      
+        // 🔥 PERFORMANCE BOOST: interne Auflösung reduzieren
+        const scale = 0.5; // 🔥 MAGIC (0.4–0.6 testen)
+      
+        const w = Math.max(1, Math.round(size.x * ratio * scale));
+        const h = Math.max(1, Math.round(size.y * ratio * scale));
+      
+        this._canvas.width = w;
+        this._canvas.height = h;
         this._canvas.style.width = size.x + 'px';
         this._canvas.style.height = size.y + 'px';
       
         const ctx = this._canvas.getContext('2d');
-        ctx.setTransform(ratio,0,0,ratio,0,0);
+      
+        // 🔥 wichtig: hochskalieren
+        ctx.setTransform(ratio * scale,0,0,ratio * scale,0,0);
       
         ctx.clearRect(0,0,size.x,size.y);
       
-        // 🔥 stabileres Zoom-Verhalten
         const zoom = this._map.getZoom();
         const radius = Math.max(40, Math.pow(2, zoom - 5));
       
-        // 🔥 feinere Dichte
         const cellSize = 30;
-      
-        // 🔥 GRID
         const grid = new Map();
       
         this._data.forEach(p => {
@@ -2290,7 +2295,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 PHASE 1: INTENSITY (WEISS)
+        // 🔥 PHASE 1: INTENSITY
         // =========================================================
       
         ctx.globalCompositeOperation = 'lighter';
@@ -2323,27 +2328,46 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         ctx.filter = 'none';
       
         // =========================================================
-        // 🎨 PHASE 2: COLORIZE (GPU – KEIN PIXEL LOOP)
+        // 🎨 PHASE 2: COLORIZE (DEIN ORIGINAL – ABER SCHNELLER)
         // =========================================================
       
-        ctx.globalCompositeOperation = 'source-atop';
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const pixels = imageData.data;
       
-        const gradient = ctx.createLinearGradient(0, 0, 0, size.y);
+        for (let i = 0; i < pixels.length; i += 4) {
+          const alpha = pixels[i + 3] / 255;
+          if (alpha === 0) continue;
       
-        // 🔥 sehr nah an deinem Referenzbild
-        gradient.addColorStop(0.0, 'rgb(255,0,0)');     // rot
-        gradient.addColorStop(0.25, 'rgb(255,200,0)');  // gelb
-        gradient.addColorStop(0.5, 'rgb(0,200,0)');     // grün
-        gradient.addColorStop(0.75, 'rgb(0,120,255)');  // blau
-        gradient.addColorStop(1.0, 'rgb(0,0,255)');     // tiefblau
+          let r, g, b;
       
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, size.x, size.y);
+          if (alpha < 0.15) {
+            r = 0;
+            g = 120 * (alpha / 0.15);
+            b = 255;
+          } else if (alpha < 0.4) {
+            r = 0;
+            g = 200;
+            b = 255 * (1 - (alpha - 0.15) / 0.25);
+          } else if (alpha < 0.7) {
+            r = 255 * ((alpha - 0.4) / 0.3);
+            g = 255;
+            b = 0;
+          } else {
+            r = 255;
+            g = 255 * (1 - (alpha - 0.7) / 0.3);
+            b = 0;
+          }
       
-        // 🔥 RESET
+          pixels[i]     = r;
+          pixels[i + 1] = g;
+          pixels[i + 2] = b;
+        }
+      
+        ctx.putImageData(imageData, 0, 0);
+      
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
-      }
+}
     });
   }
 
