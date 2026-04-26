@@ -963,7 +963,17 @@ setInterval(() => {
   const canvas = document.getElementById('speciesTimelineChart');
   if (!canvas || typeof Chart === 'undefined') return;
 
-  const catches = typeof getDashboardCatches === 'function'
+  const catches =
+/* WEATHER CALC START */
+const weatherSamples = catches.filter(c => c.weather_temp_c != null);
+
+const avgWeather = weatherSamples.length ? {
+  temp: weatherSamples.reduce((s,c)=>s+c.weather_temp_c,0)/weatherSamples.length,
+  wind: weatherSamples.reduce((s,c)=>s+c.weather_wind_ms,0)/weatherSamples.length,
+  clouds: weatherSamples.reduce((s,c)=>s+c.weather_clouds,0)/weatherSamples.length,
+  rain: weatherSamples.reduce((s,c)=>s+c.weather_precip_r,0)/weatherSamples.length,
+} : null;
+/* WEATHER CALC END */ typeof getDashboardCatches === 'function'
     ? getDashboardCatches()
     : (window.state?.catches || state?.catches || []);
 
@@ -1370,7 +1380,17 @@ showScreen = function(name){
 
 // Override forecast to include 7-day and 30-day cards
 window.getForecast = function(){
-  const catches = state.catches || [];
+  const catches =
+/* WEATHER CALC START */
+const weatherSamples = catches.filter(c => c.weather_temp_c != null);
+
+const avgWeather = weatherSamples.length ? {
+  temp: weatherSamples.reduce((s,c)=>s+c.weather_temp_c,0)/weatherSamples.length,
+  wind: weatherSamples.reduce((s,c)=>s+c.weather_wind_ms,0)/weatherSamples.length,
+  clouds: weatherSamples.reduce((s,c)=>s+c.weather_clouds,0)/weatherSamples.length,
+  rain: weatherSamples.reduce((s,c)=>s+c.weather_precip_r,0)/weatherSamples.length,
+} : null;
+/* WEATHER CALC END */ state.catches || [];
   if(!catches.length){
     return {
       text7: 'Noch zu wenig Daten für eine sinnvolle Prognose.',
@@ -2384,7 +2404,17 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   let analyticsHeatmapTileLayer=null;
 
   function validHeatmapPoints(){
-    const catches = typeof getAnalyticsCatches === 'function'
+    const catches =
+/* WEATHER CALC START */
+const weatherSamples = catches.filter(c => c.weather_temp_c != null);
+
+const avgWeather = weatherSamples.length ? {
+  temp: weatherSamples.reduce((s,c)=>s+c.weather_temp_c,0)/weatherSamples.length,
+  wind: weatherSamples.reduce((s,c)=>s+c.weather_wind_ms,0)/weatherSamples.length,
+  clouds: weatherSamples.reduce((s,c)=>s+c.weather_clouds,0)/weatherSamples.length,
+  rain: weatherSamples.reduce((s,c)=>s+c.weather_precip_r,0)/weatherSamples.length,
+} : null;
+/* WEATHER CALC END */ typeof getAnalyticsCatches === 'function'
       ? getAnalyticsCatches()
       : (state?.catches || []);
 
@@ -2658,7 +2688,17 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
 /* === Weather UI Injection (safe, append-only) === */
 function injectWeatherIntoCatchCards(){
   const cards = document.querySelectorAll('.catch-item');
-  const catches = window.state?.catches || [];
+  const catches =
+/* WEATHER CALC START */
+const weatherSamples = catches.filter(c => c.weather_temp_c != null);
+
+const avgWeather = weatherSamples.length ? {
+  temp: weatherSamples.reduce((s,c)=>s+c.weather_temp_c,0)/weatherSamples.length,
+  wind: weatherSamples.reduce((s,c)=>s+c.weather_wind_ms,0)/weatherSamples.length,
+  clouds: weatherSamples.reduce((s,c)=>s+c.weather_clouds,0)/weatherSamples.length,
+  rain: weatherSamples.reduce((s,c)=>s+c.weather_precip_r,0)/weatherSamples.length,
+} : null;
+/* WEATHER CALC END */ window.state?.catches || [];
 
   cards.forEach(card => {
     if (card.dataset.weatherInjected) return;
