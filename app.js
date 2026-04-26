@@ -2268,14 +2268,13 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         console.log('DRAWING POINTS:', this._data.length);
       
-        // 🔥 stabileres Zoom-Verhalten
+        // 🔥 Zoom stabil
         const zoom = this._map.getZoom();
-        const radius = Math.max(40, Math.pow(2, zoom - 5));
+        const radius = Math.max(50, Math.pow(2, zoom - 5));
       
         // 🔥 feinere Dichte
         const cellSize = 30;
       
-        // 🔥 GRID
         const grid = new Map();
       
         this._data.forEach(p => {
@@ -2292,7 +2291,7 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
         const max = Math.max(1, ...grid.values());
       
         // =========================================================
-        // 🔥 PHASE 1: INTENSITY
+        // 🔥 GREEN HEATMAP (NO COLORIZE)
         // =========================================================
       
         ctx.globalCompositeOperation = 'lighter';
@@ -2305,19 +2304,22 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           const x = gx * cellSize;
           const y = gy * cellSize;
       
-          // 🔥 entscheidend: bessere Skalierung
-          let intensity = Math.pow(count / max, 0.35);
+          // 🔥 smooth scaling
+          let intensity = Math.pow(count / max, 0.45);
       
-          // 🔥 cap gegen Weiß-Explosion
-          intensity = Math.min(intensity, 0.85);
+          // 🔥 gegen Überstrahlen
+          intensity = Math.min(intensity, 0.8);
       
           const gradient = ctx.createRadialGradient(
             x, y, 0,
             x, y, radius
           );
       
-          gradient.addColorStop(0, `rgba(255,255,255,${intensity})`);
-          gradient.addColorStop(1, `rgba(255,255,255,0)`);
+          // 🔥 GREEN GLOW (wie dein Screenshot)
+          gradient.addColorStop(0, `rgba(0,255,180,${0.9 * intensity})`);
+          gradient.addColorStop(0.4, `rgba(0,220,140,${0.6 * intensity})`);
+          gradient.addColorStop(0.7, `rgba(0,180,120,${0.3 * intensity})`);
+          gradient.addColorStop(1, `rgba(0,150,100,0)`);
       
           ctx.fillStyle = gradient;
           ctx.beginPath();
@@ -2325,51 +2327,8 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           ctx.fill();
         });
       
-        ctx.filter = 'none';
-      
-        // =========================================================
-        // 🎨 PHASE 2: COLORIZE
-        // =========================================================
-      
-        const imageData = ctx.getImageData(0, 0, size.x, size.y);
-        const pixels = imageData.data;
-      
-        for (let i = 0; i < pixels.length; i += 4) {
-          const alpha = pixels[i + 3] / 255;
-          if (alpha === 0) continue;
-      
-          let r, g, b;
-      
-          if (alpha < 0.15) {
-            // 🔵 blau → grün
-            r = 0;
-            g = 120 * (alpha / 0.15);
-            b = 255;
-          } else if (alpha < 0.4) {
-            // 🟢 grün
-            r = 0;
-            g = 200;
-            b = 255 * (1 - (alpha - 0.15) / 0.25);
-          } else if (alpha < 0.7) {
-            // 🟡 gelb
-            r = 255 * ((alpha - 0.4) / 0.3);
-            g = 255;
-            b = 0;
-          } else {
-            // 🔴 rot
-            r = 255;
-            g = 255 * (1 - (alpha - 0.7) / 0.3);
-            b = 0;
-          }
-      
-          pixels[i]     = r;
-          pixels[i + 1] = g;
-          pixels[i + 2] = b;
-        }
-      
-        ctx.putImageData(imageData, 0, 0);
-      
         // 🔥 RESET
+        ctx.filter = 'none';
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
       }
