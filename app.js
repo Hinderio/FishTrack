@@ -2217,14 +2217,26 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       initialize(data){this._data=data||[];this._frame=null;},
       setData(data){this._data=data||[];this._scheduleDraw();return this;},
       onAdd(mapInstance){
-        this._map=mapInstance;
-        this._canvas=L.DomUtil.create('canvas','analytics-catch-heatmap-canvas leaflet-zoom-animated');
-        this._canvas.style.position='absolute';
-        this._canvas.style.pointerEvents='none';
-        this._canvas.style.mixBlendMode='screen';
-        this._canvas.style.zIndex='420';
-        mapInstance.getPanes().overlayPane.appendChild(this._canvas);
-        mapInstance.on('moveend zoomend resize viewreset',this._scheduleDraw,this);
+        this._map = mapInstance;
+      
+        this._canvas = L.DomUtil.create(
+          'canvas',
+          'analytics-catch-heatmap-canvas leaflet-zoom-animated'
+        );
+      
+        // 👉 Canvas sichtbar machen
+        this._canvas.style.position = 'absolute';
+        this._canvas.style.pointerEvents = 'none';
+        this._canvas.style.mixBlendMode = 'normal';
+        this._canvas.style.zIndex = '10000';
+      
+        // 👉 🔥 DAS HIER HAT DIR GEFÄHLT
+        const panes = mapInstance.getPanes();
+        panes.overlayPane.style.zIndex = 10000;
+      
+        panes.overlayPane.appendChild(this._canvas);
+      
+        mapInstance.on('moveend zoomend resize viewreset', this._scheduleDraw, this);
         this._scheduleDraw();
       },
       onRemove(mapInstance){
