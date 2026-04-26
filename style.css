@@ -2381,9 +2381,3 @@ body.light .compare-cumulative-grid line,body.light .compare-cumulative-axis lin
   position:absolute;
   z-index: 9999 !important;
 }
-
-.map-action-btn.active{
-  background: linear-gradient(135deg,var(--primary),#66e7ff);
-  color:#00131c;
-  box-shadow: 0 0 0 2px rgba(120,220,255,0.35);
-}
