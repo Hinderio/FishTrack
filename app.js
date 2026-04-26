@@ -175,12 +175,12 @@ async function saveCatchToSupabase(entry) {
     note: entry.note || null
   };
 
-  // ✅ OPTION A: Wetter IMMER beim Speichern holen (robust & unabhängig)
+  // ✅ Wetter optional holen
   if (
-  entry.location?.lat != null &&
-  entry.location?.lng != null &&
-  !entry.weather_fetched_at   // 🔥 DIESE ZEILE IST DER FIX
-) {
+    entry.location?.lat != null &&
+    entry.location?.lng != null &&
+    !entry.weather_fetched_at
+  ) {
     try {
       const data = await getWeather(entry.location.lat, entry.location.lng);
 
@@ -197,11 +197,13 @@ async function saveCatchToSupabase(entry) {
         payload.weather_icon = w.weather_code ?? null;
         payload.weather_fetched_at = w.time ?? null;
       }
+
     } catch (e) {
-      console.warn('Weather fetch beim Speichern fehlgeschlagen', e);
+      console.warn('Weather fetch fehlgeschlagen', e);
     }
   }
 
+  // 🔥 IMMER speichern – egal ob Weather da ist oder nicht
   const { error } = await db
     .from('catches')
     .upsert(payload, { onConflict: 'id' });
@@ -209,7 +211,7 @@ async function saveCatchToSupabase(entry) {
   if (error) {
     console.error('Catch speichern fehlgeschlagen:', error);
   } else {
-    console.log('Catch gespeichert (inkl. Wetter wenn verfügbar)');
+    console.log('Catch gespeichert');
   }
 }
 
