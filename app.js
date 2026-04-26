@@ -2667,6 +2667,5 @@ function injectWeatherIntoCatchCards(){
     card.dataset.weatherInjected = "1";
   });
 }
-}
 
 setInterval(injectWeatherIntoCatchCards, 800);
