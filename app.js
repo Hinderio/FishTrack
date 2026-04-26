@@ -2628,3 +2628,44 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
   });
   window.addEventListener('resize',()=>{try{renderAnalyticsCatchHeatmap();}catch(e){}});
 })();
+
+
+/* === Weather UI Injection (safe, append-only) === */
+function injectWeatherIntoCatchCards(){
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    if (card.dataset.weatherInjected) return;
+
+    const id = card.dataset.id;
+    if (!id) return;
+
+    const c = (window.state?.catches || []).find(x => String(x.id) === String(id));
+    if (!c) return;
+
+    if (
+      c.weather_temp_c == null &&
+      c.weather_wind_ms == null &&
+      !c.weather_condition
+    ) return;
+
+    const row = document.createElement('div');
+    row.className = 'weather-row';
+
+    if (c.weather_temp_c != null) {
+      row.innerHTML += `<div class="weather-chip">🌡 ${Math.round(c.weather_temp_c)}°</div>`;
+    }
+
+    if (c.weather_wind_ms != null) {
+      row.innerHTML += `<div class="weather-chip">🌬 ${c.weather_wind_ms} m/s</div>`;
+    }
+
+    if (c.weather_condition) {
+      row.innerHTML += `<div class="weather-chip">${c.weather_icon || '☁️'} ${c.weather_condition}</div>`;
+    }
+
+    card.appendChild(row);
+    card.dataset.weatherInjected = "1";
+  });
+}
+
+setInterval(injectWeatherIntoCatchCards, 800);

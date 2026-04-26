@@ -2510,3 +2510,25 @@ body.light .flow-zone-rail,body.light .dna-label,body.light .dna-center{backgrou
 .analytics-flow-intel .analytics-flow-facts-v2{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px}
 .analytics-flow-intel .analytics-flow-facts-v2 span{min-height:64px;align-content:center}
 @media (max-width:680px){.analytics-flow-intel .analytics-flow-facts-v2{grid-template-columns:1fr}}
+
+
+/* === Weather UI === */
+.weather-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.weather-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  border: 1px solid rgba(255,255,255,0.06);
+}
