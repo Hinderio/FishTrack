@@ -1855,11 +1855,15 @@ setTimeout(() => {
     const topoControl = L.control({ position: "topright" });
 
     topoControl.onAdd = function () {
-        const btn = L.DomUtil.create("button", "leaflet-bar");
+        const btn = L.DomUtil.create("button", "leaflet-bar weather-control topo-control");
+        btn.type = "button";
         btn.innerHTML = "⛰";
         btn.style.width = "40px";
         btn.style.height = "40px";
         btn.style.cursor = "pointer";
+        btn.setAttribute("aria-label", "Topografische Karte umschalten");
+        btn.setAttribute("aria-pressed", "false");
+        btn.setAttribute("title", "Topografische Karte umschalten");
 
         L.DomEvent.on(btn, "click", function (e) {
             L.DomEvent.stopPropagation(e);
@@ -1871,10 +1875,14 @@ setTimeout(() => {
                 if (baseLayer) map.removeLayer(baseLayer);
                 topoLayer.addTo(map);
                 isTopo = true;
+                btn.classList.add("active");
+                btn.setAttribute("aria-pressed", "true");
             } else {
                 map.removeLayer(topoLayer);
                 if (baseLayer) baseLayer.addTo(map);
                 isTopo = false;
+                btn.classList.remove("active");
+                btn.setAttribute("aria-pressed", "false");
             }
         });
 

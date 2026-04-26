@@ -1293,6 +1293,12 @@ canvas + ul,
 .weather-control.loading{
   cursor:progress;
 }
+
+/* Scoped topo map button: reuses weather-control dark glass styling without touching Leaflet globals */
+.topo-control{
+  width:40px;
+  height:40px;
+}
 .weather-spinner{
   width:16px;
   height:16px;
