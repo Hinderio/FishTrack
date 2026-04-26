@@ -2313,12 +2313,11 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
           );
           
           // 🔥 echte Heatmap-Farben (smooth!)
-          gradient.addColorStop(0.0, `rgba(255,255,180,${1.0 * intensity})`); // hell
-          gradient.addColorStop(0.2, `rgba(255,220,100,${0.95 * intensity})`);
-          gradient.addColorStop(0.4, `rgba(255,160,0,${0.9 * intensity})`);
-          gradient.addColorStop(0.6, `rgba(255,80,0,${0.75 * intensity})`);
-          gradient.addColorStop(0.8, `rgba(255,0,0,${0.6 * intensity})`);
-          gradient.addColorStop(1.0, `rgba(255,0,0,0)`);
+          gradient.addColorStop(0.0, `rgba(0,120,255,${0.7 * intensity})`);   // 🔵 blau
+          gradient.addColorStop(0.25, `rgba(0,200,120,${0.8 * intensity})`);  // 🟢 grün
+          gradient.addColorStop(0.5, `rgba(255,220,0,${0.9 * intensity})`);   // 🟡 gelb
+          gradient.addColorStop(0.75, `rgba(255,120,0,${0.85 * intensity})`); // 🟠 orange
+          gradient.addColorStop(1.0, `rgba(255,0,0,0)`);                      // 🔴 auslauf
           
           ctx.fillStyle = gradient;
           ctx.beginPath();
