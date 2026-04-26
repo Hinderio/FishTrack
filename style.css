@@ -2598,3 +2598,70 @@ body.light .flow-zone-rail,body.light .dna-label,body.light .dna-center{backgrou
     grid-template-columns:minmax(128px,1.18fr) repeat(var(--matrix-cols),minmax(104px,1fr)) !important;
   }
 }
+
+/* Spot × Köder Matrix – SVG auto-scaling, scoped to this matrix only */
+#spotBaitMatrix.spot-bait-svg-fit{
+  display:block !important;
+  width:100% !important;
+  max-width:100% !important;
+  overflow:hidden !important;
+  padding:0 !important;
+  min-width:0 !important;
+  scrollbar-width:none !important;
+}
+#spotBaitMatrix.spot-bait-svg-fit::-webkit-scrollbar{display:none !important;width:0 !important;height:0 !important}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-fit-svg{
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+  max-width:100% !important;
+  overflow:visible !important;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-label{
+  fill:rgba(255,255,255,.055);
+  stroke:rgba(255,255,255,.075);
+  stroke-width:1.2;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell{
+  fill:rgba(74,215,209,.14);
+  stroke:rgba(255,255,255,.065);
+  stroke-width:1.1;
+  filter:url(#matrixGlow);
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell[style]{
+  fill:rgba(74,215,209,var(--glow));
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-label-content,
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-spot-content,
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell-content{
+  width:100%;height:100%;box-sizing:border-box;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  overflow:hidden;color:var(--text);font-family:inherit;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-label-content{
+  flex-direction:column;gap:4px;padding:7px 10px;color:var(--muted);font-weight:900;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-spot-content{
+  justify-content:flex-start;gap:11px;padding:0 16px;color:var(--muted);font-weight:900;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell-content{
+  flex-direction:column;gap:5px;padding:6px 10px;color:var(--text);font-weight:900;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-label-content strong,
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-spot-content strong{
+  min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:24px;line-height:1.05;letter-spacing:-.02em;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell-content strong{
+  font-size:34px;line-height:1;font-weight:950;letter-spacing:-.03em;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell-content span{
+  font-size:19px;line-height:1;font-weight:900;color:rgba(243,246,251,.78);white-space:nowrap;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-icon{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;font-size:28px;line-height:1;color:rgba(177,197,219,.9);opacity:.88;
+}
+#spotBaitMatrix.spot-bait-svg-fit .matrix-svg-corner strong{font-size:24px}
+body.light #spotBaitMatrix.spot-bait-svg-fit .matrix-svg-label{fill:rgba(255,255,255,.72);stroke:rgba(17,36,58,.08)}
+body.light #spotBaitMatrix.spot-bait-svg-fit .matrix-svg-cell{stroke:rgba(17,36,58,.08)}
