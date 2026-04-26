@@ -2350,8 +2350,23 @@ function renderAnalyticsPerformanceCharts(){
   const distribution=analyticsGetCanvas('performanceDistributionChart');
   if(distribution){
     const labels=pStats.map(p=>p.name);
+    // NORMALIZATION START (minimal-invasive)
+    const maxValues = {
+      points: Math.max(0,...pStats.map(p=>p.points||0)),
+      catches: Math.max(0,...pStats.map(p=>p.count||0)),
+      length: Math.max(0,...pStats.map(p=>p.avgLength||0))
+    };
+    const norm = (v,m)=> (!m?0:v/m);
+    const pStatsNorm = pStats.map(p=>({
+      ...p,
+      points_n: norm(p.points||0, maxValues.points),
+      count_n: norm(p.count||0, maxValues.catches),
+      length_n: norm(p.avgLength||0, maxValues.length)
+    }));
+    // NORMALIZATION END
+
     analyticsDestroy('performanceDistribution');
-    charts.performanceDistribution=new Chart(distribution,{type:'radar',data:{labels,datasets:[{label:'Punkte',data:pStats.map(p=>p.points||0),borderColor:'#4ad7d1',backgroundColor:'rgba(74,215,209,.16)',pointBackgroundColor:'#4ad7d1',borderWidth:2},{label:'Fänge',data:pStats.map(p=>p.count||0),borderColor:'#8ff0a7',backgroundColor:'rgba(143,240,167,.10)',pointBackgroundColor:'#8ff0a7',borderWidth:2},{label:'Ø Länge',data:pStats.map(p=>Math.round(p.avgLength||0)),borderColor:'#ffb84d',backgroundColor:'rgba(255,184,77,.08)',pointBackgroundColor:'#ffb84d',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:true,labels:{color:css('--muted'),usePointStyle:true,boxWidth:8,boxHeight:8,font:{size:11,weight:'800'}}},tooltip:{backgroundColor:'rgba(7,17,26,.95)',titleColor:css('--text'),bodyColor:css('--muted'),borderColor:'rgba(255,255,255,.12)',borderWidth:1,padding:12}},scales:{r:{beginAtZero:true,angleLines:{color:'rgba(255,255,255,.08)'},grid:{color:'rgba(255,255,255,.08)'},pointLabels:{color:css('--muted'),font:{size:11,weight:'800'}},ticks:{display:false}}}}});
+    charts.performanceDistribution=new Chart(distribution,{type:'radar',data:{labels,datasets:[{label:'Punkte',data:pStatsNorm.map(p=>p.points_n),borderColor:'#4ad7d1',backgroundColor:'rgba(74,215,209,.16)',pointBackgroundColor:'#4ad7d1',borderWidth:2},{label:'Fänge',data:pStatsNorm.map(p=>p.count_n),borderColor:'#8ff0a7',backgroundColor:'rgba(143,240,167,.10)',pointBackgroundColor:'#8ff0a7',borderWidth:2},{label:'Ø Länge',data:pStatsNorm.map(p=>p.length_n),borderColor:'#ffb84d',backgroundColor:'rgba(255,184,77,.08)',pointBackgroundColor:'#ffb84d',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:true,labels:{color:css('--muted'),usePointStyle:true,boxWidth:8,boxHeight:8,font:{size:11,weight:'800'}}},tooltip:{backgroundColor:'rgba(7,17,26,.95)',titleColor:css('--text'),bodyColor:css('--muted'),borderColor:'rgba(255,255,255,.12)',borderWidth:1,padding:12}},scales:{r:{beginAtZero:true,angleLines:{color:'rgba(255,255,255,.08)'},grid:{color:'rgba(255,255,255,.08)'},pointLabels:{color:css('--muted'),font:{size:11,weight:'800'}},ticks:{display:false}}}}});
   }
 }
 const analyticsPreviousRenderCharts=renderCharts;
