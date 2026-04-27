@@ -157,10 +157,6 @@ if (typeof refreshAnalyticsTournamentSelect === 'function') refreshAnalyticsTour
 
 
 async function saveCatchToSupabase(entry) {
-  if (window.__savingCatch) return;
-  window.__savingCatch = true;
-  try {
-
   if (!db) return;
 
   const payload = {
@@ -216,11 +212,8 @@ async function saveCatchToSupabase(entry) {
     console.error('Catch speichern fehlgeschlagen:', error);
   } else {
     console.log('Catch gespeichert');
-      if (typeof showSuccessBanner === "function") {
-        showSuccessBanner("Fang erfolgreich gespeichert");
-      }
+  }
 }
-
 
 window.saveCatchToSupabase = saveCatchToSupabase;
 
@@ -3070,8 +3063,4 @@ setInterval(injectWeatherIntoCatchCards, 800);
     modal.addEventListener('click',closeHandler,{once:true});
     openBtn.click();
   };
-}
-}  
-;eslaf = hctaCgnivas__.wodniw    
-{ yllanif }  
-)();
+})();
