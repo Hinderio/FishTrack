@@ -3396,7 +3396,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   async function finishRemoteDuel(s){
     if(!db||!s.duelId)return;
     const result=buildDuelResult(s);
-    const {error}=await db.from('duels').update({status:'finished',end_time:s.endedAt,result}).eq('id',s.duelId);
+    const {error}=await db.from('duels').update({status:'finished',end_time:s.endedAt,result, image_url: s.imageUrl}).eq('id',s.duelId);
     if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
     await syncRemoteParticipants(s);
     await addRemoteEvent(s,'system',null,{message:'Duell beendet',result});
@@ -3432,7 +3432,21 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const rows=parts.map((p,i)=>`<div class="duel-history-row"><span>#${i+1} ${escapeHtml(p.display_name||participantName(p.participant_id))}${p.is_captain?' · Kapitän':''}</span><b>${Number(p.score||0)+Number(p.bonus_score||0)} P</b></div>`).join('');
       const date=d.created_at?fmtDateTime(d.created_at):'–';
       const meta=`${date} · ${result.distance_km??(tracks.length?routeDistanceKm(tracks).toFixed(2):'0')} km · Ø ${result.avg_speed_kmh??'–'} km/h`;
-      return `<article class="duel-history-entry"><div class="duel-history-copy"><strong>${d.status==='active'?'Live Duell':'Duell abgeschlossen'}</strong><small>${escapeHtml(meta)}</small>${rows||'<div class="meta">Keine Teilnehmerdaten.</div>'}</div><img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}"></article>`;
+      const image = d.image_url
+        ? `<img class="duel-photo" src="${escapeHtml(d.image_url)}" alt="Duel Image" onerror="this.style.display='none'">`
+        : '';
+      
+      return `<article class="duel-history-entry">
+        <div class="duel-history-copy">
+          <strong>${d.status==='active'?'Live Duell':'Duell abgeschlossen'}</strong>
+          <small>${escapeHtml(meta)}</small>
+          ${rows || '<div class="meta">Keine Teilnehmerdaten.</div>'}
+        </div>
+      
+        ${image}
+      
+        <img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}">
+      </article>`;
     }).join('');
   }
   function renderDuelSection(){
@@ -3487,7 +3501,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function startTimers(){stopTimers();tickTimer=setInterval(()=>{const s=getDuelState();if(s.active&&remainingMs(s)<=0){endDuel();return;}updateDuelUi();},1000);gpsTimer=setInterval(addGpsPoint,GPS_INTERVAL_MS);talkTimer=setInterval(()=>{const s=getDuelState();s.lastTalk=roasts[Math.floor(Math.random()*roasts.length)];saveDuelState(s);addRemoteEvent(s,'message',null,{message:s.lastTalk});updateDuelUi();},TALK_INTERVAL_MS);}
   function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
   async function startDuel(){let s=ensureDuelParticipants(getDuelState());const cap=document.getElementById('duelCaptainSelect')?.value,opp=document.getElementById('duelOpponentSelect')?.value;if(!cap||!opp||cap===opp){alert('Bitte zwei unterschiedliche Teilnehmer wählen.');return;}s={...defaultDuelState(),active:true,startedAt:new Date().toISOString(),durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),captainId:cap,opponentId:opp,mode:document.getElementById('duelModeSelect')?.value||'trolling',score:{[cap]:0,[opp]:0},lastTalk:'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'};saveDuelState(s);s=await createRemoteDuel(s);startTimers();addGpsPoint();updateDuelUi();}
-  async function endDuel(){const s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);setTimeout(()=>exportElementAsImage('duelMap','duel-route.png'),300);s.lastTalk='Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();await finishRemoteDuel(s);}
+  async function endDuel(){const s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);setTimeout(async()=>{const u=await exportElementAsImageAndUpload('duelMap',s.id);if(u){s.imageUrl=u;saveDuelState(s);}},300);s.lastTalk='Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();await finishRemoteDuel(s);}
   async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy,speed_ms:pos.coords.speed}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
     s.route=[...(s.route||[]),point];
     if(!s.weather&&typeof getWeather==='function'){try{const w=await getWeather(point.lat,point.lng);if(w?.current)s.weather={temp_c:w.current.temperature_2m,wind_ms:w.current.wind_speed_10m,pressure_hpa:w.current.pressure_msl,at:w.current.time};}catch(e){}}
@@ -3523,5 +3537,45 @@ function exportElementAsImage(elementId, fileName = "fishtrack-export.png") {
     link.download = fileName;
     link.href = canvas.toDataURL("image/png");
     link.click();
+  });
+}
+
+async function exportElementAsImageAndUpload(elementId, duelId){
+  const element = document.getElementById(elementId);
+
+  if (!element) {
+    console.error("Element nicht gefunden:", elementId);
+    return null;
+  }
+
+  const canvas = await html2canvas(element, {
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: null,
+    scale: 2
+  });
+
+  return new Promise((resolve)=>{
+    canvas.toBlob(async (blob)=>{
+      const fileName = `duel-${duelId}-${Date.now()}.png`;
+
+      const { error } = await supabase
+        .storage
+        .from('duel-images')
+        .upload(fileName, blob);
+
+      if(error){
+        console.error("Upload Fehler:", error);
+        resolve(null);
+        return;
+      }
+
+      const { data } = supabase
+        .storage
+        .from('duel-images')
+        .getPublicUrl(fileName);
+
+      resolve(data.publicUrl);
+    });
   });
 }
