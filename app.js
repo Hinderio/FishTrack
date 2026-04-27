@@ -220,7 +220,7 @@ async function saveCatchToSupabase(entry) {
         showSuccessBanner("Fang erfolgreich gespeichert");
       }
 }
-}
+
 
 window.saveCatchToSupabase = saveCatchToSupabase;
 
