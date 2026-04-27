@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v20-zone-names';
+const CACHE_NAME = 'fishtrack-v21-coach';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const ASSETS = [
   './app.js',
   './manifest.json',
   './catches.json',
+  './coach.png',
+  './final_big_coach_rules.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];

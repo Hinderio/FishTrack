@@ -1,0 +1,153 @@
+{
+  "regions": [
+    {
+      "id": "south_norway",
+      "name": "Südnorwegen",
+      "geo": {
+        "latMin": 57,
+        "latMax": 62,
+        "lngMin": 5,
+        "lngMax": 12
+      },
+      "rules": [
+        {
+          "species": "pike",
+          "months": [
+            4,
+            5,
+            6
+          ],
+          "conditions": {
+            "timeOfDay": [
+              "morning"
+            ],
+            "weather_pressure_trend": [
+              "falling",
+              "strong_falling"
+            ],
+            "weather_temp_c": {
+              "min": 8,
+              "max": 16
+            },
+            "weather_wind_ms": {
+              "max": 5
+            }
+          },
+          "environment_depth_m": {
+            "min": 0.5,
+            "max": 2
+          },
+          "environment_spot_type": [
+            "weed",
+            "shallow"
+          ],
+          "activity_level": "high",
+          "insight": "Große Hechte stehen im Frühjahr oft flach an Schilfkanten und sind morgens besonders aktiv.",
+          "action_lure": "Große Gummifische oder Swimbaits",
+          "action_technique": "Langsam und flach führen",
+          "action_retrieve": "Konstant mit Pausen",
+          "confidence": 0.9,
+          "priority": 10
+        },
+        {
+          "species": "pike",
+          "months": [
+            7,
+            8
+          ],
+          "conditions": {
+            "timeOfDay": [
+              "evening"
+            ],
+            "weather_temp_c": {
+              "min": 16
+            },
+            "weather_pressure_trend": [
+              "stable"
+            ]
+          },
+          "environment_depth_m": {
+            "min": 2,
+            "max": 5
+          },
+          "environment_spot_type": [
+            "dropoff",
+            "edge"
+          ],
+          "activity_level": "medium",
+          "insight": "Im Sommer stehen Hechte tiefer und werden abends aktiver.",
+          "action_lure": "Tief laufende Wobbler",
+          "action_technique": "Langsam entlang von Kanten führen",
+          "confidence": 0.8,
+          "priority": 7
+        }
+      ]
+    },
+    {
+      "id": "netherlands",
+      "name": "Holland",
+      "geo": {
+        "latMin": 50.5,
+        "latMax": 53.7,
+        "lngMin": 3,
+        "lngMax": 7.5
+      },
+      "rules": [
+        {
+          "species": "pike",
+          "months": [
+            3,
+            4,
+            5
+          ],
+          "conditions": {
+            "timeOfDay": [
+              "morning",
+              "midday"
+            ],
+            "weather_pressure_trend": [
+              "falling"
+            ],
+            "weather_wind_ms": {
+              "max": 6
+            }
+          },
+          "environment_depth_m": {
+            "min": 1,
+            "max": 3
+          },
+          "environment_spot_type": [
+            "weed",
+            "canal"
+          ],
+          "activity_level": "high",
+          "insight": "Hechte stehen oft an Krautfeldern und reagieren gut auf bewegte Köder.",
+          "action_lure": "Spinnerbait oder Chatterbait",
+          "action_technique": "Konstant führen",
+          "confidence": 0.85,
+          "priority": 9
+        }
+      ]
+    },
+    {
+      "id": "default",
+      "name": "Allgemein",
+      "rules": [
+        {
+          "species": "pike",
+          "conditions": {
+            "weather_pressure_trend": [
+              "falling"
+            ]
+          },
+          "activity_level": "medium",
+          "insight": "Fallender Luftdruck erhöht oft die Aktivität von Raubfischen.",
+          "action_lure": "Aktive Köder",
+          "action_technique": "Etwas schneller führen",
+          "confidence": 0.6,
+          "priority": 3
+        }
+      ]
+    }
+  ]
+}
