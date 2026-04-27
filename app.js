@@ -1,4 +1,3 @@
-function showSuccessBanner(msg){alert(msg);} 
 function getTournamentBonusMap(){
   const map = {};
   const list = window.state.tournaments || (typeof tournaments !== "undefined" ? tournaments : []) || [];
@@ -158,6 +157,10 @@ if (typeof refreshAnalyticsTournamentSelect === 'function') refreshAnalyticsTour
 
 
 async function saveCatchToSupabase(entry) {
+  if (window.__savingCatch) return;
+  window.__savingCatch = true;
+  try {
+
   if (!db) return;
 
   const payload = {
@@ -204,11 +207,6 @@ async function saveCatchToSupabase(entry) {
     }
   }
 
-// 🛡️ Guard gegen mehrfaches Ausführen (ZERO SIDE EFFECTS)
-if (window.__savingCatch) return;
-window.__savingCatch = true;
-
-try {
   // 🔥 IMMER speichern – egal ob Weather da ist oder nicht
   const { error } = await db
     .from('catches')
@@ -218,16 +216,10 @@ try {
     console.error('Catch speichern fehlgeschlagen:', error);
   } else {
     console.log('Catch gespeichert');
-
-    // ✅ Erfolgs-Feedback (identisch zu Turnier UX)
-    if (typeof showSuccessBanner === "function") {
-      showSuccessBanner("Fang erfolgreich gespeichert");
-    }
-  }
-
-} finally {
-  // 🔓 Wichtig: immer wieder freigeben (auch bei Fehlern!)
-  window.__savingCatch = false;
+      if (typeof showSuccessBanner === "function") {
+        showSuccessBanner("Fang erfolgreich gespeichert");
+      }
+}
 }
 
 window.saveCatchToSupabase = saveCatchToSupabase;
@@ -3078,4 +3070,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
     modal.addEventListener('click',closeHandler,{once:true});
     openBtn.click();
   };
-})();
+}
+}  
+;eslaf = hctaCgnivas__.wodniw    
+{ yllanif }  
+)();
