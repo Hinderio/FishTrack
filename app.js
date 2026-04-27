@@ -1,3 +1,4 @@
+function showSuccessBanner(msg){alert(msg);} 
 function getTournamentBonusMap(){
   const map = {};
   const list = window.state.tournaments || (typeof tournaments !== "undefined" ? tournaments : []) || [];
