@@ -3000,3 +3000,75 @@ setInterval(injectWeatherIntoCatchCards, 800);
     openBtn.click();
   };
 })();
+
+// === CREATE TOURNAMENT MODAL (MINIMAL INVASIVE) ===
+(function(){
+  let modalOpen=false;
+  let originalParent=null;
+  let originalNext=null;
+
+  function openCreateTournamentModal(){
+    if(modalOpen) return;
+    const formEl = document.querySelector('[data-create-tournament], #create-tournament, .create-tournament');
+    if(!formEl) return;
+
+    modalOpen=true;
+    originalParent=formEl.parentNode;
+    originalNext=formEl.nextSibling;
+
+    const backdrop=document.createElement('div');
+    backdrop.className='modal-backdrop';
+    backdrop.id='createTournamentBackdrop';
+
+    const card=document.createElement('div');
+    card.className='modal-card';
+
+    const close=document.createElement('button');
+    close.className='modal-close';
+    close.innerHTML='✕';
+    close.onclick=closeCreateTournamentModal;
+
+    card.appendChild(close);
+    card.appendChild(formEl);
+    backdrop.appendChild(card);
+    document.body.appendChild(backdrop);
+
+    document.body.style.overflow='hidden';
+
+    window.addEventListener('keydown', escHandler);
+  }
+
+  function closeCreateTournamentModal(){
+    if(!modalOpen) return;
+    const backdrop=document.getElementById('createTournamentBackdrop');
+    const formEl = backdrop ? backdrop.querySelector('[data-create-tournament], #create-tournament, .create-tournament') : null;
+
+    if(formEl && originalParent){
+      if(originalNext){
+        originalParent.insertBefore(formEl, originalNext);
+      } else {
+        originalParent.appendChild(formEl);
+      }
+    }
+
+    backdrop && backdrop.remove();
+    document.body.style.overflow='';
+    modalOpen=false;
+    window.removeEventListener('keydown', escHandler);
+  }
+
+  function escHandler(e){
+    if(e.key==='Escape') closeCreateTournamentModal();
+  }
+
+  // Hook existing + button
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-action="create-tournament"], .btn-create-tournament, .create-tournament-btn');
+    if(btn){
+      e.preventDefault();
+      openCreateTournamentModal();
+    }
+  }, true);
+
+  window.openCreateTournamentModal=openCreateTournamentModal;
+})();
