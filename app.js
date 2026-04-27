@@ -3476,7 +3476,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function startTimers(){stopTimers();tickTimer=setInterval(()=>{const s=getDuelState();if(s.active&&remainingMs(s)<=0){endDuel();return;}updateDuelUi();},1000);gpsTimer=setInterval(addGpsPoint,GPS_INTERVAL_MS);talkTimer=setInterval(()=>{const s=getDuelState();s.lastTalk=roasts[Math.floor(Math.random()*roasts.length)];saveDuelState(s);addRemoteEvent(s,'message',null,{message:s.lastTalk});updateDuelUi();},TALK_INTERVAL_MS);}
   function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
   async function startDuel(){let s=ensureDuelParticipants(getDuelState());const cap=document.getElementById('duelCaptainSelect')?.value,opp=document.getElementById('duelOpponentSelect')?.value;if(!cap||!opp||cap===opp){alert('Bitte zwei unterschiedliche Teilnehmer wählen.');return;}s={...defaultDuelState(),active:true,startedAt:new Date().toISOString(),durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),captainId:cap,opponentId:opp,mode:document.getElementById('duelModeSelect')?.value||'trolling',score:{[cap]:0,[opp]:0},lastTalk:'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'};saveDuelState(s);s=await createRemoteDuel(s);startTimers();addGpsPoint();updateDuelUi();}
-  async function endDuel(){const s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);s.lastTalk='Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();await finishRemoteDuel(s);}
+  async function endDuel(){const s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);setTimeout(()=>exportElementAsImage('duelMap','duel-route.png'),300);s.lastTalk='Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();await finishRemoteDuel(s);}
   async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy,speed_ms:pos.coords.speed}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
     s.route=[...(s.route||[]),point];
     if(!s.weather&&typeof getWeather==='function'){try{const w=await getWeather(point.lat,point.lng);if(w?.current)s.weather={temp_c:w.current.temperature_2m,wind_ms:w.current.wind_speed_10m,pressure_hpa:w.current.pressure_msl,at:w.current.time};}catch(e){}}
@@ -3492,3 +3492,22 @@ setInterval(injectWeatherIntoCatchCards, 800);
   document.addEventListener('DOMContentLoaded',()=>{bindDuel();renderDuelSection();loadDuelLeaderboard();const s=getDuelState();if(s.active)startTimers();});
   window.renderDuelSection=renderDuelSection;
 })();
+
+function exportElementAsImage(elementId, fileName = "fishtrack-export.png") {
+  const element = document.getElementById(elementId);
+
+  if (!element) {
+    console.error("Element nicht gefunden:", elementId);
+    return;
+  }
+
+  html2canvas(element, {
+    backgroundColor: null,
+    scale: 2
+  }).then(canvas => {
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  });
+}
