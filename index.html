@@ -324,12 +324,34 @@
         </div>
 
 
+        <section class="panel glass">
+          <div class="panel-head">
+            <h3 id="activeTournamentTitle">Turnierauswertung</h3>
+            <span id="activeTournamentMeta" class="subtle">Noch kein Turnier ausgewählt</span>
+          </div>
+          <div class="grid two-columns">
+            <div>
+              <div id="tournamentLeaderboard" class="stack-list"></div>
+            </div>
+            <div class="stack-list">
+              <article class="tournament-story-card">
+                <div class="panel-head compact">
+                  <h3>Turnier-Story</h3>
+                  <span class="subtle">humorvoll aus den Daten</span>
+                </div>
+                <div id="tournamentStory" class="tournament-story-text"></div>
+              </article>
+              <div id="tournamentHighlights" class="stack-list"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="panel glass duel-panel" id="duelPanel" aria-label="Duell Modus">
           <div class="panel-head duel-panel-head">
             <div>
               <p class="eyebrow">Duell</p>
               <h3>⚔️ Schleppmeister Challenge</h3>
-              <span class="subtle">1h Kurzduell · GPS-Schleppen · Live-Score · dumme Sprüche inklusive</span>
+              <span class="subtle">1h Kurzduell · GPS-Schleppen · Live-Score · sauber persistiert in Supabase</span>
             </div>
             <div class="duel-status-pill" id="duelStatusPill">Bereit</div>
           </div>
@@ -338,6 +360,7 @@
               <div class="duel-config-grid">
                 <label><span>Kapitän</span><select id="duelCaptainSelect"></select></label>
                 <label><span>Herausforderer</span><select id="duelOpponentSelect"></select></label>
+                <label><span>Fänger beim Schnellfang</span><select id="duelCatchParticipantSelect"></select></label>
                 <label><span>Dauer</span><select id="duelDurationSelect"><option value="60">1 Stunde</option><option value="30">30 Min. Quick Fight</option><option value="15">15 Min. Hafen-Randale</option></select></label>
                 <label><span>Modus</span><select id="duelModeSelect"><option value="trolling">Schleppmeister</option><option value="blitz">Blitz-Battle</option></select></label>
               </div>
@@ -368,30 +391,12 @@
               <div id="duelFishTiles" class="duel-fish-tiles"></div>
             </section>
           </div>
+          <section class="duel-history-card">
+            <div class="duel-score-head"><span>Duell-Rangliste</span><strong>Historie</strong></div>
+            <div id="duelLeaderboard" class="duel-leaderboard"></div>
+          </section>
         </section>
 
-
-        <section class="panel glass">
-          <div class="panel-head">
-            <h3 id="activeTournamentTitle">Turnierauswertung</h3>
-            <span id="activeTournamentMeta" class="subtle">Noch kein Turnier ausgewählt</span>
-          </div>
-          <div class="grid two-columns">
-            <div>
-              <div id="tournamentLeaderboard" class="stack-list"></div>
-            </div>
-            <div class="stack-list">
-              <article class="tournament-story-card">
-                <div class="panel-head compact">
-                  <h3>Turnier-Story</h3>
-                  <span class="subtle">humorvoll aus den Daten</span>
-                </div>
-                <div id="tournamentStory" class="tournament-story-text"></div>
-              </article>
-              <div id="tournamentHighlights" class="stack-list"></div>
-            </div>
-          </div>
-        </section>
       </section>
 
 <section id="screen-participants" class="screen">
