@@ -3259,12 +3259,17 @@ setInterval(injectWeatherIntoCatchCards, 800);
         window.updateCatchLocationPreview(Number(oldLat),Number(oldLng));
       }
       if(title)title.textContent=oldTitle;
+      document.body.classList.remove('coach-map-open');
+      
       if(originalParent&&modal.parentNode!==originalParent){
         originalParent.insertBefore(modal,originalNext);
       }
     };
 
     if(title&&opts.title)title.textContent=opts.title;
+
+    document.body.classList.add('coach-map-open');
+    
     if(modal.parentNode!==document.body){
       document.body.appendChild(modal);
     }
