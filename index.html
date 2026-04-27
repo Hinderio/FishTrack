@@ -323,6 +323,54 @@
           </section>
         </div>
 
+
+        <section class="panel glass duel-panel" id="duelPanel" aria-label="Duell Modus">
+          <div class="panel-head duel-panel-head">
+            <div>
+              <p class="eyebrow">Duell</p>
+              <h3>⚔️ Schleppmeister Challenge</h3>
+              <span class="subtle">1h Kurzduell · GPS-Schleppen · Live-Score · dumme Sprüche inklusive</span>
+            </div>
+            <div class="duel-status-pill" id="duelStatusPill">Bereit</div>
+          </div>
+          <div class="duel-layout">
+            <div class="duel-control-card">
+              <div class="duel-config-grid">
+                <label><span>Kapitän</span><select id="duelCaptainSelect"></select></label>
+                <label><span>Herausforderer</span><select id="duelOpponentSelect"></select></label>
+                <label><span>Dauer</span><select id="duelDurationSelect"><option value="60">1 Stunde</option><option value="30">30 Min. Quick Fight</option><option value="15">15 Min. Hafen-Randale</option></select></label>
+                <label><span>Modus</span><select id="duelModeSelect"><option value="trolling">Schleppmeister</option><option value="blitz">Blitz-Battle</option></select></label>
+              </div>
+              <div class="duel-actions">
+                <button type="button" class="pill primary" id="duelStartBtn">▶ Duell starten</button>
+                <button type="button" class="pill secondary" id="duelGpsBtn">📍 GPS-Punkt jetzt</button>
+                <button type="button" class="pill danger" id="duelStopBtn">⏹ Beenden</button>
+              </div>
+              <div class="duel-timer-card">
+                <div><span>Restzeit</span><strong id="duelTimer">60:00</strong></div>
+                <div><span>Ø Tempo</span><strong id="duelAvgSpeed">– km/h</strong></div>
+                <div><span>Wetter</span><strong id="duelWeather">–</strong></div>
+              </div>
+              <div class="duel-trash-talk" id="duelTrashTalk">Der Alte sagt: Erst schleppen, dann prahlen.</div>
+            </div>
+            <div class="duel-map-card">
+              <div id="duelMap" class="duel-map"></div>
+              <div class="duel-map-meta" id="duelMapMeta">Noch keine Route – GPS starten oder Punkt setzen.</div>
+            </div>
+          </div>
+          <div class="duel-score-row">
+            <section class="duel-score-card">
+              <div class="duel-score-head"><span>Live Score</span><strong id="duelScoreText">0 : 0</strong></div>
+              <div id="duelScoreList" class="duel-score-list"></div>
+            </section>
+            <section class="duel-fish-card">
+              <div class="duel-score-head"><span>Schnellfang-Kacheln</span><strong>+ Punkte</strong></div>
+              <div id="duelFishTiles" class="duel-fish-tiles"></div>
+            </section>
+          </div>
+        </section>
+
+
         <section class="panel glass">
           <div class="panel-head">
             <h3 id="activeTournamentTitle">Turnierauswertung</h3>

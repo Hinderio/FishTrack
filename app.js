@@ -3294,3 +3294,108 @@ setInterval(injectWeatherIntoCatchCards, 800);
     openBtn.click();
   };
 })();
+
+
+/* Duell / Schleppmeister Challenge – additive, local-only tournament extension */
+(function(){
+  const KEY='fishtrack-duel-v1';
+  const GPS_INTERVAL_MS=120000;
+  const TALK_INTERVAL_MS=150000;
+  const fishTiles=[
+    {species:'Hecht',icon:'🐊',points:8},
+    {species:'Zander',icon:'🌙',points:6},
+    {species:'Barsch',icon:'🐟',points:4},
+    {species:'Forelle',icon:'🌈',points:4},
+    {species:'Dorsch',icon:'⚓',points:5},
+    {species:'Andere',icon:'✨',points:3}
+  ];
+  const roasts=[
+    'Der Alte sagt: Bei dem Tempo überholt euch gleich ein Kormoran mit Rückenschmerzen.',
+    'Schleppmeister-Regel 7: Wer nichts fängt, nennt es Gewässeranalyse.',
+    'Noch kein Fisch? Perfekt, dann stört wenigstens keiner die Route.',
+    'Der Köder läuft gut. Nur die Fische haben offenbar Homeoffice.',
+    'Wenn jetzt keiner beisst, liegt es sicher am Luftdruck. Oder am Fahrer. Eher am Fahrer.',
+    'Der Kapitän bekommt Bonuspunkte – aber nur, wenn er nicht wie ein Einkaufswagen driftet.'
+  ];
+  let duelMap=null,duelRoute=null,duelMarkers=[];
+  let tickTimer=null,gpsTimer=null,talkTimer=null;
+  function defaultDuelState(){return {active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null};}
+  function getDuelState(){try{return {...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})};}catch{return defaultDuelState();}}
+  function saveDuelState(s){localStorage.setItem(KEY,JSON.stringify(s));window.duelState=s;}
+  function participantName(id){return (state.participants||[]).find(p=>p.id===id)?.name||'–';}
+  function participantAvatar(id){return (state.participants||[]).find(p=>p.id===id)?.avatar||'🎣';}
+  function ensureDuelParticipants(s){const ps=state.participants||[];if(!s.captainId&&ps[0])s.captainId=ps[0].id;if(!s.opponentId&&ps[1])s.opponentId=ps[1].id;if(s.captainId===s.opponentId&&ps.find(p=>p.id!==s.captainId))s.opponentId=ps.find(p=>p.id!==s.captainId).id;return s;}
+  function routeDistanceKm(route){let km=0;for(let i=1;i<route.length;i++)km+=distanceKm(route[i-1],route[i]);return km;}
+  function distanceKm(a,b){const R=6371,toRad=x=>x*Math.PI/180;const dLat=toRad(Number(b.lat)-Number(a.lat));const dLng=toRad(Number(b.lng)-Number(a.lng));const lat1=toRad(Number(a.lat)),lat2=toRad(Number(b.lat));const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
+  function elapsedHours(s){if(!s.startedAt)return 0;const end=s.endedAt?new Date(s.endedAt).getTime():Date.now();return Math.max(0,(end-new Date(s.startedAt).getTime())/3600000);}
+  function avgSpeed(s){const h=elapsedHours(s);return h>0?routeDistanceKm(s.route||[])/h:0;}
+  function speedBonus(s){if(s.mode!=='trolling')return 0;const speed=avgSpeed(s);if(!speed)return 0;let bonus=0;if(speed>=2.0&&speed<=4.0)bonus+=4;else if(speed>=1.5&&speed<=4.8)bonus+=2;if(Number(s.weather?.wind_ms||99)<=6)bonus+=2;return bonus;}
+  function captainBonus(s){return s.mode==='trolling'&&s.startedAt?5:0;}
+  function totalScore(s,id){return Number(s.score?.[id]||0)+(id===s.captainId?captainBonus(s)+speedBonus(s):0);}
+  function formatTime(ms){const total=Math.max(0,Math.ceil(ms/1000));const m=Math.floor(total/60),sec=total%60;return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
+  function remainingMs(s){if(!s.active||!s.startedAt)return Number(s.durationMin||60)*60000;return Math.max(0,new Date(s.startedAt).getTime()+Number(s.durationMin||60)*60000-Date.now());}
+  function renderDuelSection(){
+    const panel=document.getElementById('duelPanel');if(!panel)return;
+    let s=ensureDuelParticipants(getDuelState());saveDuelState(s);
+    const captain=document.getElementById('duelCaptainSelect'),opponent=document.getElementById('duelOpponentSelect');
+    const options=(state.participants||[]).map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.avatar||'🎣')} ${escapeHtml(p.name)}</option>`).join('');
+    if(captain&&captain.innerHTML!==options)captain.innerHTML=options;
+    if(opponent&&opponent.innerHTML!==options)opponent.innerHTML=options;
+    if(captain)captain.value=s.captainId||'';
+    if(opponent)opponent.value=s.opponentId||'';
+    const dur=document.getElementById('duelDurationSelect');if(dur)dur.value=String(s.durationMin||60);
+    const mode=document.getElementById('duelModeSelect');if(mode)mode.value=s.mode||'trolling';
+    updateDuelUi();
+    setTimeout(initDuelMap,80);
+  }
+  function updateDuelUi(){
+    const s=getDuelState();
+    const pill=document.getElementById('duelStatusPill');
+    if(pill){pill.textContent=s.active?'Live':(s.endedAt?'Beendet':'Bereit');pill.classList.toggle('is-live',!!s.active);pill.classList.toggle('is-ended',!!s.endedAt&&!s.active);}
+    const timer=document.getElementById('duelTimer');if(timer)timer.textContent=formatTime(remainingMs(s));
+    const sp=document.getElementById('duelAvgSpeed');if(sp)sp.textContent=(avgSpeed(s)||0).toFixed(1).replace('.',',')+' km/h';
+    const weather=document.getElementById('duelWeather');if(weather)weather.textContent=s.weather?`${Math.round(Number(s.weather.temp_c||0))}° · ${Number(s.weather.wind_ms||0).toFixed(1).replace('.',',')} m/s`:'–';
+    const talk=document.getElementById('duelTrashTalk');if(talk)talk.textContent=s.lastTalk||roasts[0];
+    const scoreText=document.getElementById('duelScoreText');if(scoreText)scoreText.textContent=`${totalScore(s,s.captainId)} : ${totalScore(s,s.opponentId)}`;
+    const scoreList=document.getElementById('duelScoreList');
+    if(scoreList){
+      const rows=[s.captainId,s.opponentId].filter(Boolean).map(id=>`<article class="duel-score-entry"><div><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}${id===s.captainId?' · Kapitän':''}</strong><small>${(s.catches||[]).filter(c=>c.participantId===id).length} Fänge${id===s.captainId?` · Bonus ${captainBonus(s)+speedBonus(s)}`:''}</small></div><b>${totalScore(s,id)} P</b></article>`).join('');
+      scoreList.innerHTML=rows||'<div class="meta">Wähle zwei Teilnehmer.</div>';
+    }
+    const tiles=document.getElementById('duelFishTiles');
+    if(tiles&&!tiles.dataset.ready){tiles.innerHTML=fishTiles.map(f=>`<button type="button" class="duel-fish-tile" data-duel-fish="${escapeHtml(f.species)}"><span>${f.icon}</span><b>${escapeHtml(f.species)}</b><small>+${f.points} P</small></button>`).join('');tiles.dataset.ready='1';}
+    updateDuelMap();
+  }
+  function initDuelMap(){
+    const el=document.getElementById('duelMap');if(!el||duelMap||typeof L==='undefined')return;
+    duelMap=L.map(el,{zoomControl:true,attributionControl:false}).setView([59.442773,11.654906],8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(duelMap);
+    duelRoute=L.polyline([], {color:'#4ad7d1',weight:5,opacity:.85}).addTo(duelMap);
+    setTimeout(()=>duelMap.invalidateSize(),120);
+    updateDuelMap();
+  }
+  function updateDuelMap(){
+    if(!duelMap||!duelRoute)return;const s=getDuelState();const pts=(s.route||[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))).map(p=>[Number(p.lat),Number(p.lng)]);
+    duelRoute.setLatLngs(pts);duelMarkers.forEach(m=>duelMap.removeLayer(m));duelMarkers=[];
+    pts.forEach((pt,i)=>{if(i!==0&&i!==pts.length-1)return;duelMarkers.push(L.circleMarker(pt,{radius:i===pts.length-1?9:6,color:'#fff',fillColor:i===0?'#ffb84d':'#8ff0a7',fillOpacity:.9,weight:3,className:'duel-route-marker'}).addTo(duelMap).bindPopup(i===0?'Start':'Aktuell'));});
+    if(pts.length)duelMap.fitBounds(L.latLngBounds(pts).pad(.25),{maxZoom:14});
+    const meta=document.getElementById('duelMapMeta');if(meta)meta.textContent=pts.length?`${pts.length} GPS-Punkte · ${routeDistanceKm(s.route||[]).toFixed(2)} km Route · Punkte alle 2 Min.`:'Noch keine Route – GPS starten oder Punkt setzen.';
+  }
+  function startTimers(){stopTimers();tickTimer=setInterval(()=>{const s=getDuelState();if(s.active&&remainingMs(s)<=0){endDuel();return;}updateDuelUi();},1000);gpsTimer=setInterval(addGpsPoint,GPS_INTERVAL_MS);talkTimer=setInterval(()=>{const s=getDuelState();s.lastTalk=roasts[Math.floor(Math.random()*roasts.length)];saveDuelState(s);updateDuelUi();},TALK_INTERVAL_MS);}
+  function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
+  function startDuel(){let s=ensureDuelParticipants(getDuelState());const cap=document.getElementById('duelCaptainSelect')?.value,opp=document.getElementById('duelOpponentSelect')?.value;if(!cap||!opp||cap===opp){alert('Bitte zwei unterschiedliche Teilnehmer wählen.');return;}s={...defaultDuelState(),active:true,startedAt:new Date().toISOString(),durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),captainId:cap,opponentId:opp,mode:document.getElementById('duelModeSelect')?.value||'trolling',score:{[cap]:0,[opp]:0},lastTalk:'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'};saveDuelState(s);startTimers();addGpsPoint();updateDuelUi();}
+  function endDuel(){const s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.lastTalk='Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();}
+  async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
+    s.route=[...(s.route||[]),point];
+    if(!s.weather&&typeof getWeather==='function'){try{const w=await getWeather(point.lat,point.lng);if(w?.current)s.weather={temp_c:w.current.temperature_2m,wind_ms:w.current.wind_speed_10m,pressure_hpa:w.current.pressure_msl,at:w.current.time};}catch(e){}}
+    saveDuelState(s);updateDuelUi();}
+  function addDuelCatch(species){let s=getDuelState();if(!s.active){alert('Starte zuerst ein Duell.');return;}const fish=fishTiles.find(f=>f.species===species)||fishTiles[fishTiles.length-1];const target=(totalScore(s,s.captainId)<=totalScore(s,s.opponentId))?s.captainId:s.opponentId;s.score=s.score||{};s.score[target]=Number(s.score[target]||0)+fish.points;s.catches=[...(s.catches||[]),{id:crypto.randomUUID(),participantId:target,species:fish.species,points:fish.points,at:new Date().toISOString()}];s.lastTalk=`${participantName(target)} legt ${fish.species} vor. +${fish.points} Punkte – der Kescher applaudiert.`;saveDuelState(s);updateDuelUi();}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect')s.mode=e.target.value;saveDuelState(s);updateDuelUi();});}
+  const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
+  if(originalRenderTournaments){
+    renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
+    window.renderTournaments=renderTournaments;
+  }
+  document.addEventListener('DOMContentLoaded',()=>{bindDuel();renderDuelSection();const s=getDuelState();if(s.active)startTimers();});
+  window.renderDuelSection=renderDuelSection;
+})();
