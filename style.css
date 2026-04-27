@@ -2612,11 +2612,23 @@ body.light .participant-coach-launcher,body.light .participant-coach-result{back
 @media (max-width:760px){.participant-coach-launcher,.participant-coach-hero,.coach-location-card,.coach-result-top{align-items:stretch;flex-direction:column}.participant-coach-open,.coach-location-card .pill{width:100%}.participant-coach-avatar-wrap{align-self:center}.coach-tip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.coach-confidence{width:100%}}
 @media (max-width:480px){.coach-tip-grid{grid-template-columns:1fr}.participant-coach-avatar-wrap{width:120px;height:120px;flex-basis:120px}.participant-coach-avatar{width:132px;height:132px}}
 
-/* Map Overlay sauber */
-#mapPicker,
+/* =========================
+   MAP MODAL – REAL FIX
+   ========================= */
+
+#mapPickerModal,
 .map-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: #08111b; /* optional dunkler BG */
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99999 !important; /* höher als ALLES */
+  background: #08111b; /* optional */
+}
+
+/* Leaflet selbst */
+#mapPickerModal .leaflet-container,
+.map-overlay .leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
 }
