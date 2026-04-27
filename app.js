@@ -122,7 +122,12 @@ state.catches = (catches || []).map(c => ({
   weather_clouds: c.weather_clouds ?? null,
   weather_precip_mm: c.weather_precip_mm ?? null,
   weather_condition: c.weather_condition ?? null,
-  weather_icon: c.weather_icon ?? null
+  weather_icon: c.weather_icon ?? null,
+  weather_pressure_hpa: c.weather_pressure_hpa ?? null,
+  weather_pressure_delta_1h: c.weather_pressure_delta_1h ?? null,
+  weather_pressure_delta_3h: c.weather_pressure_delta_3h ?? null,
+  weather_pressure_delta_6h: c.weather_pressure_delta_6h ?? null,
+  weather_pressure_trend: c.weather_pressure_trend ?? null,
 }));
 
 if (typeof renderCharts === 'function') {
@@ -182,12 +187,79 @@ async function saveCatchToSupabase(entry) {
     !entry.weather_fetched_at
   ) {
     try {
-      const data = await getWeather(entry.location.lat, entry.location.lng);
+      const data = await getWeather(entry.location.lat, entry.location.lng, entry.timestamp);
 
       if (data?.current) {
         const w = data.current;
 
+        // 🆕 PRESSURE CALCULATION (minimal-invasiv)
+        const pressureCurrent = w.pressure_msl ?? null;
+        
+        let delta1h = null;
+        let delta3h = null;
+        let delta6h = null;
+        
+        if (data.hourly?.time && data.hourly?.pressure_msl && w.time) {
+          const times = data.hourly.time;
+          const values = data.hourly.pressure_msl;
+        
+          const nowTs = new Date(w.time).getTime();
+        
+          function findClosestOffset(hoursBack) {
+            const target = nowTs - (hoursBack * 3600 * 1000);
+        
+            let closestIndex = -1;
+            let smallestDiff = Infinity;
+        
+            for (let i = 0; i < times.length; i++) {
+              const t = new Date(times[i]).getTime();
+              const diff = Math.abs(t - target);
+        
+              if (diff < smallestDiff) {
+                smallestDiff = diff;
+                closestIndex = i;
+              }
+            }
+        
+            return closestIndex >= 0 ? values[closestIndex] : null;
+          }
+        
+          const p1h = findClosestOffset(1);
+          const p3h = findClosestOffset(3);
+          const p6h = findClosestOffset(6);
+        
+          if (pressureCurrent != null && p1h != null) {
+            delta1h = pressureCurrent - p1h;
+          }
+        
+          if (pressureCurrent != null && p3h != null) {
+            delta3h = pressureCurrent - p3h;
+          }
+        
+          if (pressureCurrent != null && p6h != null) {
+            delta6h = pressureCurrent - p6h;
+          }
+        }
+        
+        // 🆕 Trend Klassifikation
+        function classifyPressure(delta3h) {
+          if (delta3h == null) return null;
+        
+          if (delta3h <= -2) return 'strong_falling';
+          if (delta3h <= -0.5) return 'falling';
+          if (delta3h >= 1) return 'rising';
+          if (delta3h >= 0.5) return 'slightly_rising';
+          return 'stable';
+        }
+        
+        const pressureTrend = classifyPressure(delta3h);
+
         payload.weather_temp_c = w.temperature_2m ?? null;
+        payload.weather_pressure_hpa = pressureCurrent;
+        payload.weather_pressure_delta_1h = delta1h;
+        payload.weather_pressure_delta_3h = delta3h;
+        payload.weather_pressure_delta_6h = delta6h;
+        payload.weather_pressure_trend = pressureTrend;
         payload.weather_feels_like_c = w.apparent_temperature ?? null;
         payload.weather_wind_ms = w.wind_speed_10m ?? null;
         payload.weather_humidity = w.relative_humidity_2m ?? null;
@@ -260,7 +332,7 @@ async function saveTournamentToSupabase(tournament) {
 
 
 let charts = {};
-let map;let markersLayer;let selectedDashboardCatchId=null;let pendingCatchFocusId=null;let beforeInstallPromptEvent=null;let activeTournamentId=null;let weatherEnabled=false;let weatherControlAdded=false;let weatherControlEl=null;let weatherPopupRequestId=0;const WEATHER_CACHE_TTL=10*60*1000;const weatherCache=new Map();function formatWeatherValue(value,suffix=''){const n=Number(value);return Number.isFinite(n)?`${Math.round(n)}${suffix}`:'–'}function getWeatherCacheKey(lat,lon){return `${Number(lat).toFixed(3)},${Number(lon).toFixed(3)}`}async function getWeather(lat,lon){const key=getWeatherCacheKey(lat,lon),cached=weatherCache.get(key),now=Date.now();if(cached&&now-cached.timestamp<WEATHER_CACHE_TTL)return cached.data;const params=new URLSearchParams({latitude:String(lat),longitude:String(lon),current:['temperature_2m','relative_humidity_2m','apparent_temperature','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m','weather_code'].join(','),wind_speed_unit:'ms',timezone:'auto'});try{const res=await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);if(!res.ok) throw new Error(`Weather ${res.status}`);const data=await res.json();if(data?.current)weatherCache.set(key,{timestamp:now,data});return data}catch(err){console.error('Weather fetch failed',err);return null}}function weatherDescription(code){const map={0:'Klar',1:'Meist klar',2:'Teilweise bewölkt',3:'Bedeckt',45:'Neblig',48:'Raureifnebel',51:'Leichter Niesel',53:'Niesel',55:'Starker Niesel',56:'Leichter gefrierender Niesel',57:'Gefrierender Niesel',61:'Leichter Regen',63:'Regen',65:'Starker Regen',66:'Leichter gefrierender Regen',67:'Gefrierender Regen',71:'Leichter Schnee',73:'Schnee',75:'Starker Schneefall',77:'Schneekörner',80:'Leichte Regenschauer',81:'Regenschauer',82:'Starke Regenschauer',85:'Leichte Schneeschauer',86:'Schneeschauer',95:'Gewitter',96:'Gewitter mit Hagel',99:'Starkes Gewitter mit Hagel'};return map[code]||'Wetterdaten'}function buildWeatherPopupHtml(data){const current=data?.current;if(!current)return '<div class="weather-popup weather-popup--error">Keine Wetterdaten verfügbar.</div>';const updated=current.time?new Date(current.time).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'–';return `<div class="weather-popup"><div class="weather-popup__header">🌤️ <strong>${formatWeatherValue(current.temperature_2m,'°C')}</strong><span>${weatherDescription(current.weather_code)}</span></div><div class="weather-popup__grid"><div><span>Gefühlt</span><strong>${formatWeatherValue(current.apparent_temperature,'°C')}</strong></div><div><span>Wind</span><strong>${formatWeatherValue(current.wind_speed_10m,' m/s')}</strong></div><div><span>Wolken</span><strong>${formatWeatherValue(current.cloud_cover,'%')}</strong></div><div><span>Feuchte</span><strong>${formatWeatherValue(current.relative_humidity_2m,'%')}</strong></div><div><span>Niederschlag</span><strong>${Number.isFinite(Number(current.precipitation))?`${Number(current.precipitation).toFixed(1)} mm`:'–'}</strong></div><div><span>Aktualisiert</span><strong>${updated}</strong></div></div></div>`}function setWeatherControlState({loading=false}={}){if(!weatherControlEl)return;weatherControlEl.classList.toggle('active',weatherEnabled);weatherControlEl.classList.toggle('loading',loading);weatherControlEl.setAttribute('aria-pressed',weatherEnabled?'true':'false');weatherControlEl.setAttribute('title',weatherEnabled?'Wettermodus aktiv – Klick auf Karte für Wetterdaten':'Wettermodus aktivieren');weatherControlEl.innerHTML=loading?'<span class="weather-spinner" aria-hidden="true"></span>':'🌡️'}function initWeatherControl(){if(!map||weatherControlAdded||typeof L==="undefined")return;const control=L.control({position:"topright"});control.onAdd=function(){const div=L.DomUtil.create("button","leaflet-bar weather-control");div.type='button';div.setAttribute('aria-label','Wettermodus auf der Karte umschalten');div.innerHTML='🌡️';weatherControlEl=div;setWeatherControlState();L.DomEvent.disableClickPropagation(div);L.DomEvent.on(div,"click",(e)=>{L.DomEvent.stop(e);weatherEnabled=!weatherEnabled;setWeatherControlState();if(!weatherEnabled&&map)map.closePopup()});return div};control.addTo(map);weatherControlAdded=true;if(!map._weatherClickBound){map.on("click",async function(e){if(!weatherEnabled)return;const requestId=++weatherPopupRequestId;setWeatherControlState({loading:true});const loadingPopup=L.popup({closeButton:true,offset:[0,-8]}).setLatLng(e.latlng).setContent('<div class="weather-popup weather-popup--loading">Wetter wird geladen …</div>').openOn(map);const data=await getWeather(e.latlng.lat,e.latlng.lng);
+let map;let markersLayer;let selectedDashboardCatchId=null;let pendingCatchFocusId=null;let beforeInstallPromptEvent=null;let activeTournamentId=null;let weatherEnabled=false;let weatherControlAdded=false;let weatherControlEl=null;let weatherPopupRequestId=0;const WEATHER_CACHE_TTL=10*60*1000;const weatherCache=new Map();function formatWeatherValue(value,suffix=''){const n=Number(value);return Number.isFinite(n)?`${Math.round(n)}${suffix}`:'–'}function getWeatherCacheKey(lat,lon){return `${Number(lat).toFixed(3)},${Number(lon).toFixed(3)}`}async function getWeather(lat,lon){const key=getWeatherCacheKey(lat,lon),cached=weatherCache.get(key),now=Date.now();if(cached&&now-cached.timestamp<WEATHER_CACHE_TTL)return cached.data;const params=new URLSearchParams({latitude:String(lat),longitude:String(lon),current:['temperature_2m','relative_humidity_2m','apparent_temperature','precipitation','cloud_cover','wind_speed_10m','wind_direction_10m','weather_code','pressure_msl'].join(','),wind_speed_unit:'ms',timezone:'auto'});try{const res=await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);if(!res.ok) throw new Error(`Weather ${res.status}`);const data=await res.json();if(data?.current)weatherCache.set(key,{timestamp:now,data});return data}catch(err){console.error('Weather fetch failed',err);return null}}function weatherDescription(code){const map={0:'Klar',1:'Meist klar',2:'Teilweise bewölkt',3:'Bedeckt',45:'Neblig',48:'Raureifnebel',51:'Leichter Niesel',53:'Niesel',55:'Starker Niesel',56:'Leichter gefrierender Niesel',57:'Gefrierender Niesel',61:'Leichter Regen',63:'Regen',65:'Starker Regen',66:'Leichter gefrierender Regen',67:'Gefrierender Regen',71:'Leichter Schnee',73:'Schnee',75:'Starker Schneefall',77:'Schneekörner',80:'Leichte Regenschauer',81:'Regenschauer',82:'Starke Regenschauer',85:'Leichte Schneeschauer',86:'Schneeschauer',95:'Gewitter',96:'Gewitter mit Hagel',99:'Starkes Gewitter mit Hagel'};return map[code]||'Wetterdaten'}function buildWeatherPopupHtml(data){const current=data?.current;if(!current)return '<div class="weather-popup weather-popup--error">Keine Wetterdaten verfügbar.</div>';const updated=current.time?new Date(current.time).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}):'–';return `<div class="weather-popup"><div class="weather-popup__header">🌤️ <strong>${formatWeatherValue(current.temperature_2m,'°C')}</strong><span>${weatherDescription(current.weather_code)}</span></div><div class="weather-popup__grid"><div><span>Gefühlt</span><strong>${formatWeatherValue(current.apparent_temperature,'°C')}</strong></div><div><span>Wind</span><strong>${formatWeatherValue(current.wind_speed_10m,' m/s')}</strong></div><div><span>Wolken</span><strong>${formatWeatherValue(current.cloud_cover,'%')}</strong></div><div><span>Feuchte</span><strong>${formatWeatherValue(current.relative_humidity_2m,'%')}</strong></div><div><span>Niederschlag</span><strong>${Number.isFinite(Number(current.precipitation))?`${Number(current.precipitation).toFixed(1)} mm`:'–'}</strong></div><div><span>Aktualisiert</span><strong>${updated}</strong></div></div></div>`}function setWeatherControlState({loading=false}={}){if(!weatherControlEl)return;weatherControlEl.classList.toggle('active',weatherEnabled);weatherControlEl.classList.toggle('loading',loading);weatherControlEl.setAttribute('aria-pressed',weatherEnabled?'true':'false');weatherControlEl.setAttribute('title',weatherEnabled?'Wettermodus aktiv – Klick auf Karte für Wetterdaten':'Wettermodus aktivieren');weatherControlEl.innerHTML=loading?'<span class="weather-spinner" aria-hidden="true"></span>':'🌡️'}function initWeatherControl(){if(!map||weatherControlAdded||typeof L==="undefined")return;const control=L.control({position:"topright"});control.onAdd=function(){const div=L.DomUtil.create("button","leaflet-bar weather-control");div.type='button';div.setAttribute('aria-label','Wettermodus auf der Karte umschalten');div.innerHTML='🌡️';weatherControlEl=div;setWeatherControlState();L.DomEvent.disableClickPropagation(div);L.DomEvent.on(div,"click",(e)=>{L.DomEvent.stop(e);weatherEnabled=!weatherEnabled;setWeatherControlState();if(!weatherEnabled&&map)map.closePopup()});return div};control.addTo(map);weatherControlAdded=true;if(!map._weatherClickBound){map.on("click",async function(e){if(!weatherEnabled)return;const requestId=++weatherPopupRequestId;setWeatherControlState({loading:true});const loadingPopup=L.popup({closeButton:true,offset:[0,-8]}).setLatLng(e.latlng).setContent('<div class="weather-popup weather-popup--loading">Wetter wird geladen …</div>').openOn(map);const data=await getWeather(e.latlng.lat,e.latlng.lng);
 if(data?.current){window.__lastWeatherData=data.current;}if(requestId!==weatherPopupRequestId)return;if(!weatherEnabled){setWeatherControlState();return}if(!data||!data.current){loadingPopup.setContent('<div class="weather-popup weather-popup--error">Open-Meteo konnte für diesen Punkt gerade keine Daten liefern.</div>');setWeatherControlState();return}loadingPopup.setContent(buildWeatherPopupHtml(data));setWeatherControlState()});map._weatherClickBound=true;}};function loadState(){const raw=localStorage.getItem(STORAGE_KEY);if(!raw)return structuredClone(defaultData);try{const data=JSON.parse(raw);return{meta:data.meta||structuredClone(defaultData.meta),participants:Array.isArray(data.participants)?data.participants:[],catches:Array.isArray(data.catches)?data.catches:[],tournaments:Array.isArray(data.tournaments)?data.tournaments:[]}}catch{return structuredClone(defaultData)}}
 
 let isSyncing = false;
