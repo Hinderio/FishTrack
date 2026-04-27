@@ -2611,3 +2611,40 @@ body.light .live-prediction-spot-row select{background:rgba(255,255,255,.78);bor
 body.light .participant-coach-launcher,body.light .participant-coach-result{background:linear-gradient(135deg,rgba(74,215,209,.12),rgba(143,240,167,.08));border-color:rgba(17,36,58,.08)}body.light .participant-coach-hero,body.light .coach-location-card,body.light .coach-tip-grid article{background:rgba(255,255,255,.62);border-color:rgba(17,36,58,.08)}body.light .coach-callout{background:rgba(255,255,255,.58);border-color:rgba(17,36,58,.08)}
 @media (max-width:760px){.participant-coach-launcher,.participant-coach-hero,.coach-location-card,.coach-result-top{align-items:stretch;flex-direction:column}.participant-coach-open,.coach-location-card .pill{width:100%}.participant-coach-avatar-wrap{align-self:center}.coach-tip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.coach-confidence{width:100%}}
 @media (max-width:480px){.coach-tip-grid{grid-template-columns:1fr}.participant-coach-avatar-wrap{width:120px;height:120px;flex-basis:120px}.participant-coach-avatar{width:132px;height:132px}}
+
+/* =========================
+   MAP OVERLAY – FINAL FIX (SAFE)
+   ========================= */
+
+/* NUR deine Picker Map */
+#mapPicker .leaflet-container,
+.map-overlay .leaflet-container {
+  position: fixed !important;
+  inset: 0;
+  z-index: 9999 !important;
+}
+
+/* Leaflet intern */
+#mapPicker .leaflet-pane,
+#mapPicker .leaflet-top,
+#mapPicker .leaflet-bottom,
+#mapPicker .leaflet-control,
+.map-overlay .leaflet-pane,
+.map-overlay .leaflet-top,
+.map-overlay .leaflet-bottom,
+.map-overlay .leaflet-control {
+  z-index: 10000 !important;
+}
+
+/* Wrapper */
+#mapPicker,
+.map-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+}
+
+/* Coach darunter */
+.coach-modal {
+  z-index: 9000;
+}
