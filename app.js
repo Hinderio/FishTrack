@@ -1,13 +1,3 @@
-
-function formatTimelineDate(dateStr){
-  const d=new Date(dateStr);
-  if(Number.isNaN(d.getTime())) return dateStr;
-  const m=String(d.getMonth()+1).padStart(2,'0');
-  const day=String(d.getDate()).padStart(2,'0');
-  const y=String(d.getFullYear()).slice(-2);
-  return `${m}-${day}-${y}`;
-}
-
 function getTournamentBonusMap(){
   const map = {};
   const list = window.state.tournaments || (typeof tournaments !== "undefined" ? tournaments : []) || [];
@@ -362,7 +352,7 @@ function renderParticipantMicroAwards(awards){
   return awards.map(a=>`<span class="micro-award" title="${escapeHtml(a.detail)}"><span>${a.icon}</span><strong>${escapeHtml(a.title)}</strong><small>${escapeHtml(a.detail)}</small></span>`).join('');
 }
 function participantDetailData(participantId){const stats=computeParticipantStats().find(p=>p.id===participantId),participant=participantById(participantId);if(!participant)return null;const catches=[...state.catches].filter(c=>c.participantId===participantId).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));const totalWeight=catches.reduce((sum,c)=>sum+Number(c.weightKg||0),0),totalLength=catches.reduce((sum,c)=>sum+Number(c.lengthCm||0),0),longest=catches.reduce((m,c)=>!m||Number(c.lengthCm||0)>Number(m.lengthCm||0)?c:m,null),heaviest=catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);const species=new Map(),spots=new Map(),hours=Array.from({length:24},(_,hour)=>({hour,count:0})),days=new Map();catches.forEach(c=>{species.set(speciesName(c),(species.get(speciesName(c))||0)+1);const spot=c.spotLabel||c.location?.label||'Unbekannter Spot';spots.set(spot,(spots.get(spot)||0)+1);hours[new Date(c.timestamp).getHours()].count+=1;const day=new Date(c.timestamp).toISOString().slice(0,10);days.set(day,(days.get(day)||0)+1)});return{participant,stats,catches,totalWeight,totalLength,avgWeight:catches.length?totalWeight/catches.length:0,avgLength:catches.length?totalLength/catches.length:0,longest,heaviest,topSpecies:[...species.entries()].sort((a,b)=>b[1]-a[1])[0],topSpot:[...spots.entries()].sort((a,b)=>b[1]-a[1])[0],bestHour:hours.reduce((m,h)=>h.count>m.count?h:m,{hour:0,count:0}),days:[...days.entries()].sort((a,b)=>a[0].localeCompare(b[0]))}}
-function participantTimelineBars(days){if(!days.length)return '<div class="meta">Noch keine Entwicklung verfügbar.</div>';const max=Math.max(1,...days.map(([,count])=>count));return days.slice(-14).map(([day,count])=>`<div class="participant-detail-bar" title="${escapeHtml(formatTimelineDate(day))}: ${count} Fang${count===1?'':'e'}"><span style="height:${Math.max(10,(count/max)*100)}%"></span><small>${escapeHtml(day.slice(5))}</small></div>`).join('')}
+function participantTimelineBars(days){if(!days.length)return '<div class="meta">Noch keine Entwicklung verfügbar.</div>';const max=Math.max(1,...days.map(([,count])=>count));return days.slice(-14).map(([day,count])=>`<div class="participant-detail-bar" title="${escapeHtml(day)}: ${count} Fang${count===1?'':'e'}"><span style="height:${Math.max(10,(count/max)*100)}%"></span><small>${escapeHtml(day.slice(5))}</small></div>`).join('')}
 function participantTournamentSummary(participantId){
   const participant=participantById(participantId);
   if(!participant)return {played:0,wins:0,totalPoints:0,bestRank:null,active:null,entries:[]};
