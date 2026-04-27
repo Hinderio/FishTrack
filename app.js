@@ -638,10 +638,19 @@ function ensureTournamentEditorModal(){
   modal.addEventListener('click',e=>{
     if(e.target===modal||e.target.closest('[data-close-tournament-editor]'))closeTournamentEditor();
   });
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'&&!modal.classList.contains('hidden'))closeTournamentEditor();
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeTournamentEditor();
   });
+  
   document.body.appendChild(modal);
+  
+  /* 🔥 FIX: Leaflet neu berechnen nach DOM Move */
+  setTimeout(() => {
+    if (window.map && typeof window.map.invalidateSize === 'function') {
+      window.map.invalidateSize();
+    }
+  }, 50);
+  
   return modal;
 }
 function openTournamentEditor(){
