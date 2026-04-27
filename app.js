@@ -522,7 +522,71 @@ function tournamentById(id){return state.tournaments.find(t=>t.id===id)}
 function renderTournamentParticipantPicks(){const box=document.getElementById('tournamentParticipants');if(!box)return;box.innerHTML='';state.participants.forEach(p=>{box.insertAdjacentHTML('beforeend',`<label class="pick-chip"><input type="checkbox" value="${p.id}" checked><span>${p.avatar||'🎣'} ${p.name}</span></label>`)})}
 function getTournamentRules(t){if(t?.rulesetId==='custom'&&t.customRules)return {...t.customRules,name:'Eigenes Regelwerk'};return RULESETS[t?.rulesetId]||RULESETS.all_fish}
 function computeTournamentScores(tournament){const catches=state.catches.filter(c=>c.tournamentId===tournament.id).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));const rules=getTournamentRules(tournament);const allowed=tournament.participantIds?.length?tournament.participantIds:state.participants.map(p=>p.id);const scoreMap=new Map(allowed.map(id=>[id,{participant:participantById(id),points:0,catches:0,totalWeight:0,bonuses:[],species:new Set()}]));const add=(id,pts,label)=>{if(!scoreMap.has(id))scoreMap.set(id,{participant:participantById(id),points:0,catches:0,totalWeight:0,bonuses:[],species:new Set()});const row=scoreMap.get(id);row.points+=pts;if(label)row.bonuses.push(label)};catches.forEach((c,i)=>{const row=scoreMap.get(c.participantId);if(!row)return;row.catches+=1;row.totalWeight+=Number(c.weightKg||0);row.points+=rules.pointsPerFish||0;if((rules.bonusNewSpecies||0)>0){const s=speciesName(c);if(!row.species.has(s)){row.species.add(s);row.points+=rules.bonusNewSpecies;row.bonuses.push(`Neue Art: ${s} +${rules.bonusNewSpecies}`)}}if((rules.bonusOver80cm||0)>0&&Number(c.lengthCm||0)>=80){row.points+=rules.bonusOver80cm;row.bonuses.push(`>80 cm +${rules.bonusOver80cm}`)}if((rules.bonusOver100cm||0)>0&&Number(c.lengthCm||0)>=100){row.points+=rules.bonusOver100cm;row.bonuses.push(`>100 cm +${rules.bonusOver100cm}`)}if((rules.bonusNewArea||0)>0){const grid=gridIdFromCatch(c);const seenBefore=catches.slice(0,i).some(x=>gridIdFromCatch(x)===grid);if(!seenBefore&&grid!=='unknown'){row.points+=rules.bonusNewArea;row.bonuses.push(`Entschneidert +${rules.bonusNewArea}`)}}});if(catches[0]&&(rules.bonusFirstFish||0)>0)add(catches[0].participantId,rules.bonusFirstFish,`Erster Fisch +${rules.bonusFirstFish}`);if((rules.bonusLargestFish||0)>0&&catches.length){const biggest=[...catches].reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);if(biggest)add(biggest.participantId,rules.bonusLargestFish,`Größter Fisch +${rules.bonusLargestFish}`)}if((rules.bonusLargestPerSpecies||0)>0&&catches.length){const bySpecies={};catches.forEach(c=>{const s=speciesName(c);if(!bySpecies[s]||Number(c.weightKg||0)>Number(bySpecies[s].weightKg||0))bySpecies[s]=c});Object.values(bySpecies).forEach(c=>add(c.participantId,rules.bonusLargestPerSpecies,`Größter ${speciesName(c)} +${rules.bonusLargestPerSpecies}`))}return{rules,catches,rows:[...scoreMap.values()].sort((a,b)=>b.points-a.points||b.totalWeight-a.totalWeight)}}
-function openTournamentEditor(){showScreen('tournaments');const panel=document.getElementById('tournamentEditorPanel');if(panel){panel.classList.remove('is-collapsed');panel.scrollIntoView({behavior:'smooth',block:'start'});}}function closeTournamentEditor(){const panel=document.getElementById('tournamentEditorPanel');if(panel)panel.classList.add('is-collapsed');}function showTournamentSaveToast(){const toast=document.getElementById('tournamentSaveToast');if(!toast)return;toast.textContent='Erfolgreich Turnier gespeichert';toast.classList.remove('hidden');clearTimeout(window.__fishtrackTournamentToastTimer);window.__fishtrackTournamentToastTimer=setTimeout(()=>toast.classList.add('hidden'),2600);}function resetTournamentFormForNew(){const form=document.getElementById('tournamentForm');if(!form)return;form.reset();delete form.dataset.editingId;const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Turnier speichern';const customToggle=document.getElementById('enableCustomRules');if(customToggle)customToggle.checked=false;if(typeof updateRulesPreview==='function')updateRulesPreview();if(typeof renderTournamentParticipantPicks==='function')renderTournamentParticipantPicks();openTournamentEditor();}function loadTournamentIntoForm(t){openTournamentEditor();const form=document.getElementById('tournamentForm');if(!form)return;form.dataset.editingId=t.id;const nameField=form.querySelector('[name="name"]');const startField=form.querySelector('[name="start"]');const endField=form.querySelector('[name="end"]');if(nameField)nameField.value=t.name||'';if(startField)startField.value=t.start||'';if(endField)endField.value=t.end||'';const ruleset=document.getElementById('rulesetSelect');if(ruleset)ruleset.value=t.rulesetId==='custom'?'all_fish':(t.rulesetId||'all_fish');const customToggle=document.getElementById('enableCustomRules');if(customToggle)customToggle.checked=t.rulesetId==='custom';const rules=t.customRules||{};['pointsPerFish','bonusFirstFish','bonusLargestFish','bonusLargestPerSpecies','bonusNewArea','bonusOver80cm','bonusOver100cm'].forEach(key=>{const el=document.getElementById('rule_'+key);if(el)el.value=rules[key] ?? el.value ?? 0});document.querySelectorAll('#tournamentParticipants input[type="checkbox"]').forEach(cb=>{cb.checked=(t.participantIds||[]).includes(cb.value)});const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Turnier speichern';if(typeof updateRulesPreview==='function')updateRulesPreview();window.scrollTo({top:0,behavior:'smooth'})}
+let tournamentEditorOriginalParent=null,tournamentEditorOriginalNext=null,tournamentEditorReturnFocus=null;
+function ensureTournamentEditorModal(){
+  let modal=document.getElementById('tournamentEditorModal');
+  if(modal)return modal;
+  modal=document.createElement('div');
+  modal.id='tournamentEditorModal';
+  modal.className='participant-detail-modal tournament-editor-modal hidden';
+  modal.setAttribute('aria-hidden','true');
+  modal.setAttribute('role','dialog');
+  modal.setAttribute('aria-modal','true');
+  modal.setAttribute('aria-labelledby','tournamentEditorTitle');
+  modal.innerHTML=`<div class="participant-detail-card glass tournament-editor-modal-card">
+    <button class="icon-btn tournament-modal-close" type="button" aria-label="Turnier-Modal schliessen" data-close-tournament-editor>✕</button>
+    <div id="tournamentEditorModalBody"></div>
+  </div>`;
+  modal.addEventListener('click',e=>{
+    if(e.target===modal||e.target.closest('[data-close-tournament-editor]'))closeTournamentEditor();
+  });
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'&&!modal.classList.contains('hidden'))closeTournamentEditor();
+  });
+  document.body.appendChild(modal);
+  return modal;
+}
+function openTournamentEditor(){
+  showScreen('tournaments');
+  const panel=document.getElementById('tournamentEditorPanel');
+  if(!panel)return;
+  const modal=ensureTournamentEditorModal();
+  const body=document.getElementById('tournamentEditorModalBody');
+  if(!body)return;
+  tournamentEditorReturnFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  if(!tournamentEditorOriginalParent){
+    tournamentEditorOriginalParent=panel.parentNode;
+    tournamentEditorOriginalNext=panel.nextSibling;
+  }
+  panel.classList.remove('is-collapsed');
+  body.appendChild(panel);
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden','false');
+  document.body.classList.add('participant-detail-open');
+  requestAnimationFrame(()=>{
+    const firstInput=panel.querySelector('input,select,textarea,button');
+    if(firstInput)firstInput.focus({preventScroll:true});
+  });
+}
+function closeTournamentEditor(){
+  const panel=document.getElementById('tournamentEditorPanel');
+  const modal=document.getElementById('tournamentEditorModal');
+  if(modal){
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden','true');
+  }
+  if(panel){
+    panel.classList.add('is-collapsed');
+    if(tournamentEditorOriginalParent&&panel.parentNode!==tournamentEditorOriginalParent){
+      tournamentEditorOriginalParent.insertBefore(panel,tournamentEditorOriginalNext);
+    }
+  }
+  document.body.classList.remove('participant-detail-open');
+  if(tournamentEditorReturnFocus&&typeof tournamentEditorReturnFocus.focus==='function'){
+    setTimeout(()=>tournamentEditorReturnFocus?.focus({preventScroll:true}),0);
+  }
+  tournamentEditorReturnFocus=null;
+}function showTournamentSaveToast(){const toast=document.getElementById('tournamentSaveToast');if(!toast)return;toast.textContent='Erfolgreich Turnier gespeichert';toast.classList.remove('hidden');clearTimeout(window.__fishtrackTournamentToastTimer);window.__fishtrackTournamentToastTimer=setTimeout(()=>toast.classList.add('hidden'),2600);}function resetTournamentFormForNew(){const form=document.getElementById('tournamentForm');if(!form)return;form.reset();delete form.dataset.editingId;const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Turnier speichern';const customToggle=document.getElementById('enableCustomRules');if(customToggle)customToggle.checked=false;if(typeof updateRulesPreview==='function')updateRulesPreview();if(typeof renderTournamentParticipantPicks==='function')renderTournamentParticipantPicks();openTournamentEditor();}function loadTournamentIntoForm(t){openTournamentEditor();const form=document.getElementById('tournamentForm');if(!form)return;form.dataset.editingId=t.id;const nameField=form.querySelector('[name="name"]');const startField=form.querySelector('[name="start"]');const endField=form.querySelector('[name="end"]');if(nameField)nameField.value=t.name||'';if(startField)startField.value=t.start||'';if(endField)endField.value=t.end||'';const ruleset=document.getElementById('rulesetSelect');if(ruleset)ruleset.value=t.rulesetId==='custom'?'all_fish':(t.rulesetId||'all_fish');const customToggle=document.getElementById('enableCustomRules');if(customToggle)customToggle.checked=t.rulesetId==='custom';const rules=t.customRules||{};['pointsPerFish','bonusFirstFish','bonusLargestFish','bonusLargestPerSpecies','bonusNewArea','bonusOver80cm','bonusOver100cm'].forEach(key=>{const el=document.getElementById('rule_'+key);if(el)el.value=rules[key] ?? el.value ?? 0});document.querySelectorAll('#tournamentParticipants input[type="checkbox"]').forEach(cb=>{cb.checked=(t.participantIds||[]).includes(cb.value)});const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Turnier speichern';if(typeof updateRulesPreview==='function')updateRulesPreview();window.scrollTo({top:0,behavior:'smooth'})}
 
 
 function storyPick(list, seed){
@@ -2999,76 +3063,4 @@ setInterval(injectWeatherIntoCatchCards, 800);
     modal.addEventListener('click',closeHandler,{once:true});
     openBtn.click();
   };
-})();
-
-// === CREATE TOURNAMENT MODAL (MINIMAL INVASIVE) ===
-(function(){
-  let modalOpen=false;
-  let originalParent=null;
-  let originalNext=null;
-
-  function openCreateTournamentModal(){
-    if(modalOpen) return;
-    const formEl = document.querySelector('[data-create-tournament], #create-tournament, .create-tournament');
-    if(!formEl) return;
-
-    modalOpen=true;
-    originalParent=formEl.parentNode;
-    originalNext=formEl.nextSibling;
-
-    const backdrop=document.createElement('div');
-    backdrop.className='modal-backdrop';
-    backdrop.id='createTournamentBackdrop';
-
-    const card=document.createElement('div');
-    card.className='modal-card';
-
-    const close=document.createElement('button');
-    close.className='modal-close';
-    close.innerHTML='✕';
-    close.onclick=closeCreateTournamentModal;
-
-    card.appendChild(close);
-    card.appendChild(formEl);
-    backdrop.appendChild(card);
-    document.body.appendChild(backdrop);
-
-    document.body.style.overflow='hidden';
-
-    window.addEventListener('keydown', escHandler);
-  }
-
-  function closeCreateTournamentModal(){
-    if(!modalOpen) return;
-    const backdrop=document.getElementById('createTournamentBackdrop');
-    const formEl = backdrop ? backdrop.querySelector('[data-create-tournament], #create-tournament, .create-tournament') : null;
-
-    if(formEl && originalParent){
-      if(originalNext){
-        originalParent.insertBefore(formEl, originalNext);
-      } else {
-        originalParent.appendChild(formEl);
-      }
-    }
-
-    backdrop && backdrop.remove();
-    document.body.style.overflow='';
-    modalOpen=false;
-    window.removeEventListener('keydown', escHandler);
-  }
-
-  function escHandler(e){
-    if(e.key==='Escape') closeCreateTournamentModal();
-  }
-
-  // Hook existing + button
-  document.addEventListener('click', function(e){
-    const btn = e.target.closest('[data-action="create-tournament"], .btn-create-tournament, .create-tournament-btn');
-    if(btn){
-      e.preventDefault();
-      openCreateTournamentModal();
-    }
-  }, true);
-
-  window.openCreateTournamentModal=openCreateTournamentModal;
 })();
