@@ -2196,7 +2196,18 @@ function renderPremiumAnalyticsDashboard(){
   document.addEventListener('click',e=>{
     if(e.target?.id==='livePredictionUseLocation'){
       if(!navigator.geolocation)return alert('Geolocation wird auf diesem Gerät nicht unterstützt.');
-      navigator.geolocation.getCurrentPosition(pos=>updateLiveCatchPredictionLocation(pos.coords.latitude,pos.coords.longitude),()=>alert('Standort konnte nicht ermittelt werden. Bitte Berechtigung prüfen.'));
+      navigator.geolocation.watchPosition(
+        pos=>{
+          const {latitude,longitude}=pos.coords;
+          updateLiveCatchPredictionLocation(latitude,longitude);
+        },
+        ()=>alert('Standort konnte nicht ermittelt werden. Bitte Berechtigung prüfen.'),
+        {
+          enableHighAccuracy:true,
+          maximumAge:0,
+          timeout:5000
+        }
+      );
     }
     if(e.target?.id==='livePredictionPickMap'){
       liveCatchOpenExistingLocationPicker();
@@ -3502,8 +3513,11 @@ function exportElementAsImage(elementId, fileName = "fishtrack-export.png") {
   }
 
   html2canvas(element, {
+    useCORS: true,
+    allowTaint: true,
     backgroundColor: null,
-    scale: 2
+    scale: 2,
+    logging: false
   }).then(canvas => {
     const link = document.createElement("a");
     link.download = fileName;
