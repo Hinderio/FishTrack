@@ -3037,6 +3037,30 @@ function injectWeatherIntoCatchCards(){
       row.innerHTML += `<div class="weather-chip">${match.weather_icon || '☁️'} ${match.weather_condition}</div>`;
     }
 
+    if (match.weather_pressure_trend) {
+  let icon = '';
+  let label = '';
+
+  if (match.weather_pressure_trend === 'strong_falling') {
+    icon = '📉';
+    label = 'Strong Drop';
+  } else if (match.weather_pressure_trend === 'falling') {
+    icon = '📉';
+    label = 'Falling';
+  } else if (match.weather_pressure_trend === 'slightly_rising') {
+    icon = '📈';
+    label = 'Slight Rise';
+  } else if (match.weather_pressure_trend === 'rising') {
+    icon = '📈';
+    label = 'Rising';
+  } else {
+    icon = '➖';
+    label = 'Stable';
+  }
+
+  row.innerHTML += `<div class="weather-chip">${icon} ${label}</div>`;
+}
+
     const actions = card.querySelector('.list-actions');
     
     if (actions) {
