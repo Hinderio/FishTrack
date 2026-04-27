@@ -204,6 +204,11 @@ async function saveCatchToSupabase(entry) {
     }
   }
 
+// 🛡️ Guard gegen mehrfaches Ausführen (ZERO SIDE EFFECTS)
+if (window.__savingCatch) return;
+window.__savingCatch = true;
+
+try {
   // 🔥 IMMER speichern – egal ob Weather da ist oder nicht
   const { error } = await db
     .from('catches')
@@ -213,11 +218,16 @@ async function saveCatchToSupabase(entry) {
     console.error('Catch speichern fehlgeschlagen:', error);
   } else {
     console.log('Catch gespeichert');
-  
+
+    // ✅ Erfolgs-Feedback (identisch zu Turnier UX)
     if (typeof showSuccessBanner === "function") {
-      showSuccessBanner("Erfolgreich Fang gespeichert");
+      showSuccessBanner("Fang erfolgreich gespeichert");
     }
   }
+
+} finally {
+  // 🔓 Wichtig: immer wieder freigeben (auch bei Fehlern!)
+  window.__savingCatch = false;
 }
 
 window.saveCatchToSupabase = saveCatchToSupabase;
