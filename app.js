@@ -213,6 +213,10 @@ async function saveCatchToSupabase(entry) {
     console.error('Catch speichern fehlgeschlagen:', error);
   } else {
     console.log('Catch gespeichert');
+  
+    if (typeof showSuccessBanner === "function") {
+      showSuccessBanner("Erfolgreich Fang gespeichert");
+    }
   }
 }
 
