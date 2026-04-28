@@ -2920,3 +2920,19 @@ body.coach-map-open #mapPickerModal .map-actions {
 .feed-fish-player.feed-dead .feed-fish-img-wrap img{filter:grayscale(.2) drop-shadow(0 10px 18px rgba(0,0,0,.42))}
 @media (max-width:1100px){.feed-fish-grid{grid-template-columns:1fr}}
 @media (max-width:760px){.feed-fish-player{grid-template-columns:96px minmax(0,1fr);gap:10px}.feed-fish-img-wrap{width:96px;height:96px}.feed-fish-img-wrap img{width:92px;height:92px}.feed-fish-copy h4{font-size:1.05rem}}
+
+/* Feed your Fish – final quick actions */
+.feed-fish-actions{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.feed-fish-actions .pill{
+  white-space:nowrap;
+}
+@media (max-width:760px){
+  .feed-fish-actions{justify-content:flex-start;width:100%;}
+  .feed-fish-actions .pill{flex:1 1 auto;}
+}

@@ -3355,7 +3355,50 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(changed)saveDuelState(s);return s;}
   function feedFishAfterCatch(s,target,fish){if(s.mode!=='feed'||!target)return;const feed=ensureFeedFishState(s),p=feed.players[target]||feedFishDefaultPlayer();feed.players[target]=p;p.level=Math.max(1,Number(p.level||1)-2);p.lastFedAt=Date.now();p.lastStageAt=Date.now();p.twist=`Gefüttert mit ${fish.species}. Nur dieser Fisch erholt sich.`;s.lastTalk=`${participantName(target)} füttert seinen Fisch mit ${fish.species}. Der Kleine lebt wieder auf.`;addRemoteEvent(s,'feed',target,{species:fish.species,level:p.level});}
   function resetFeedFish(){let s=getDuelState();s.feedFish=null;ensureFeedFishState(s);s.lastTalk='Alle Fische sind frisch gebadet, rasiert und bereit für schlechte Entscheidungen.';saveDuelState(s);updateDuelUi();}
-  function renderFeedFishUi(){const card=document.getElementById('feedFishCard'),grid=document.getElementById('feedFishGrid');if(!card||!grid)return;let s=getDuelState();const isFeed=s.mode==='feed';card.classList.toggle('is-feed-active',isFeed);if(!isFeed){grid.innerHTML='<div class="feed-fish-empty">Wähle oben den Modus <b>Feed your Fish</b>, starte das Duell und halte eure Schnauzer-Fische am Leben.</div>';return;}s=feedFishApplyDecay(s);const feed=ensureFeedFishState(s);const intervalMin=Math.round(feedFishIntervalMs(s)/60000);grid.innerHTML=feedFishOwnerIds(s).map(id=>{const p=feed.players[id]||feedFishDefaultPlayer();feed.players[id]=p;const stage=feedFishStage(p.level);const progress=feedFishProgress(p,s);const toNext=Number(p.level||1)>=7?'Endstation':`${Math.max(0,Math.ceil((feedFishIntervalMs(s)-(Date.now()-Number(p.lastStageAt||Date.now())))/60000))} min bis Stufe ${Number(p.level||1)+1}`;return `<article class="feed-fish-player ${stage.tone}"><div class="feed-fish-img-wrap"><img src="Transformation/Stufe_${stage.level}.png" alt="${escapeHtml(stage.title)}" loading="lazy"></div><div class="feed-fish-copy"><div class="feed-fish-player-head"><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</strong><span>Stufe ${stage.level}/7</span></div><h4>${escapeHtml(stage.title)}</h4><p>${escapeHtml(stage.caption)}</p><div class="feed-fish-progress"><i style="width:${progress}%"></i></div><small>${escapeHtml(toNext)} · Zyklus ${intervalMin} min${p.twist?` · ${escapeHtml(p.twist)}`:''}</small></div></article>`;}).join('')||'<div class="feed-fish-empty">Wähle zwei Teilnehmer, damit jeder einen Fisch bekommt.</div>';saveDuelState(s);}
+  function activateFeedFishMode(startNow=false){
+    let s=ensureDuelParticipants(getDuelState());
+    s.mode='feed';
+    ensureFeedFishState(s);
+    s.lastTalk=s.active?'Feed your Fish ist aktiv. Jetzt zählt jeder eigene Fang.':'Feed your Fish ist scharf gestellt. Starte das Duell und rette die Schnauzer-Fische.';
+    saveDuelState(s);
+    const mode=document.getElementById('duelModeSelect');
+    if(mode)mode.value='feed';
+    if(startNow&&!s.active){startDuel();return;}
+    updateDuelUi();
+  }
+  function renderFeedFishUi(){
+    const card=document.getElementById('feedFishCard'),grid=document.getElementById('feedFishGrid');
+    if(!card||!grid)return;
+    let s=getDuelState();
+    const modeSelect=document.getElementById('duelModeSelect');
+    const selectedMode=modeSelect?.value||s.mode||'trolling';
+    const isFeed=selectedMode==='feed'||s.mode==='feed';
+    card.classList.toggle('is-feed-active',!!isFeed);
+    const activateBtn=document.getElementById('feedFishActivateBtn'),startBtn=document.getElementById('feedFishStartBtn');
+    if(activateBtn)activateBtn.classList.toggle('hidden',!!isFeed);
+    if(startBtn)startBtn.classList.toggle('hidden',!!s.active||!isFeed);
+    if(!isFeed){
+      grid.innerHTML='<div class="feed-fish-empty"><b>Feed your Fish ist noch nicht aktiv.</b><br>Tippe auf „Modus aktivieren“ oder wähle oben Feed your Fish. Danach startet das Mini-Game sauber im bestehenden Duell-Modul.</div>';
+      return;
+    }
+    s=ensureDuelParticipants(s);
+    s.mode='feed';
+    ensureFeedFishState(s);
+    if(s.active)s=feedFishApplyDecay(s);
+    const intervalMin=Math.round(feedFishIntervalMs(s)/60000);
+    const ids=feedFishOwnerIds(s);
+    const feed=s.feedFish;
+    grid.innerHTML=ids.map(id=>{
+      const p=feed.players[id]||feedFishDefaultPlayer();
+      feed.players[id]=p;
+      const stage=feedFishStage(p.level);
+      const progress=s.active?feedFishProgress(p,s):0;
+      const remainMs=Math.max(0,feedFishIntervalMs(s)-(Date.now()-Number(p.lastStageAt||Date.now())));
+      const toNext=Number(p.level||1)>=7?'Endstation':(s.active?`${Math.ceil(remainMs/60000)} min bis Stufe ${Number(p.level||1)+1}`:'Startet beim Duell-Start');
+      return `<article class="feed-fish-player ${stage.tone}"><div class="feed-fish-img-wrap"><img src="Transformation/Stufe_${stage.level}.png" alt="${escapeHtml(stage.title)}" loading="lazy"></div><div class="feed-fish-copy"><div class="feed-fish-player-head"><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</strong><span>Stufe ${stage.level}/7</span></div><h4>${escapeHtml(stage.title)}</h4><p>${escapeHtml(stage.caption)}</p><div class="feed-fish-progress"><i style="width:${progress}%"></i></div><small>${escapeHtml(toNext)} · Verfall-Zyklus ${intervalMin} min${p.twist?` · ${escapeHtml(p.twist)}`:''}</small></div></article>`;
+    }).join('')||'<div class="feed-fish-empty">Wähle zwei Teilnehmer, damit jeder einen Fisch bekommt.</div>';
+    saveDuelState(s);
+  }
 
   let duelMap=null,duelRoute=null,duelMarkers=[];
   let tickTimer=null,gpsTimer=null,talkTimer=null,leaderboardCache=[];
@@ -3539,7 +3582,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);
     saveDuelState(s);await addRemoteTrack(s,point);await addRemoteEvent(s,'gps',s.captainId,{lat:point.lat,lng:point.lng,accuracy:point.accuracy??null,demo:!!point.demo});updateDuelUi();}
   async function addDuelCatch(species){let s=getDuelState();if(!s.active){alert('Starte zuerst ein Duell.');return;}const fish=fishTiles.find(f=>f.species===species)||fishTiles[fishTiles.length-1];const target=document.getElementById('duelCatchParticipantSelect')?.value||s.captainId;if(!target){alert('Bitte zuerst einen Fänger auswählen.');return;}s.score=s.score||{};s.score[target]=Number(s.score[target]||0)+fish.points;const catchEvent={id:crypto.randomUUID(),participantId:target,species:fish.species,points:fish.points,at:new Date().toISOString()};s.catches=[...(s.catches||[]),catchEvent];s.lastTalk=`${participantName(target)} legt ${fish.species} vor. +${fish.points} Punkte – der Kescher applaudiert.`;if(s.mode==='feed')feedFishAfterCatch(s,target,fish);saveDuelState(s);await addRemoteEvent(s,'catch',target,catchEvent);await syncRemoteParticipants(s);updateDuelUi();}
-  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishResetBtn'))resetFeedFish();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);}saveDuelState(s);updateDuelUi();});}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);}saveDuelState(s);updateDuelUi();});}
   const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
   if(originalRenderTournaments){
     renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
@@ -3590,7 +3633,9 @@ async function exportElementAsImageAndUpload(elementId, duelId){
     canvas.toBlob(async (blob)=>{
       const fileName = `duel-${duelId}-${Date.now()}.png`;
 
-      const { error } = await supabase
+      const client = window.supabaseClient || db;
+      if(!client){ console.warn('Supabase Client fehlt für Duel Image Upload'); resolve(null); return; }
+      const { error } = await client
         .storage
         .from('duel-images')
         .upload(fileName, blob);
@@ -3601,7 +3646,7 @@ async function exportElementAsImageAndUpload(elementId, duelId){
         return;
       }
 
-      const { data } = supabase
+      const { data } = client
         .storage
         .from('duel-images')
         .getPublicUrl(fileName);
