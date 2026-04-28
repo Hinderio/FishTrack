@@ -3791,21 +3791,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     
     s.fishImage = svgUrl;
   
-    console.log("UPLOAD RESULT:", uploadedUrl);
-  
-    // ✅ wenn Upload klappt → echtes Bild nutzen
-    if (uploadedUrl) {
-      s.imageUrl = uploadedUrl;
-    
-      // 🔥 NUR Map-Modi dürfen fishImage überschreiben
-      if (s.mode !== 'feed') {
-        s.fishImage = uploadedUrl;
-      }
-    } 
-    // ❗ fallback NUR für Map-Modi
-    else if (s.routeSnapshotSvg && s.mode !== 'feed') {
-      s.fishImage = svgDataUrl(s.routeSnapshotSvg);
-    }
+    console.log("UPLOAD RESULT:", uploadedUrl);  
 
     saveDuelState(s);
     updateDuelUi();
