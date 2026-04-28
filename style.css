@@ -2717,9 +2717,14 @@ body.coach-map-open #mapPickerModal .map-actions {
   display:grid;
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:12px;
+  max-height:552px;
+  overflow-y:auto;
+  padding-right:4px;
+  scroll-snap-type:y proximity;
 }
 .duel-history-entry{
   display:grid;
+  scroll-snap-align:start;
   grid-template-columns:minmax(0,1fr) 210px;
   gap:12px;
   align-items:stretch;
@@ -2783,6 +2788,7 @@ body.coach-map-open #mapPickerModal .map-actions {
   }
   .duel-leaderboard{
     grid-template-columns:1fr;
+    max-height:1092px;
   }
 }
 @media (max-width:760px){
