@@ -3661,23 +3661,6 @@ setInterval(injectWeatherIntoCatchCards, 800);
   
     // ✅ EIN sauberer Save → mit Bild
     await finishRemoteDuel(s);
-  
-    // ❗ OPTIONAL: Upload versuchen (aber NICHT mehr kritisch)
-    setTimeout(async()=>{
-      try{
-        const u = await exportElementAsImageAndUpload('duelMap', s.duelId || s.id || 'local');
-  
-        if(u){
-          const latest = getDuelState();
-          latest.imageUrl = u;
-          latest.fishImage = u;
-          saveDuelState(latest);
-          await finishRemoteDuel(latest);
-        }
-      }catch(e){
-        console.warn('Upload optional fehlgeschlagen – egal, SVG ist bereits gespeichert');
-      }
-    },300);
   }
   async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy,speed_ms:pos.coords.speed}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
     s.route=[...(s.route||[]),point];
