@@ -3611,11 +3611,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
         : null;
       
       const imageUrl =
-        routeImageUrl ||
         d.fish_image ||
         d.result?.fish_image ||
         d.image_url ||
         d.result?.image_url ||
+        routeImageUrl ||
         svgDataUrl(svg);
             
       console.log("Render Image URL:", imageUrl?.slice(0,80));
