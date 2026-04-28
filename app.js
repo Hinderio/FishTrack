@@ -3890,6 +3890,8 @@ async function exportElementAsImageAndUpload(elementId, duelId){
         .getPublicUrl(fileName);
   
       resolve(data.publicUrl);
-    });
-  });
-}
+          });
+        });
+      }
+
+})();
