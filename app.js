@@ -3476,10 +3476,23 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const result = buildDuelResult(s);
   
     let safeFishImage = null;
-
-    // 1. Priorität: echtes Bild (Upload)
-    if (s.fishImage && (s.fishImage.startsWith('http') || s.fishImage.startsWith('data:image'))) {
+    
+    // 🔥 IMMER Upload priorisieren
+    if (s.imageUrl) {
+      safeFishImage = s.imageUrl;
+    }
+    
+    // fallback
+    else if (s.fishImage && s.fishImage.startsWith('data:image')) {
       safeFishImage = s.fishImage;
+    }
+    
+    // letzter fallback SVG
+    else if (s.routeSnapshotSvg && s.routeSnapshotSvg.includes('<svg')) {
+      const svg = svgDataUrl(s.routeSnapshotSvg);
+      if (svg.length < 500000) {
+        safeFishImage = svg;
+      }
     }
     
     // 2. fallback: imageUrl
@@ -3525,11 +3538,14 @@ setInterval(injectWeatherIntoCatchCards, 800);
       end_time: s.endedAt,
       result: mergedResult,
       image_url: s.imageUrl || safeFishImage || existingDuel?.image_url || null,
+    
+      // 👉 HIER IST DEIN FIX
       fish_image:
-        s.imageUrl ||        // 🔥 IMMER zuerst Upload
+        s.imageUrl ||
         safeFishImage ||
         existingDuel?.fish_image ||
         null,
+    
       fish_state: mergedFishState
     };
   
