@@ -3880,5 +3880,4 @@ async function exportElementAsImageAndUpload(elementId, duelId){
 
       resolve(data.publicUrl);
     });
-  });
 }
