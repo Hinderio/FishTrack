@@ -2942,3 +2942,28 @@ body.coach-map-open #mapPickerModal .map-actions {
   .feed-fish-actions{justify-content:flex-start;width:100%;}
   .feed-fish-actions .pill{flex:1 1 auto;}
 }
+
+/* === FIX: Duel Bild wird sichtbar === */
+
+.duel-photo-container {
+  width: 100%;
+  height: 90px;
+  overflow: hidden;
+  position: relative;
+  border-radius: 10px;
+}
+
+.duel-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+
+.duel-route-snapshot {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
