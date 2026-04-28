@@ -3648,12 +3648,19 @@ setInterval(injectWeatherIntoCatchCards, 800);
     s.active = false;
     s.endedAt = new Date().toISOString();
   
-    // Route Snapshot (Fallback)
-    s.routeSnapshotSvg = routeSnapshotSvg(s.route || []);
+    // ✅ Snapshot erzeugen
+    const svg = routeSnapshotSvg(s.route || []);
+    const image = svgDataUrl(svg);
   
+    // 🔥 IMMER setzen (DAS ist der Fix)
+    s.imageUrl = image;
+    s.fishImage = image;
+  
+    // Feed Mode überschreibt optional
     if (s.mode === 'feed') {
       s = feedFishApplyDecay(s);
       s.fishImage = feedFishFinalImageUrl(s);
+      s.imageUrl = s.fishImage;
     }
   
     s.lastTalk = s.mode === 'feed'
@@ -3664,24 +3671,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     stopTimers();
     updateDuelUi();
   
-    // 🔥 JETZT DER WICHTIGE TEIL
-    const uploadedUrl = await exportElementAsImageAndUpload(
-      'duelMap',
-      s.duelId || s.id || 'local'
-    );
-  
-    console.log("UPLOAD RESULT:", uploadedUrl);
-  
-    // ✅ wenn Upload klappt → echtes Bild nutzen
-    if (uploadedUrl) {
-      s.imageUrl = uploadedUrl;
-      s.fishImage = uploadedUrl;
-    } 
-    // ❗ fallback NUR wenn Upload scheitert
-    else if (s.routeSnapshotSvg) {
-      s.fishImage = svgDataUrl(s.routeSnapshotSvg);
-    }
-  
+    // ✅ Persistiert Bild sauber
     await finishRemoteDuel(s);
   }
   async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy,speed_ms:pos.coords.speed}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
