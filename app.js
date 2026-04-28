@@ -3761,7 +3761,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     s.active = false;
     s.endedAt = new Date().toISOString();
   
-    // Route Snapshot (Fallback)
+    // Route Snapshot
     s.routeSnapshotSvg = routeSnapshotSvg(s.route || []);
   
     if (s.mode === 'feed') {
@@ -3772,32 +3772,23 @@ setInterval(injectWeatherIntoCatchCards, 800);
     s.lastTalk = s.mode === 'feed'
       ? 'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.'
       : 'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';  
-
+  
     stopTimers();
     updateDuelUi();
   
-    // 🔥 warten bis Map fertig gerendert ist
-    await new Promise(r => setTimeout(r, 300));
-    
-    // optional stärker:
-    if (duelMap) {
-      duelMap.invalidateSize();
-    }
-    
-    await new Promise(r => setTimeout(r, 300));
-    
+    // 🔥 SVG ist jetzt deine einzige Quelle
     const svg = routeSnapshotSvg(s.route || []);
     const svgUrl = svgDataUrl(svg);
-    
-    s.fishImage = svgUrl;
   
-    console.log("UPLOAD RESULT:", uploadedUrl);  
-
+    if (s.mode !== 'feed') {
+      s.fishImage = svgUrl;
+    }
+  
     saveDuelState(s);
     updateDuelUi();
   
     await finishRemoteDuel(s);
-  }
+}
 async function addGpsPoint(){
   let s=getDuelState();
   if(!s.active)return;
