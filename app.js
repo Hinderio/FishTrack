@@ -3583,7 +3583,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       
         <div class="duel-photo-container">
           ${image}
-          <img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}">
+          
         </div>
       </article>`;
     }).join('');
