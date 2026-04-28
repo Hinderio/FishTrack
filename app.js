@@ -3525,7 +3525,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
       end_time: s.endedAt,
       result: mergedResult,
       image_url: s.imageUrl || safeFishImage || existingDuel?.image_url || null,
-      fish_image: safeFishImage || existingDuel?.fish_image || null,
+      fish_image:
+        s.imageUrl ||        // 🔥 IMMER zuerst Upload
+        safeFishImage ||
+        existingDuel?.fish_image ||
+        null,
       fish_state: mergedFishState
     };
   
