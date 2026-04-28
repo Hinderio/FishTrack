@@ -608,7 +608,7 @@ const col=Math.min(cols-1,Math.max(0,Math.floor(((c.location.lng-minLng)/(maxLng
 grid[r*cols+col]+=1});const max=Math.max(...grid,1);container.innerHTML='';grid.forEach((count,idx)=>{const opacity=.12+(count/max)*.88,cell=document.createElement('div');cell.className='heat-cell';cell.dataset.zone=`Zone ${idx+1}`;cell.style.background=`rgba(143,240,167,${opacity})`;cell.style.color=opacity>.5?'#06210c':css('--text');cell.innerHTML=`<strong>Zone ${idx+1}</strong><span>${count} Fang${count===1?'':'e'}</span>`;container.appendChild(cell)})}function rerender(){populateSelects();renderDashboard();renderHistory();renderParticipants();renderRecords();renderForecast();renderTimeHeatmap();renderMap();renderTournaments()}function resetViewportScrollAfterScreenChange(){requestAnimationFrame(()=>{try{window.scrollTo({top:0,left:0,behavior:'instant'})}catch(e){window.scrollTo(0,0)}document.documentElement.scrollTop=0;document.body.scrollTop=0})}function showScreen(name){const previousScreen=document.querySelector('.screen.active')?.id||'';const nextScreen=`screen-${name}`;const isScreenChange=previousScreen!==nextScreen;if(name!=='map'&&selectedDashboardCatchId){selectedDashboardCatchId=null;pendingCatchFocusId=null}document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===nextScreen));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.screen===name));if(isScreenChange)resetViewportScrollAfterScreenChange();if(name==='map'&&map)setTimeout(()=>map.invalidateSize(),120);if(name==='analytics'&&typeof refreshAnalyticsTournamentSelect==='function')setTimeout(refreshAnalyticsTournamentSelect,0)}function attachEvents(){document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click',()=>showScreen(btn.dataset.screen)));document.getElementById('newTournamentBubble')?.addEventListener('click',resetTournamentFormForNew);document.getElementById('themeToggle').addEventListener('click',()=>{document.body.classList.toggle('light');localStorage.setItem(THEME_KEY,document.body.classList.contains('light')?'light':'dark');renderCharts();renderTimeHeatmap();renderMap()});document.getElementById('speciesSelect').addEventListener('change',e=>document.getElementById('customSpeciesWrap').classList.toggle('hidden',e.target.value!=='Andere'));document.getElementById('catchForm').addEventListener('submit',async e=>{e.preventDefault();const form=e.target;const fd=new FormData(form);const editingId=form.dataset.editingId;const entry={id:editingId||crypto.randomUUID(),species:fd.get('species'),customSpecies:fd.get('customSpecies')||'',participantId:fd.get('participantId'),tournamentId:fd.get('tournamentId')||'',lengthCm:Number(fd.get('lengthCm')),weightKg:fd.get('weightKg')?Number(fd.get('weightKg')):0,timestamp:new Date(fd.get('timestamp')).toISOString(),bait:fd.get('bait')||'',spotLabel:fd.get('spotLabel')||'',note:fd.get('note')||'',location:{lat:fd.get('lat')?Number(fd.get('lat')):null,lng:fd.get('lng')?Number(fd.get('lng')):null,label:fd.get('spotLabel')||''},createdAt:new Date().toISOString()};if(editingId){state.catches=state.catches.map(c=>c.id===editingId?entry:c);delete form.dataset.editingId}else{state.catches.push(entry)}await persist();form.reset();document.getElementById('customSpeciesWrap').classList.add('hidden');document.getElementById('timestampInput').value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);rerender();showTournamentSaveToast();setTimeout(()=>{const toast=document.getElementById('tournamentSaveToast');if(toast)toast.textContent='Fang erfolgreich gespeichert';},0);setTimeout(()=>{showScreen('catches');const bait=document.querySelector('#catchForm select[name="bait"]');const spot=document.querySelector('#catchForm select[name="spotLabel"]');if(bait)bait.value='';if(spot)spot.value='';},0);});document.getElementById('participantForm').addEventListener('submit',e=>{e.preventDefault();const form=e.target;const fd=new FormData(form),editingId=form.dataset.editingId;if(editingId){state.participants=state.participants.map(p=>p.id===editingId?{...p,name:fd.get('name').trim(),color:fd.get('color'),avatar:fd.get('avatar')||'🎣'}:p);delete form.dataset.editingId}else state.participants.push({id:crypto.randomUUID(),name:fd.get('name').trim(),color:fd.get('color'),avatar:fd.get('avatar')||'🎣'});persist();
 
 form.reset();form.color.value='#4ad7d1';form.avatar.value='🎣';const submit=form.querySelector('button[type="submit"]');if(submit)submit.textContent='Teilnehmer hinzufügen';rerender()});['speciesFilter','participantFilter','searchCatch'].forEach(id=>{document.getElementById(id).addEventListener('input',renderHistory);document.getElementById(id).addEventListener('change',renderHistory)});document.getElementById('useCurrentLocation').addEventListener('click',()=>{if(!navigator.geolocation)return alert('Geolocation wird auf diesem Gerät nicht unterstützt.');navigator.geolocation.getCurrentPosition(pos=>{document.querySelector('[name="lat"]').value=pos.coords.latitude.toFixed(6);document.querySelector('[name="lng"]').value=pos.coords.longitude.toFixed(6);if(window.updateCatchLocationPreview)window.updateCatchLocationPreview(pos.coords.latitude,pos.coords.longitude)},()=>alert('Standort konnte nicht ermittelt werden. Bitte in Safari/Geräteeinstellungen erlauben.'))});document.getElementById('exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`fishtrack-export-${new Date().toISOString().slice(0,10)}.json`;a.click();URL.revokeObjectURL(a.href)});document.getElementById('importInput').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const parsed=JSON.parse(await file.text());if(!Array.isArray(parsed.participants)||!Array.isArray(parsed.catches))throw new Error();state={meta:parsed.meta||structuredClone(defaultData.meta),participants:Array.isArray(parsed.participants)?parsed.participants:[],catches:Array.isArray(parsed.catches)?parsed.catches:[],tournaments:Array.isArray(parsed.tournaments)?parsed.tournaments:[]};persist();rerender();alert('Import erfolgreich.')}catch{alert('Import fehlgeschlagen. Bitte eine gültige JSON-Datei verwenden.')}});document.getElementById('resetDemoBtn').addEventListener('click',()=>{if(!confirm('Wirklich auf Demo-Daten zurücksetzen?'))return;state=structuredClone(defaultData);persist();rerender()});document.getElementById('tournamentForm')?.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.target);const selectedParticipants=[...document.querySelectorAll('#tournamentParticipants input[type="checkbox"]:checked')].map(x=>x.value);const useCustom=document.getElementById('enableCustomRules')?.checked||fd.get('rulesetId')==='custom';const customRules={pointsPerFish:Number(document.getElementById('rule_pointsPerFish').value||0),bonusFirstFish:Number(document.getElementById('rule_bonusFirstFish').value||0),bonusLargestFish:Number(document.getElementById('rule_bonusLargestFish').value||0),bonusLargestPerSpecies:Number(document.getElementById('rule_bonusLargestPerSpecies').value||0),bonusNewArea:Number(document.getElementById('rule_bonusNewArea').value||0),bonusOver80cm:Number(document.getElementById('rule_bonusOver80cm').value||0),bonusOver100cm:Number(document.getElementById('rule_bonusOver100cm').value||0)};const editingId=e.target.dataset.editingId;const existingTournament=editingId?tournamentById(editingId):null;const tournament={...(existingTournament||{}),id:editingId||crypto.randomUUID(),name:(fd.get('name')||'').trim(),rulesetId:useCustom?'custom':(fd.get('rulesetId')||'all_fish'),customRules:useCustom?customRules:null,start:fd.get('start')||'',end:fd.get('end')||'',participantIds:selectedParticipants,finished:Boolean(existingTournament?.finished),finishedAt:existingTournament?.finishedAt||null,winner:existingTournament?.winner||null,winnerPoints:Number(existingTournament?.winnerPoints||0),createdAt:existingTournament?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};if(editingId){state.tournaments=state.tournaments.map(x=>x.id===editingId?{...x,...tournament}:x);
-window.state.tournaments = state.tournaments;delete e.target.dataset.editingId}else {state.tournaments.push(tournament);}activeTournamentId=tournament.id;await persist();
+window.state.tournaments = state.tournaments;delete e.target.dataset.editingId}else state.tournaments.push(tournament);activeTournamentId=tournament.id;await persist();
 
 e.target.reset();const submit=e.target.querySelector('button[type="submit"]');if(submit)submit.textContent='Turnier speichern';document.getElementById('enableCustomRules').checked=false;updateRulesPreview();renderTournamentParticipantPicks();rerender();closeTournamentEditor();showScreen('tournaments');showTournamentSaveToast();document.querySelector('.tournament-overview-panel')?.scrollIntoView({behavior:'smooth',block:'start'})});document.getElementById('rulesetSelect')?.addEventListener('change',updateRulesPreview);document.getElementById('enableCustomRules')?.addEventListener('change',updateRulesPreview);updateRulesPreview();window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();beforeInstallPromptEvent=e;document.getElementById('installPromptBtn').classList.remove('hidden')});document.getElementById('installPromptBtn').addEventListener('click',async()=>{if(!beforeInstallPromptEvent)return;beforeInstallPromptEvent.prompt();await beforeInstallPromptEvent.userChoice;beforeInstallPromptEvent=null;document.getElementById('installPromptBtn').classList.add('hidden')})}
 
@@ -3070,11 +3070,9 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
+}
+    });
   }
-      });
-    }
-  
-  })();
 
   function renderAnalyticsCatchHeatmap(){
     const container=document.getElementById('analyticsCatchHeatmap');
@@ -3136,17 +3134,13 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     };
   }
 
-  document.addEventListener('click', e=>{
+  document.addEventListener('click',e=>{
     if(e.target.closest('[data-screen="analytics"]')){
       setTimeout(()=>{try{renderAnalyticsCatchHeatmap();}catch(err){}},120);
     }
   });
-  
-  window.addEventListener('resize', ()=>{
-    try{renderAnalyticsCatchHeatmap();}catch(e){}
-  });
-
-
+  window.addEventListener('resize',()=>{try{renderAnalyticsCatchHeatmap();}catch(e){}});
+})();
 
 
 /* === Weather UI Injection (safe, append-only) === */
@@ -3647,70 +3641,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   function startTimers(){stopTimers();tickTimer=setInterval(()=>{let s=getDuelState();if(s.active&&s.mode==='feed')s=feedFishApplyDecay(s);if(s.active&&remainingMs(s)<=0){endDuel();return;}updateDuelUi();},1000);gpsTimer=setInterval(addGpsPoint,GPS_INTERVAL_MS);talkTimer=setInterval(()=>{const s=getDuelState();const pool=s.mode==='feed'?[...roasts,...feedRoasts]:roasts;s.lastTalk=pool[Math.floor(Math.random()*pool.length)];saveDuelState(s);addRemoteEvent(s,'message',null,{message:s.lastTalk});updateDuelUi();},TALK_INTERVAL_MS);}
   function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
-  async function startDuel(){
-    let s=ensureDuelParticipants(getDuelState());
-  
-    const cap=document.getElementById('duelCaptainSelect')?.value,
-          opp=document.getElementById('duelOpponentSelect')?.value,
-          selectedMode=document.getElementById('duelModeSelect')?.value||'trolling';
-  
-    if(!cap||!opp||cap===opp){
-      alert('Bitte zwei unterschiedliche Teilnehmer wählen.');
-      return;
-    }
-  
-    const startIso=new Date().toISOString();
-  
-    s={
-      ...defaultDuelState(),
-      active:true,
-      startedAt:startIso,
-      startTimestamp:startIso,
-      durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),
-      captainId:cap,
-      opponentId:opp,
-      mode:selectedMode,
-      score:{[cap]:0,[opp]:0},
-      lastTalk:selectedMode==='feed'
-        ?'Feed your Fish läuft. Fang was, bevor der Schnauzer-Fisch dramatisch stirbt.'
-        :'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'
-    };
-  
-    if(selectedMode==='feed'){
-      ensureFeedFishState(s);
-      s.fishImage=feedFishFinalImageUrl(s);
-    }
-  
-    saveDuelState(s);
-  
-    // 🔥 wichtig: remote duel erstellen
-    s=await createRemoteDuel(s);
-  
-    // 🔥 NEU: ROUTE AUS DB LADEN (bei Reload / Resume)
-    if(db && s.duelId){
-      try{
-        const {data}=await db
-          .from('duel_tracks')
-          .select('*')
-          .eq('duel_id',s.duelId)
-          .order('created_at',{ascending:true});
-  
-        if(data && data.length){
-          s.route=data.map(p=>({lat:p.lat,lng:p.lng}));
-          saveDuelState(s);
-        }
-      }catch(e){}
-    }
-  
-    startTimers();
-  
-    // 🔥 FIX: nur initialen Punkt setzen wenn KEINE Route existiert
-    if(!s.route || !s.route.length){
-      addGpsPoint();
-    }
-  
-    updateDuelUi();
-  }
+  async function startDuel(){let s=ensureDuelParticipants(getDuelState());const cap=document.getElementById('duelCaptainSelect')?.value,opp=document.getElementById('duelOpponentSelect')?.value,selectedMode=document.getElementById('duelModeSelect')?.value||'trolling';if(!cap||!opp||cap===opp){alert('Bitte zwei unterschiedliche Teilnehmer wählen.');return;}const startIso=new Date().toISOString();s={...defaultDuelState(),active:true,startedAt:startIso,startTimestamp:startIso,durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),captainId:cap,opponentId:opp,mode:selectedMode,score:{[cap]:0,[opp]:0},lastTalk:selectedMode==='feed'?'Feed your Fish läuft. Fang was, bevor der Schnauzer-Fisch dramatisch stirbt.':'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'};if(selectedMode==='feed'){ensureFeedFishState(s);s.fishImage=feedFishFinalImageUrl(s);}saveDuelState(s);s=await createRemoteDuel(s);startTimers();addGpsPoint();updateDuelUi();}
   async function endDuel(){
     let s = getDuelState();
   
@@ -3753,77 +3684,21 @@ setInterval(injectWeatherIntoCatchCards, 800);
   
     await finishRemoteDuel(s);
   }
-  async function addGpsPoint(){
-    let s=getDuelState();
-    if(!s.active)return;
-  
-    const got=await new Promise(resolve=>{
-      if(!navigator.geolocation)return resolve(null);
-      navigator.geolocation.getCurrentPosition(
-        pos=>resolve({
-          lat:pos.coords.latitude,
-          lng:pos.coords.longitude,
-          at:new Date().toISOString(),
-          accuracy:pos.coords.accuracy,
-          speed_ms:pos.coords.speed
-        }),
-        ()=>resolve(null),
-        {enableHighAccuracy:true,timeout:9000,maximumAge:20000}
-      );
-    });
-  
-    let point=got;
-  
-    if(!point){
-      const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};
-      point={
-        lat:Number(last.lat)+(Math.random()-.45)*.006,
-        lng:Number(last.lng)+(.004+Math.random()*.004),
-        at:new Date().toISOString(),
-        demo:true
-      };
-    }
-  
-    // ✅ bestehende Logik unverändert
+  async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy,speed_ms:pos.coords.speed}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
     s.route=[...(s.route||[]),point];
-  
-    // 🔥 NEU: TRACK IN DB SPEICHERN
-    if(db && s.duelId){
-      db.from('duel_tracks').insert({
-        duel_id: s.duelId,
-        lat: point.lat,
-        lng: point.lng,
-        created_at: point.at
-      }).catch(()=>{});
-    }
-  
-    if(!s.weather && typeof getWeather==='function'){
-      try{
-        const w=await getWeather(point.lat,point.lng);
-        if(w?.current){
-          s.weather={
-            temp_c:w.current.temperature_2m,
-            wind_ms:w.current.wind_speed_10m,
-            pressure_hpa:w.current.pressure_msl,
-            at:w.current.time
-          };
-        }
-      }catch(e){}
-    }
-  
+    if(!s.weather&&typeof getWeather==='function'){try{const w=await getWeather(point.lat,point.lng);if(w?.current)s.weather={temp_c:w.current.temperature_2m,wind_ms:w.current.wind_speed_10m,pressure_hpa:w.current.pressure_msl,at:w.current.time};}catch(e){}}
     s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);
-    saveDuelState(s);
-  
-    await addRemoteTrack(s,point);
-    await addRemoteEvent(s,'gps',s.captainId,{
-      lat:point.lat,
-      lng:point.lng,
-      accuracy:point.accuracy??null,
-      demo:!!point.demo
-    });
-  
-    updateDuelUi();
+    saveDuelState(s);await addRemoteTrack(s,point);await addRemoteEvent(s,'gps',s.captainId,{lat:point.lat,lng:point.lng,accuracy:point.accuracy??null,demo:!!point.demo});updateDuelUi();}
+  async function addDuelCatch(species){let s=getDuelState();if(!s.active){alert('Starte zuerst ein Duell.');return;}const fish=fishTiles.find(f=>f.species===species)||fishTiles[fishTiles.length-1];const target=document.getElementById('duelCatchParticipantSelect')?.value||s.captainId;if(!target){alert('Bitte zuerst einen Fänger auswählen.');return;}s.score=s.score||{};s.score[target]=Number(s.score[target]||0)+fish.points;const catchEvent={id:crypto.randomUUID(),participantId:target,species:fish.species,points:fish.points,at:new Date().toISOString()};s.catches=[...(s.catches||[]),catchEvent];s.lastTalk=`${participantName(target)} legt ${fish.species} vor. +${fish.points} Punkte – der Kescher applaudiert.`;if(s.mode==='feed')feedFishAfterCatch(s,target,fish);saveDuelState(s);await addRemoteEvent(s,'catch',target,catchEvent);await syncRemoteParticipants(s);updateDuelUi();}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);}saveDuelState(s);updateDuelUi();});}
+  const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
+  if(originalRenderTournaments){
+    renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
+    window.renderTournaments=renderTournaments;
   }
+  document.addEventListener('DOMContentLoaded',()=>{bindDuel();renderDuelSection();loadDuelLeaderboard();const s=getDuelState();if(s.active)startTimers();});
+  window.renderDuelSection=renderDuelSection;
+})();
 
 function exportElementAsImage(elementId, fileName = "fishtrack-export.png") {
   const element = document.getElementById(elementId);
@@ -3865,33 +3740,26 @@ async function exportElementAsImageAndUpload(elementId, duelId){
   return new Promise((resolve)=>{
     canvas.toBlob(async (blob)=>{
       const fileName = `duel-${duelId}-${Date.now()}.png`;
-  
+
       const client = window.supabaseClient || db;
-      if(!client){ 
-        console.warn('Supabase Client fehlt für Duel Image Upload'); 
-        resolve(null); 
-        return; 
-      }
-  
+      if(!client){ console.warn('Supabase Client fehlt für Duel Image Upload'); resolve(null); return; }
       const { error } = await client
         .storage
         .from('duel-images')
         .upload(fileName, blob);
-  
+
       if(error){
         console.error("Upload Fehler:", error);
         resolve(null);
         return;
       }
-  
+
       const { data } = client
         .storage
         .from('duel-images')
         .getPublicUrl(fileName);
-  
-      resolve(data.publicUrl);
-          });
-        });
-      }
 
-})();
+      resolve(data.publicUrl);
+    });
+  });
+}
