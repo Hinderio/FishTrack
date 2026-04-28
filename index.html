@@ -362,7 +362,7 @@
                 <label><span>Herausforderer</span><select id="duelOpponentSelect"></select></label>
                 <label><span>Fänger</span><select id="duelCatchParticipantSelect"></select></label>
                 <label><span>Dauer</span><select id="duelDurationSelect"><option value="60">1 Stunde</option><option value="30">30 Min. Quick Fight</option><option value="15">15 Min. Hafen-Randale</option></select></label>
-                <label><span>Modus</span><select id="duelModeSelect"><option value="trolling">Schleppmeister</option><option value="blitz">Blitz-Battle</option></select></label>
+                <label><span>Modus</span><select id="duelModeSelect"><option value="trolling">Schleppmeister</option><option value="blitz">Blitz-Battle</option><option value="feed">Feed your Fish</option></select></label>
               </div>
               <div class="duel-actions">
                 <button type="button" class="pill primary" id="duelStartBtn">▶ Duell starten</button>
@@ -391,6 +391,18 @@
               <div id="duelFishTiles" class="duel-fish-tiles"></div>
             </section>
           </div>
+          <section class="feed-fish-card" id="feedFishCard" aria-label="Feed your Fish Minigame">
+            <div class="duel-score-head feed-fish-head">
+              <div>
+                <span>Mini-Game</span>
+                <strong>🐟 Feed your Fish</strong>
+              </div>
+              <button type="button" class="pill secondary" id="feedFishResetBtn">Fische resetten</button>
+            </div>
+            <div class="feed-fish-help">Jeder Spieler besitzt einen Fisch. Ohne Fang verkümmert er Stufe für Stufe – ein eigener Fang füttert nur den eigenen Fisch.</div>
+            <div id="feedFishGrid" class="feed-fish-grid"></div>
+          </section>
+
           <section class="duel-history-card">
             <div class="duel-score-head"><span>Duell-Rangliste</span><strong>Historie</strong></div>
             <div id="duelLeaderboard" class="duel-leaderboard"></div>
