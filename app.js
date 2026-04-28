@@ -3566,7 +3566,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
         d.result?.fish_image ||
         d.image_url ||
         d.result?.image_url ||
-        null;
+        svgDataUrl(svg);
       
       console.log("Render Image URL:", imageUrl?.slice(0,80));
       console.log("DUEL OBJECT:", d);    
