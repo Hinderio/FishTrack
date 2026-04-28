@@ -3518,6 +3518,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
       updatePayload.fish_state = s.feedFish?.players || null;
     }
   
+    console.log("Saved fish_image:", updatePayload.fish_image?.slice(0,80));
+    
     const {error} = await db
       .from('duels')
       .update(updatePayload)
