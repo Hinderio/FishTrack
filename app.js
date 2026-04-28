@@ -3371,7 +3371,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(!card||!grid)return;
     let s=getDuelState();
     const modeSelect=document.getElementById('duelModeSelect');
-    const selectedMode = (document.getElementById('duelModeSelect')?.value || 'trolling') === 'feed' ? 'feed' : 'trolling';
+    const selectedMode=modeSelect?.value||s.mode||'trolling';
     const isFeed=selectedMode==='feed'||s.mode==='feed';
     card.classList.toggle('is-feed-active',!!isFeed);
     const activateBtn=document.getElementById('feedFishActivateBtn'),startBtn=document.getElementById('feedFishStartBtn');
@@ -3382,7 +3382,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       return;
     }
     s=ensureDuelParticipants(s);
-    if(!s.mode) s.mode = 'feed';
+    s.mode='feed';
     ensureFeedFishState(s);
     if(s.active)s=feedFishApplyDecay(s);
     const intervalMin=Math.round(feedFishIntervalMs(s)/60000);
@@ -3403,7 +3403,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   let duelMap=null,duelRoute=null,duelMarkers=[];
   let tickTimer=null,gpsTimer=null,talkTimer=null,leaderboardCache=[];
   function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null};}
-  function getDuelState(){try{const s={...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})};return s.mode==='feed'?recalcFeedState(s):s;}catch{return defaultDuelState();}}
+  function getDuelState(){try{return {...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})};}catch{return defaultDuelState();}}
   function saveDuelState(s){localStorage.setItem(KEY,JSON.stringify(s));window.duelState=s;}
   function participant(id){return (state.participants||[]).find(p=>p.id===id)||null;}
   function participantName(id){return participant(id)?.name||'–';}
@@ -3467,52 +3467,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   async function finishRemoteDuel(s){
     if(!db||!s.duelId)return;
-  
-    const result = buildDuelResult(s);
-  
-    // 🧠 Duell-Typ bestimmen
-    const duelType = s.mode === 'feed' ? 'feed_fish' : 'trolling_master';
-  
-    // 🐟 Fisch-Zustand speichern (Feed Mode)
-    let fishState = null;
-    let fishImage = null;
-  
-    if(s.mode === 'feed' && s.feedFish){
-      fishState = Object.fromEntries(
-        Object.entries(s.feedFish.players || {}).map(([pid, fish])=>[
-          pid,
-          { level: fish.level, progress: fish.progress }
-        ])
-      );
-  
-      // schlechtester Fisch = höchstes Level
-      const worstFish = Object.values(s.feedFish.players || {})
-        .sort((a,b)=>b.level - a.level)[0];
-  
-      if(worstFish){
-        fishImage = `Transformation/stufe-${worstFish.level}.png`;
-      }
-    }
-  
-    // 💾 Update DB
-    const {error} = await db
-      .from('duels')
-      .update({
-        status: 'finished',
-        end_time: s.endedAt,
-        result,
-        image_url: s.imageUrl || null,   // Karte
-        duel_type: duelType,             // 🔥 NEU
-        fish_state: fishState,           // 🔥 NEU
-        fish_image: fishImage            // 🔥 NEU
-      })
-      .eq('id', s.duelId);
-  
-    if(error) console.warn('Duell Abschluss Sync fehlgeschlagen', error);
-  
+    const result=buildDuelResult(s);
+    const {error}=await db.from('duels').update({status:'finished',end_time:s.endedAt,result, image_url: s.imageUrl}).eq('id',s.duelId);
+    if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
     await syncRemoteParticipants(s);
     await addRemoteEvent(s,'system',null,{message:'Duell beendet',result});
-  
     loadDuelLeaderboard();
   }
   async function loadDuelLeaderboard(){
@@ -3545,12 +3504,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const rows=parts.map((p,i)=>`<div class="duel-history-row"><span>#${i+1} ${escapeHtml(p.display_name||participantName(p.participant_id))}${p.is_captain?' · Kapitän':''}</span><b>${Number(p.score||0)+Number(p.bonus_score||0)} P</b></div>`).join('');
       const date=d.created_at?fmtDateTime(d.created_at):'–';
       const meta=`${date} · ${result.distance_km??(tracks.length?routeDistanceKm(tracks).toFixed(2):'0')} km · Ø ${result.avg_speed_kmh??'–'} km/h`;
-      const fishImage = d.fish_image
-        ? `<img class="duel-photo" src="${escapeHtml(d.fish_image)}" alt="Fish" onerror="this.style.display='none'">`
-        : '';
-      
-      const mapImage = d.image_url
-        ? `<img class="duel-photo" src="${escapeHtml(d.image_url)}" alt="Map" onerror="this.style.display='none'">`
+      const image = d.image_url
+        ? `<img class="duel-photo" src="${escapeHtml(d.image_url)}" alt="Duel Image" onerror="this.style.display='none'">`
         : '';
       
       return `<article class="duel-history-entry">
@@ -3560,8 +3515,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
           ${rows || '<div class="meta">Keine Teilnehmerdaten.</div>'}
         </div>
       
-        ${fishImage}
-        ${mapImage}
+        ${image}
       
         <img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}">
       </article>`;
@@ -3628,7 +3582,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);
     saveDuelState(s);await addRemoteTrack(s,point);await addRemoteEvent(s,'gps',s.captainId,{lat:point.lat,lng:point.lng,accuracy:point.accuracy??null,demo:!!point.demo});updateDuelUi();}
   async function addDuelCatch(species){let s=getDuelState();if(!s.active){alert('Starte zuerst ein Duell.');return;}const fish=fishTiles.find(f=>f.species===species)||fishTiles[fishTiles.length-1];const target=document.getElementById('duelCatchParticipantSelect')?.value||s.captainId;if(!target){alert('Bitte zuerst einen Fänger auswählen.');return;}s.score=s.score||{};s.score[target]=Number(s.score[target]||0)+fish.points;const catchEvent={id:crypto.randomUUID(),participantId:target,species:fish.species,points:fish.points,at:new Date().toISOString()};s.catches=[...(s.catches||[]),catchEvent];s.lastTalk=`${participantName(target)} legt ${fish.species} vor. +${fish.points} Punkte – der Kescher applaudiert.`;if(s.mode==='feed')feedFishAfterCatch(s,target,fish);saveDuelState(s);await addRemoteEvent(s,'catch',target,catchEvent);await syncRemoteParticipants(s);updateDuelUi();}
-  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))startDuel();if(e.target.closest('#feedFishResetBtn'))resetFeedFish();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);}saveDuelState(s);updateDuelUi();});}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);}saveDuelState(s);updateDuelUi();});}
   const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
   if(originalRenderTournaments){
     renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
