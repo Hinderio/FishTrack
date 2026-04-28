@@ -3586,13 +3586,18 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const rows=parts.map((p,i)=>`<div class="duel-history-row"><span>#${i+1} ${escapeHtml(p.display_name||participantName(p.participant_id))}${p.is_captain?' · Kapitän':''}</span><b>${Number(p.score||0)+Number(p.bonus_score||0)} P</b></div>`).join('');
       const date=d.created_at?fmtDateTime(d.created_at):'–';
       const meta=`${date} · ${result.distance_km??(tracks.length?routeDistanceKm(tracks).toFixed(2):'0')} km · Ø ${result.avg_speed_kmh??'–'} km/h`;
+      const routeImageUrl = tracks.length
+        ? svgDataUrl(routeSnapshotSvg(tracks))
+        : null;
+      
       const imageUrl =
+        routeImageUrl ||
         d.fish_image ||
         d.result?.fish_image ||
         d.image_url ||
         d.result?.image_url ||
         svgDataUrl(svg);
-      
+            
       console.log("Render Image URL:", imageUrl?.slice(0,80));
       console.log("DUEL OBJECT:", d);    
       const image = imageUrl
@@ -3746,9 +3751,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
   
     s.lastTalk = s.mode === 'feed'
       ? 'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.'
-      : 'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';
-  
-    saveDuelState(s);
+      : 'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';  
+
     stopTimers();
     updateDuelUi();
   
@@ -3795,7 +3799,11 @@ async function addGpsPoint(){
   });
 
   let point=got;
-
+  
+  // 🔥 FIX: State nach await neu holen + erneut prüfen
+  s = getDuelState();
+  if(!s.active) return;
+  
   if(!point){
     const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};
     point={
