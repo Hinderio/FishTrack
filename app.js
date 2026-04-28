@@ -3859,25 +3859,31 @@ async function exportElementAsImageAndUpload(elementId, duelId){
   return new Promise((resolve)=>{
     canvas.toBlob(async (blob)=>{
       const fileName = `duel-${duelId}-${Date.now()}.png`;
-
+  
       const client = window.supabaseClient || db;
-      if(!client){ console.warn('Supabase Client fehlt für Duel Image Upload'); resolve(null); return; }
+      if(!client){ 
+        console.warn('Supabase Client fehlt für Duel Image Upload'); 
+        resolve(null); 
+        return; 
+      }
+  
       const { error } = await client
         .storage
         .from('duel-images')
         .upload(fileName, blob);
-
+  
       if(error){
         console.error("Upload Fehler:", error);
         resolve(null);
         return;
       }
-
+  
       const { data } = client
         .storage
         .from('duel-images')
         .getPublicUrl(fileName);
-
+  
       resolve(data.publicUrl);
     });
+  });
 }
