@@ -3470,109 +3470,72 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const {error}=await db.from('duel_tracks').insert({duel_id:s.duelId,participant_id:s.captainId||null,lat:Number(point.lat),lng:Number(point.lng),accuracy_m:point.accuracy??null,speed_ms:point.speed_ms??null,weather_temp_c:s.weather?.temp_c??null,weather_wind_ms:s.weather?.wind_ms??null,weather_pressure_hpa:s.weather?.pressure_hpa??null,created_at:point.at||new Date().toISOString()});
     if(error)console.warn('Duell Track Sync fehlgeschlagen',error);
   }
+  async function uploadDuelImageBlob(blob, duelId){
+    try{
+      const client=window.supabaseClient||db;
+      if(!client||!client.storage||!blob)return null;
+      const fileName=`duel-final-${duelId||'local'}-${Date.now()}.png`;
+      const {error}=await client.storage.from('duel-images').upload(fileName,blob,{contentType:'image/png',upsert:false});
+      if(error){console.warn('Duell Preview Upload fehlgeschlagen',error);return null;}
+      const {data}=client.storage.from('duel-images').getPublicUrl(fileName);
+      return data?.publicUrl||null;
+    }catch(e){console.warn('Duell Preview Upload Exception',e);return null;}
+  }
+  function canvasBlob(canvas,type='image/png',quality=.92){return new Promise(resolve=>{try{canvas.toBlob(blob=>resolve(blob),type,quality);}catch(e){console.warn('Canvas Blob fehlgeschlagen',e);resolve(null);}});}
+  function drawFinalDuelRouteOverlay(ctx,finalCanvas,mapElement,route){
+    if(!ctx||!finalCanvas||!mapElement||!duelMap||!route?.length)return false;
+    const scaleX=finalCanvas.width/Math.max(1,mapElement.clientWidth||finalCanvas.width);
+    const scaleY=finalCanvas.height/Math.max(1,mapElement.clientHeight||finalCanvas.height);
+    const points=route.map(p=>{try{const pt=duelMap.latLngToContainerPoint([Number(p.lat),Number(p.lng)]);return {x:pt.x*scaleX,y:pt.y*scaleY};}catch(e){return null;}}).filter(Boolean);
+    if(!points.length)return false;
+    ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+    if(points.length>1){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.strokeStyle='#4ad7d1';ctx.lineWidth=Math.max(4,5*scaleX);ctx.shadowColor='rgba(74,215,209,.75)';ctx.shadowBlur=Math.max(6,8*scaleX);ctx.stroke();}
+    const drawMarker=(p,fill,label)=>{const r=Math.max(8,9*scaleX);ctx.save();ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=Math.max(6,7*scaleX);ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill();ctx.lineWidth=Math.max(2,3*scaleX);ctx.strokeStyle='#fff';ctx.stroke();ctx.font=`${Math.max(10,11*scaleX)}px Arial, sans-serif`;ctx.fillStyle='#08111b';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,p.x,p.y+1);ctx.restore();};
+    drawMarker(points[0],'#ffb84d','S');drawMarker(points[points.length-1],'#8ff0a7','Z');ctx.restore();return true;
+  }
+  async function buildFinalDuelPreviewImage(s){
+    if(!s||s.mode==='feed')return null;
+    const route=normalizeDuelRoute(s.route||[]);if(!route.length)return null;
+    try{
+      const mapElement=document.getElementById('duelMap');
+      if(!mapElement||typeof html2canvas!=='function'||!duelMap)return null;
+      try{const latLngs=route.map(p=>[p.lat,p.lng]);if(latLngs.length&&duelMap.fitBounds&&typeof L!=='undefined'){duelMap.fitBounds(L.latLngBounds(latLngs).pad(.25),{maxZoom:14,animate:false});await new Promise(resolve=>setTimeout(resolve,160));}}catch(e){console.warn('Duell Map Bounds für Preview fehlgeschlagen',e);}
+      const baseCanvas=await html2canvas(mapElement,{useCORS:true,allowTaint:true,backgroundColor:null,scale:2,logging:false});
+      const finalCanvas=document.createElement('canvas');finalCanvas.width=baseCanvas.width;finalCanvas.height=baseCanvas.height;
+      const ctx=finalCanvas.getContext('2d');if(!ctx)return null;
+      ctx.drawImage(baseCanvas,0,0);
+      if(!drawFinalDuelRouteOverlay(ctx,finalCanvas,mapElement,route))return null;
+      const blob=await canvasBlob(finalCanvas,'image/png');
+      return await uploadDuelImageBlob(blob,s.duelId);
+    }catch(e){console.warn('Finales Duell Preview konnte nicht erzeugt werden',e);return null;}
+  }
+
   async function finishRemoteDuel(s){
     if(!db||!s.duelId)return;
-  
-    const result = buildDuelResult(s);
-  
-    let safeFishImage = null;
-    
-    // 🔥 IMMER Upload priorisieren
-    if (s.imageUrl) {
-      safeFishImage = s.imageUrl;
+    const result=buildDuelResult(s);
+    let existingDuel=null;
+    try{const current=await db.from('duels').select('fish_state,feed_snapshot,result,fish_image,image_url').eq('id',s.duelId).maybeSingle();existingDuel=current?.data||null;}catch(e){console.warn('Bestehende Duell-Daten konnten nicht gelesen werden',e);}
+    const routePoints=normalizeDuelRoute(s.route||[]);
+    const mergedFishState=mergeDuelFishState(existingDuel?.fish_state,existingDuel?.result?.fish_state,result.fish_state);
+    if(routePoints.length)mergedFishState.gps_route=routePoints;
+    const mergedResult={...(existingDuel?.result||{}),...result,fish_state:mergedFishState};
+    if(routePoints.length){mergedResult.gps_route=routePoints;mergedResult.route_snapshot_svg=result.route_snapshot_svg||routeSnapshotSvg(routePoints);}else{if(existingDuel?.result?.gps_route)mergedResult.gps_route=existingDuel.result.gps_route;if(existingDuel?.result?.route_snapshot_svg)mergedResult.route_snapshot_svg=existingDuel.result.route_snapshot_svg;}
+    const updatePayload={status:'finished',end_time:s.endedAt,result:mergedResult,fish_state:mergedFishState};
+    if(s.mode==='feed'){
+      updatePayload.duel_type='feed_your_fish';
+      updatePayload.fish_image=s.fishImage||existingDuel?.fish_image||null;
+      updatePayload.image_url=existingDuel?.image_url||null;
+      updatePayload.feed_snapshot=s.feedFish||existingDuel?.feed_snapshot||null;
+      updatePayload.result={...mergedResult,fish_image:updatePayload.fish_image,feed_snapshot:updatePayload.feed_snapshot,fish_state:updatePayload.fish_state};
+    }else{
+      updatePayload.fish_image=s.fishImage||existingDuel?.fish_image||null;
+      updatePayload.image_url=s.imageUrl||s.fishImage||existingDuel?.image_url||null;
+      updatePayload.result={...mergedResult,fish_image:updatePayload.fish_image,image_url:updatePayload.image_url};
     }
-    
-    // fallback
-    else if (s.fishImage && s.fishImage.startsWith('data:image')) {
-      safeFishImage = s.fishImage;
-    }
-    
-    // letzter fallback SVG
-    else if (s.routeSnapshotSvg && s.routeSnapshotSvg.includes('<svg')) {
-      const svg = svgDataUrl(s.routeSnapshotSvg);
-      if (svg.length < 500000) {
-        safeFishImage = svg;
-      }
-    }
-    
-    // 2. fallback: imageUrl
-    else if (s.imageUrl && (s.imageUrl.startsWith('http') || s.imageUrl.startsWith('data:image'))) {
-      safeFishImage = s.imageUrl;
-    }
-    
-    // 3. fallback: SVG → nur wenn gültig
-    else if (s.routeSnapshotSvg && s.routeSnapshotSvg.includes('<svg')) {
-      try {
-        const svg = svgDataUrl(s.routeSnapshotSvg);
-    
-        // 🔥 Size Guard (wichtig!)
-        if (svg.length < 500000) { // ~500kb limit
-          safeFishImage = svg;
-        } else {
-          console.warn('SVG zu gross – wird nicht gespeichert');
-        }
-      } catch(e) {
-        console.warn('SVG conversion failed', e);
-      }
-    }
-  
-    let existingDuel = null;
-    try{
-      const current = await db.from('duels').select('fish_state,feed_snapshot,result,fish_image,image_url').eq('id', s.duelId).maybeSingle();
-      existingDuel = current?.data || null;
-    }catch(e){console.warn('Bestehende Duell-Daten konnten nicht gelesen werden', e);}
-
-    const routePoints = normalizeDuelRoute(s.route || []);
-    const mergedFishState = mergeDuelFishState(existingDuel?.fish_state, existingDuel?.result?.fish_state, result.fish_state);
-    if(routePoints.length) mergedFishState.gps_route = routePoints;
-
-    const mergedResult = {
-      ...(existingDuel?.result || {}),
-      ...result,
-      fish_state: mergedFishState
-    };
-    if(routePoints.length) mergedResult.gps_route = routePoints;
-
-    const updatePayload = {
-      status: 'finished',
-      end_time: s.endedAt,
-      result: mergedResult,
-      image_url: s.imageUrl || safeFishImage || existingDuel?.image_url || null,
-    
-      // 👉 HIER IST DEIN FIX
-      fish_image:
-        s.imageUrl ||
-        safeFishImage ||
-        existingDuel?.fish_image ||
-        null,
-    
-      fish_state: mergedFishState
-    };
-  
-    if(s.mode === 'feed'){
-      updatePayload.duel_type = 'feed_your_fish';
-      updatePayload.fish_image =
-        (s.fishImage && s.fishImage.length > 20 ? s.fishImage : null) ||
-        feedFishFinalImageUrl(s) ||
-        safeFishImage ||
-        existingDuel?.fish_image ||
-        null;
-      updatePayload.feed_snapshot = s.feedFish || existingDuel?.feed_snapshot || null;
-      updatePayload.fish_state = mergeDuelFishState(mergedFishState, s.feedFish?.players, routePoints.length ? {gps_route:routePoints} : null);
-      updatePayload.result = {...mergedResult, fish_state:updatePayload.fish_state};
-    }
-  
-    console.log("Saved fish_image:", updatePayload.fish_image?.slice(0,80), "route points:", routePoints.length);
-    
-    const {error} = await db
-      .from('duels')
-      .update(updatePayload)
-      .eq('id', s.duelId);
-  
-    if(error) console.warn('Duell Abschluss Sync fehlgeschlagen', error);
-  
+    const {error}=await db.from('duels').update(updatePayload).eq('id',s.duelId);
+    if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
     await syncRemoteParticipants(s);
-    await addRemoteEvent(s,'system',null,{message:'Duell beendet',result});
+    await addRemoteEvent(s,'system',null,{message:'Duell beendet',result:updatePayload.result});
     loadDuelLeaderboard();
   }
   async function loadDuelLeaderboard(){
@@ -3610,20 +3573,15 @@ setInterval(injectWeatherIntoCatchCards, 800);
         ? svgDataUrl(routeSnapshotSvg(tracks))
         : null;
       
-      const imageUrl =
-        d.fish_image ||
-        d.result?.fish_image ||
-        d.image_url ||
-        d.result?.image_url ||
-        routeImageUrl ||
-        svgDataUrl(svg);
-            
-      console.log("Render Image URL:", imageUrl?.slice(0,80));
-      console.log("DUEL OBJECT:", d);    
-      const image = imageUrl
-        ? `<button class="duel-photo-button" type="button" data-duel-map-image="${escapeHtml(imageUrl)}" aria-label="Gespeicherte Duell-Karte öffnen"><img class="duel-photo" src="${imageUrl}" alt="Gespeicherte Duell-Karte" onerror="this.closest('.duel-photo-button')?.remove()"></button>`
+      const isFeedDuel=(d.duel_type==='feed_your_fish'||d.result?.feed_snapshot||d.feed_snapshot);
+      const feedFishFallback=isFeedDuel?'Transformation/Stufe_1.png':null;
+      const imageUrl=isFeedDuel
+        ? (d.fish_image||d.result?.fish_image||feedFishFallback||null)
+        : (d.fish_image||d.image_url||d.result?.fish_image||d.result?.image_url||routeImageUrl||svgDataUrl(svg));
+      const image=imageUrl
+        ? `<button class="duel-photo-button" type="button" data-duel-map-image="${escapeHtml(imageUrl)}" aria-label="Gespeichertes Duell-Bild öffnen"><img class="duel-photo" src="${imageUrl}" alt="Gespeichertes Duell-Bild" onerror="this.closest('.duel-photo-button')?.remove()"></button>`
         : '';
-      
+
       return `<article class="duel-history-entry">
         <div class="duel-history-copy">
           <strong>${d.status==='active'?'Live Duell':'Duell abgeschlossen'}</strong>
@@ -3677,7 +3635,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function initDuelMap(){
     const el=document.getElementById('duelMap');if(!el||duelMap||typeof L==='undefined')return;
     duelMap=L.map(el,{zoomControl:true,attributionControl:false}).setView([59.442773,11.654906],8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(duelMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true}).addTo(duelMap);
     duelRoute=L.polyline([], {color:'#4ad7d1',weight:5,opacity:.85}).addTo(duelMap);
     setTimeout(()=>duelMap.invalidateSize(),120);
     updateDuelMap();
@@ -3756,39 +3714,25 @@ setInterval(injectWeatherIntoCatchCards, 800);
     updateDuelUi();
   }
   async function endDuel(){
-    let s = getDuelState();
-  
-    s.active = false;
-    s.endedAt = new Date().toISOString();
-  
-    // Route Snapshot
-    s.routeSnapshotSvg = routeSnapshotSvg(s.route || []);
-  
-    if (s.mode === 'feed') {
-      s = feedFishApplyDecay(s);
-      s.fishImage = feedFishFinalImageUrl(s);
-    }
-  
-    s.lastTalk = s.mode === 'feed'
-      ? 'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.'
-      : 'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';  
-  
+    let s=getDuelState();
+    s.active=false;
+    s.endedAt=new Date().toISOString();
     stopTimers();
-    updateDuelUi();
-  
-    // 🔥 SVG ist jetzt deine einzige Quelle
-    const svg = routeSnapshotSvg(s.route || []);
-    const svgUrl = svgDataUrl(svg);
-  
-    if (s.mode !== 'feed') {
-      s.fishImage = svgUrl;
+    const routePoints=normalizeDuelRoute(s.route||[]);
+    s.route=routePoints;
+    s.routeSnapshotSvg=routeSnapshotSvg(routePoints);
+    if(s.mode==='feed'){
+      s=feedFishApplyDecay(s);
+      s.fishImage=feedFishFinalImageUrl(s);
+    }else{
+      const finalImageUrl=await buildFinalDuelPreviewImage(s);
+      if(finalImageUrl){s.fishImage=finalImageUrl;s.imageUrl=finalImageUrl;}else{s.fishImage=svgDataUrl(s.routeSnapshotSvg);}
     }
-  
+    s.lastTalk=s.mode==='feed'?'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.':'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';
     saveDuelState(s);
     updateDuelUi();
-  
     await finishRemoteDuel(s);
-}
+  }
 async function addGpsPoint(){
   let s=getDuelState();
   if(!s.active)return;
