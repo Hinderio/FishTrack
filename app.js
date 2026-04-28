@@ -3562,8 +3562,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const date=d.created_at?fmtDateTime(d.created_at):'–';
       const meta=`${date} · ${result.distance_km??(tracks.length?routeDistanceKm(tracks).toFixed(2):'0')} km · Ø ${result.avg_speed_kmh??'–'} km/h`;
       const imageUrl=d.fish_image||d.result?.fish_image||d.image_url;
+      
+      console.log("Render Image URL:", imageUrl?.slice(0,80));      
       const image = imageUrl
-        ? `<img class="duel-photo" src="${escapeHtml(imageUrl)}" alt="Duel Image" onerror="this.style.display='none'">`
+        ? `<img class="duel-photo" src="${imageUrl}" alt="Duel Image" onerror="this.style.display='none'">`
         : '';
       
       return `<article class="duel-history-entry">
