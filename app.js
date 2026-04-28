@@ -3141,8 +3141,9 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       setTimeout(()=>{try{renderAnalyticsCatchHeatmap();}catch(err){}},120);
     }
   });
-  window.addEventListener('resize',()=>{try{renderAnalyticsCatchHeatmap();}catch(e){}});
-})();
+  window.addEventListener('resize',()=>{
+    try{renderAnalyticsCatchHeatmap();}catch(e){}
+});
 
 
 /* === Weather UI Injection (safe, append-only) === */
