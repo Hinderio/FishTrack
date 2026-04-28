@@ -3561,9 +3561,15 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const rows=parts.map((p,i)=>`<div class="duel-history-row"><span>#${i+1} ${escapeHtml(p.display_name||participantName(p.participant_id))}${p.is_captain?' · Kapitän':''}</span><b>${Number(p.score||0)+Number(p.bonus_score||0)} P</b></div>`).join('');
       const date=d.created_at?fmtDateTime(d.created_at):'–';
       const meta=`${date} · ${result.distance_km??(tracks.length?routeDistanceKm(tracks).toFixed(2):'0')} km · Ø ${result.avg_speed_kmh??'–'} km/h`;
-      const imageUrl=d.fish_image||d.result?.fish_image||d.image_url;
+      const imageUrl =
+        d.fish_image ||
+        d.result?.fish_image ||
+        d.image_url ||
+        d.result?.image_url ||
+        null;
       
-      console.log("Render Image URL:", imageUrl?.slice(0,80));      
+      console.log("Render Image URL:", imageUrl?.slice(0,80));
+      console.log("DUEL OBJECT:", d);    
       const image = imageUrl
         ? `<img class="duel-photo" src="${imageUrl}" alt="Duel Image" onerror="this.style.display='none'">`
         : '';
@@ -3575,9 +3581,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
           ${rows || '<div class="meta">Keine Teilnehmerdaten.</div>'}
         </div>
       
-        ${image}
-      
-        <img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}">
+        <div class="duel-photo-container">
+          ${image}
+          <img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}">
+        </div>
       </article>`;
     }).join('');
   }
