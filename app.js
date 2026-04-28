@@ -3469,9 +3469,33 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   async function finishRemoteDuel(s){
     if(!db||!s.duelId)return;
-    const result=buildDuelResult(s);
-    const updatePayload={status:'finished',end_time:s.endedAt,result,image_url:s.imageUrl};if(s.mode==='feed'){updatePayload.duel_type='feed_your_fish';updatePayload.fish_image=s.fishImage||feedFishFinalImageUrl(s);updatePayload.feed_snapshot=s.feedFish||null;updatePayload.fish_state=s.feedFish?.players||null;}const {error}=await db.from('duels').update(updatePayload).eq('id',s.duelId);
-    if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
+  
+    const result = buildDuelResult(s);
+  
+    const updatePayload = {
+      status: 'finished',
+      end_time: s.endedAt,
+      result,
+      image_url: s.imageUrl,
+  
+      // 🔥 FIX: immer setzen, nicht nur im Feed-Mode
+      fish_image: s.fishImage || s.imageUrl || null
+    };
+  
+    // ✅ bestehende Logik UNVERÄNDERT lassen
+    if(s.mode === 'feed'){
+      updatePayload.duel_type = 'feed_your_fish';
+      updatePayload.feed_snapshot = s.feedFish || null;
+      updatePayload.fish_state = s.feedFish?.players || null;
+    }
+  
+    const {error} = await db
+      .from('duels')
+      .update(updatePayload)
+      .eq('id', s.duelId);
+  
+    if(error) console.warn('Duell Abschluss Sync fehlgeschlagen', error);
+  
     await syncRemoteParticipants(s);
     await addRemoteEvent(s,'system',null,{message:'Duell beendet',result});
     loadDuelLeaderboard();
@@ -3578,7 +3602,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function startTimers(){stopTimers();tickTimer=setInterval(()=>{let s=getDuelState();if(s.active&&s.mode==='feed')s=feedFishApplyDecay(s);if(s.active&&remainingMs(s)<=0){endDuel();return;}updateDuelUi();},1000);gpsTimer=setInterval(addGpsPoint,GPS_INTERVAL_MS);talkTimer=setInterval(()=>{const s=getDuelState();const pool=s.mode==='feed'?[...roasts,...feedRoasts]:roasts;s.lastTalk=pool[Math.floor(Math.random()*pool.length)];saveDuelState(s);addRemoteEvent(s,'message',null,{message:s.lastTalk});updateDuelUi();},TALK_INTERVAL_MS);}
   function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
   async function startDuel(){let s=ensureDuelParticipants(getDuelState());const cap=document.getElementById('duelCaptainSelect')?.value,opp=document.getElementById('duelOpponentSelect')?.value,selectedMode=document.getElementById('duelModeSelect')?.value||'trolling';if(!cap||!opp||cap===opp){alert('Bitte zwei unterschiedliche Teilnehmer wählen.');return;}const startIso=new Date().toISOString();s={...defaultDuelState(),active:true,startedAt:startIso,startTimestamp:startIso,durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),captainId:cap,opponentId:opp,mode:selectedMode,score:{[cap]:0,[opp]:0},lastTalk:selectedMode==='feed'?'Feed your Fish läuft. Fang was, bevor der Schnauzer-Fisch dramatisch stirbt.':'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'};if(selectedMode==='feed'){ensureFeedFishState(s);s.fishImage=feedFishFinalImageUrl(s);}saveDuelState(s);s=await createRemoteDuel(s);startTimers();addGpsPoint();updateDuelUi();}
-  async function endDuel(){let s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);if(s.mode==='feed'){s=feedFishApplyDecay(s);s.fishImage=feedFishFinalImageUrl(s);}setTimeout(async()=>{const u=await exportElementAsImageAndUpload('duelMap',s.duelId||s.id||'local');if(u){const latest=getDuelState();latest.imageUrl=u;saveDuelState(latest);await finishRemoteDuel(latest);}},300);s.lastTalk=s.mode==='feed'?'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.':'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();await finishRemoteDuel(s);}
+  async function endDuel(){let s=getDuelState();s.active=false;s.endedAt=new Date().toISOString();s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);if(s.mode==='feed'){s=feedFishApplyDecay(s);s.fishImage=feedFishFinalImageUrl(s);}setTimeout(async()=>{const u=await exportElementAsImageAndUpload('duelMap',s.duelId||s.id||'local');if(u){const latest=getDuelState();latest.imageUrl=u;latest.fishImage = u;saveDuelState(latest);await finishRemoteDuel(latest);}},300);s.lastTalk=s.mode==='feed'?'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.':'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';saveDuelState(s);stopTimers();updateDuelUi();await finishRemoteDuel(s);}
   async function addGpsPoint(){let s=getDuelState();if(!s.active)return;const got=await new Promise(resolve=>{if(!navigator.geolocation)return resolve(null);navigator.geolocation.getCurrentPosition(pos=>resolve({lat:pos.coords.latitude,lng:pos.coords.longitude,at:new Date().toISOString(),accuracy:pos.coords.accuracy,speed_ms:pos.coords.speed}),()=>resolve(null),{enableHighAccuracy:true,timeout:9000,maximumAge:20000});});let point=got;if(!point){const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};point={lat:Number(last.lat)+(Math.random()-.45)*.006,lng:Number(last.lng)+(.004+Math.random()*.004),at:new Date().toISOString(),demo:true};}
     s.route=[...(s.route||[]),point];
     if(!s.weather&&typeof getWeather==='function'){try{const w=await getWeather(point.lat,point.lng);if(w?.current)s.weather={temp_c:w.current.temperature_2m,wind_ms:w.current.wind_speed_10m,pressure_hpa:w.current.pressure_msl,at:w.current.time};}catch(e){}}
