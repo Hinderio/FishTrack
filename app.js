@@ -3403,7 +3403,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   let duelMap=null,duelRoute=null,duelMarkers=[];
   let tickTimer=null,gpsTimer=null,talkTimer=null,leaderboardCache=[];
   function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null};}
-  function getDuelState(){try{return {...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})};}catch{return defaultDuelState();}}
+  function getDuelState(){try{const s={...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})};return s.mode==='feed'?recalcFeedState(s):s;}catch{return defaultDuelState();}}
   function saveDuelState(s){localStorage.setItem(KEY,JSON.stringify(s));window.duelState=s;}
   function participant(id){return (state.participants||[]).find(p=>p.id===id)||null;}
   function participantName(id){return participant(id)?.name||'–';}
@@ -3467,11 +3467,52 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   async function finishRemoteDuel(s){
     if(!db||!s.duelId)return;
-    const result=buildDuelResult(s);
-    const {error}=await db.from('duels').update({status:'finished',end_time:s.endedAt,result, image_url: s.imageUrl}).eq('id',s.duelId);
-    if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
+  
+    const result = buildDuelResult(s);
+  
+    // 🧠 Duell-Typ bestimmen
+    const duelType = s.mode === 'feed' ? 'feed_fish' : 'trolling_master';
+  
+    // 🐟 Fisch-Zustand speichern (Feed Mode)
+    let fishState = null;
+    let fishImage = null;
+  
+    if(s.mode === 'feed' && s.feed){
+      fishState = Object.fromEntries(
+        Object.entries(s.feed).map(([pid, fish])=>[
+          pid,
+          { level: fish.level, progress: fish.progress }
+        ])
+      );
+  
+      // schlechtester Fisch = höchstes Level
+      const worstFish = Object.values(s.feed)
+        .sort((a,b)=>b.level - a.level)[0];
+  
+      if(worstFish){
+        fishImage = `Transformation/stufe-${worstFish.level}.png`;
+      }
+    }
+  
+    // 💾 Update DB
+    const {error} = await db
+      .from('duels')
+      .update({
+        status: 'finished',
+        end_time: s.endedAt,
+        result,
+        image_url: s.imageUrl || null,   // Karte
+        duel_type: duelType,             // 🔥 NEU
+        fish_state: fishState,           // 🔥 NEU
+        fish_image: fishImage            // 🔥 NEU
+      })
+      .eq('id', s.duelId);
+  
+    if(error) console.warn('Duell Abschluss Sync fehlgeschlagen', error);
+  
     await syncRemoteParticipants(s);
     await addRemoteEvent(s,'system',null,{message:'Duell beendet',result});
+  
     loadDuelLeaderboard();
   }
   async function loadDuelLeaderboard(){
@@ -3504,8 +3545,12 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const rows=parts.map((p,i)=>`<div class="duel-history-row"><span>#${i+1} ${escapeHtml(p.display_name||participantName(p.participant_id))}${p.is_captain?' · Kapitän':''}</span><b>${Number(p.score||0)+Number(p.bonus_score||0)} P</b></div>`).join('');
       const date=d.created_at?fmtDateTime(d.created_at):'–';
       const meta=`${date} · ${result.distance_km??(tracks.length?routeDistanceKm(tracks).toFixed(2):'0')} km · Ø ${result.avg_speed_kmh??'–'} km/h`;
-      const image = d.image_url
-        ? `<img class="duel-photo" src="${escapeHtml(d.image_url)}" alt="Duel Image" onerror="this.style.display='none'">`
+      const fishImage = d.fish_image
+        ? `<img class="duel-photo" src="${escapeHtml(d.fish_image)}" alt="Fish" onerror="this.style.display='none'">`
+        : '';
+      
+      const mapImage = d.image_url
+        ? `<img class="duel-photo" src="${escapeHtml(d.image_url)}" alt="Map" onerror="this.style.display='none'">`
         : '';
       
       return `<article class="duel-history-entry">
@@ -3515,7 +3560,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
           ${rows || '<div class="meta">Keine Teilnehmerdaten.</div>'}
         </div>
       
-        ${image}
+        ${fishImage}
+        ${mapImage}
       
         <img class="duel-route-snapshot" alt="Gespeicherte Duellroute" src="${svgDataUrl(svg)}">
       </article>`;
