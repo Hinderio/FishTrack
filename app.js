@@ -3472,11 +3472,33 @@ setInterval(injectWeatherIntoCatchCards, 800);
   
     const result = buildDuelResult(s);
   
-    const safeFishImage =
-      s.fishImage ||
-      s.imageUrl ||
-      (s.routeSnapshotSvg ? svgDataUrl(s.routeSnapshotSvg) : null) ||
-      null;
+    let safeFishImage = null;
+
+    // 1. Priorität: echtes Bild (Upload)
+    if (s.fishImage && (s.fishImage.startsWith('http') || s.fishImage.startsWith('data:image'))) {
+      safeFishImage = s.fishImage;
+    }
+    
+    // 2. fallback: imageUrl
+    else if (s.imageUrl && (s.imageUrl.startsWith('http') || s.imageUrl.startsWith('data:image'))) {
+      safeFishImage = s.imageUrl;
+    }
+    
+    // 3. fallback: SVG → nur wenn gültig
+    else if (s.routeSnapshotSvg && s.routeSnapshotSvg.includes('<svg')) {
+      try {
+        const svg = svgDataUrl(s.routeSnapshotSvg);
+    
+        // 🔥 Size Guard (wichtig!)
+        if (svg.length < 500000) { // ~500kb limit
+          safeFishImage = svg;
+        } else {
+          console.warn('SVG zu gross – wird nicht gespeichert');
+        }
+      } catch(e) {
+        console.warn('SVG conversion failed', e);
+      }
+    }
   
     const updatePayload = {
       status: 'finished',
@@ -3488,7 +3510,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
   
     if(s.mode === 'feed'){
       updatePayload.duel_type = 'feed_your_fish';
-      updatePayload.fish_image = s.fishImage || feedFishFinalImageUrl(s) || safeFishImage;
+      updatePayload.fish_image =
+        (s.fishImage && s.fishImage.length > 20 ? s.fishImage : null) ||
+        feedFishFinalImageUrl(s) ||
+        safeFishImage;
       updatePayload.feed_snapshot = s.feedFish || null;
       updatePayload.fish_state = s.feedFish?.players || null;
     }
@@ -3607,47 +3632,50 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
   async function startDuel(){let s=ensureDuelParticipants(getDuelState());const cap=document.getElementById('duelCaptainSelect')?.value,opp=document.getElementById('duelOpponentSelect')?.value,selectedMode=document.getElementById('duelModeSelect')?.value||'trolling';if(!cap||!opp||cap===opp){alert('Bitte zwei unterschiedliche Teilnehmer wählen.');return;}const startIso=new Date().toISOString();s={...defaultDuelState(),active:true,startedAt:startIso,startTimestamp:startIso,durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),captainId:cap,opponentId:opp,mode:selectedMode,score:{[cap]:0,[opp]:0},lastTalk:selectedMode==='feed'?'Feed your Fish läuft. Fang was, bevor der Schnauzer-Fisch dramatisch stirbt.':'Leinen raus. Der Schleppmeister wird jetzt amtlich vermessen.'};if(selectedMode==='feed'){ensureFeedFishState(s);s.fishImage=feedFishFinalImageUrl(s);}saveDuelState(s);s=await createRemoteDuel(s);startTimers();addGpsPoint();updateDuelUi();}
   async function endDuel(){
-    let s=getDuelState();
+    let s = getDuelState();
   
-    s.active=false;
-    s.endedAt=new Date().toISOString();
-    s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);
+    s.active = false;
+    s.endedAt = new Date().toISOString();
   
-    // ✅ Fallback-Bild sofort setzen, bevor Upload versucht wird
-    if(s.routeSnapshotSvg){
-      s.fishImage=svgDataUrl(s.routeSnapshotSvg);
+    // ✅ Route Snapshot erzeugen
+    s.routeSnapshotSvg = routeSnapshotSvg(s.route || []);
+  
+    // 🔥 KRITISCHER FIX: sofort Bild setzen (kein Upload nötig)
+    if (s.routeSnapshotSvg) {
+      s.fishImage = svgDataUrl(s.routeSnapshotSvg);
     }
   
-    if(s.mode==='feed'){
-      s=feedFishApplyDecay(s);
-      s.fishImage=feedFishFinalImageUrl(s);
+    // Feed Mode bleibt unverändert
+    if (s.mode === 'feed') {
+      s = feedFishApplyDecay(s);
+      s.fishImage = feedFishFinalImageUrl(s);
     }
   
-    s.lastTalk=s.mode==='feed'
-      ?'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.'
-      :'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';
+    s.lastTalk = s.mode === 'feed'
+      ? 'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.'
+      : 'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';
   
     saveDuelState(s);
     stopTimers();
     updateDuelUi();
   
-    // ✅ DB wird direkt mit SVG/Base64-Fallback gespeichert
+    // ✅ EIN sauberer Save → mit Bild
     await finishRemoteDuel(s);
   
-    // ✅ Upload bleibt optional, aber Fehler blockiert nichts mehr
+    // ❗ OPTIONAL: Upload versuchen (aber NICHT mehr kritisch)
     setTimeout(async()=>{
       try{
-        const u=await exportElementAsImageAndUpload('duelMap',s.duelId||s.id||'local');
+        const u = await exportElementAsImageAndUpload('duelMap', s.duelId || s.id || 'local');
   
         if(u){
-          const latest=getDuelState();
-          latest.imageUrl=u;
-          latest.fishImage=u;
+          const latest = getDuelState();
+          latest.imageUrl = u;
+          latest.fishImage = u;
           saveDuelState(latest);
           await finishRemoteDuel(latest);
         }
       }catch(e){
-        console.warn('Duell Bild Upload fehlgeschlagen – fish_image nutzt SVG Snapshot fallback',e);
+        console.warn('Upload optional fehlgeschlagen – egal, SVG ist bereits gespeichert');
       }
     },300);
   }
