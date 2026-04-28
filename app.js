@@ -3796,10 +3796,14 @@ setInterval(injectWeatherIntoCatchCards, 800);
     // ✅ wenn Upload klappt → echtes Bild nutzen
     if (uploadedUrl) {
       s.imageUrl = uploadedUrl;
-      s.fishImage = uploadedUrl;
+    
+      // 🔥 NUR Map-Modi dürfen fishImage überschreiben
+      if (s.mode !== 'feed') {
+        s.fishImage = uploadedUrl;
+      }
     } 
-    // ❗ fallback NUR wenn Upload scheitert
-    else if (s.routeSnapshotSvg) {
+    // ❗ fallback NUR für Map-Modi
+    else if (s.routeSnapshotSvg && s.mode !== 'feed') {
       s.fishImage = svgDataUrl(s.routeSnapshotSvg);
     }
 
