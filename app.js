@@ -3070,9 +3070,11 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
       
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1;
-}
-    });
   }
+      });
+    }
+  
+  })();
 
   function renderAnalyticsCatchHeatmap(){
     const container=document.getElementById('analyticsCatchHeatmap');
