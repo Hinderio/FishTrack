@@ -3786,10 +3786,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
     
     await new Promise(r => setTimeout(r, 300));
     
-    const uploadedUrl = await exportElementAsImageAndUpload(
-      'duelMap',
-      s.duelId || s.id || 'local'
-    );
+    const svg = routeSnapshotSvg(s.route || []);
+    const svgUrl = svgDataUrl(svg);
+    
+    s.fishImage = svgUrl;
   
     console.log("UPLOAD RESULT:", uploadedUrl);
   
