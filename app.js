@@ -3776,7 +3776,16 @@ setInterval(injectWeatherIntoCatchCards, 800);
     stopTimers();
     updateDuelUi();
   
-    // 🔥 JETZT DER WICHTIGE TEIL
+    // 🔥 warten bis Map fertig gerendert ist
+    await new Promise(r => setTimeout(r, 300));
+    
+    // optional stärker:
+    if (duelMap) {
+      duelMap.invalidateSize();
+    }
+    
+    await new Promise(r => setTimeout(r, 300));
+    
     const uploadedUrl = await exportElementAsImageAndUpload(
       'duelMap',
       s.duelId || s.id || 'local'
