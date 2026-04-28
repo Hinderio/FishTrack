@@ -3136,14 +3136,17 @@ function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');co
     };
   }
 
-  document.addEventListener('click',e=>{
+  document.addEventListener('click', e=>{
     if(e.target.closest('[data-screen="analytics"]')){
       setTimeout(()=>{try{renderAnalyticsCatchHeatmap();}catch(err){}},120);
     }
   });
-  window.addEventListener('resize',()=>{
+  
+  window.addEventListener('resize', ()=>{
     try{renderAnalyticsCatchHeatmap();}catch(e){}
-});
+  });
+
+})(); 
 
 
 /* === Weather UI Injection (safe, append-only) === */
