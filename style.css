@@ -3047,3 +3047,24 @@ body.coach-map-open #mapPickerModal .map-actions {
   .duel-map-preview-card{width:100%;max-height:92vh;border-radius:28px 28px 18px 18px;padding:14px;}
   .duel-map-preview-close{top:14px;right:14px;width:48px;height:48px;}
 }
+
+/* Spot Sniper Elite: additive duel-mode extension */
+.sniper-config-field.hidden,.sniper-elite-hud.hidden,.sniper-setup-modal.hidden{display:none!important}
+.sniper-elite-hud{padding:12px 14px;border-radius:20px;background:radial-gradient(circle at 10% 0%,rgba(255,112,112,.24),transparent 42%),linear-gradient(135deg,rgba(74,215,209,.13),rgba(255,184,77,.08));border:1px solid rgba(255,255,255,.11);box-shadow:0 18px 36px rgba(0,0,0,.22),inset 0 0 0 1px rgba(255,255,255,.04);display:flex;flex-direction:column;gap:8px}
+.sniper-elite-hud strong{font-size:.98rem;color:var(--text)}
+.sniper-elite-hud small{color:var(--muted);line-height:1.35}
+.sniper-hud-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.sniper-hud-rows>div{padding:9px 10px;border-radius:15px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.055);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.sniper-hud-rows span{color:var(--muted);font-size:.82rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sniper-hud-rows b{white-space:nowrap;font-size:.86rem}
+.sniper-setup-modal{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:18px;background:rgba(2,8,14,.66);backdrop-filter:blur(10px)}
+.sniper-setup-card{width:min(520px,100%);padding:24px;border-radius:30px;background:radial-gradient(circle at 18% 0%,rgba(255,112,112,.22),transparent 38%),radial-gradient(circle at 92% 16%,rgba(74,215,209,.18),transparent 34%),var(--card);border:1px solid rgba(255,255,255,.11);box-shadow:0 26px 70px rgba(0,0,0,.42)}
+.sniper-setup-card h2{margin:.1rem 0 .5rem;font-size:1.55rem}.sniper-setup-card p{margin:.25rem 0;color:var(--text);line-height:1.45}.sniper-setup-card small{display:block;color:var(--muted);margin-top:8px}
+.sniper-setup-meter{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:16px 0 6px;border:1px solid rgba(255,255,255,.06)}
+.sniper-setup-meter span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#ff7070,#ffb84d,#4ad7d1);box-shadow:0 0 18px rgba(255,184,77,.45);transition:width .2s ease}
+.sniper-setup-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.sniper-setup-actions .pill[disabled],.sniper-elite-hud .pill[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.35)}
+.sniper-history-badge{display:inline-flex;align-items:center;gap:6px;width:max-content;max-width:100%;margin:8px 0;padding:7px 10px;border-radius:999px;background:rgba(255,112,112,.12);border:1px solid rgba(255,184,77,.22);color:var(--text);font-size:.78rem;font-weight:900}
+.leaflet-interactive.sniper-ring{filter:drop-shadow(0 0 10px rgba(255,184,77,.22))}.leaflet-interactive.sniper-core{filter:drop-shadow(0 0 10px rgba(255,112,112,.8))}
+.sniper-lock-flash::after{content:'';position:fixed;inset:0;z-index:1300;pointer-events:none;background:radial-gradient(circle at 50% 50%,rgba(255,184,77,.32),transparent 55%);animation:sniperLockFlash .7s ease-out forwards}
+@keyframes sniperLockFlash{0%{opacity:1;transform:scale(.96)}100%{opacity:0;transform:scale(1.08)}}
+@media (max-width:760px){.sniper-hud-rows{grid-template-columns:1fr}.sniper-setup-actions .pill{width:100%}}

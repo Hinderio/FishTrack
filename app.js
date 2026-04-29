@@ -3402,9 +3402,9 @@ setInterval(injectWeatherIntoCatchCards, 800);
     saveDuelState(s);
   }
 
-  let duelMap=null,duelRoute=null,duelMarkers=[];
+  let duelMap=null,duelRoute=null,duelMarkers=[],sniperLayer=null;
   let tickTimer=null,gpsTimer=null,talkTimer=null,leaderboardCache=[];
-  function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null,fishImage:null,startTimestamp:null};}
+  function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null,fishImage:null,startTimestamp:null,sniperSpots:[],sniperConfig:null,sniperScore:{}};}
   function getDuelState(){try{return {...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})};}catch{return defaultDuelState();}}
   function saveDuelState(s){localStorage.setItem(KEY,JSON.stringify(s));window.duelState=s;}
   function participant(id){return (state.participants||[]).find(p=>p.id===id)||null;}
@@ -3414,11 +3414,146 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function ensureDuelParticipants(s){const ps=state.participants||[];if(!s.captainId&&ps[0])s.captainId=ps[0].id;if(!s.opponentId&&ps[1])s.opponentId=ps[1].id;if(s.captainId===s.opponentId&&ps.find(p=>p.id!==s.captainId))s.opponentId=ps.find(p=>p.id!==s.captainId).id;return s;}
   function routeDistanceKm(route){let km=0;for(let i=1;i<route.length;i++)km+=distanceKm(route[i-1],route[i]);return km;}
   function distanceKm(a,b){const R=6371,toRad=x=>x*Math.PI/180;const dLat=toRad(Number(b.lat)-Number(a.lat));const dLng=toRad(Number(b.lng)-Number(a.lng));const lat1=toRad(Number(a.lat)),lat2=toRad(Number(b.lat));const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;return 2*R*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));}
+  const SNIPER_TARGET_TIERS=[
+    {id:'tiny',label:'Nadelöhr',radius:18,points:100,color:'rgba(255,72,72,.28)',stroke:'#ff7070'},
+    {id:'small',label:'Sharp',radius:28,points:100,color:'rgba(255,184,77,.22)',stroke:'#ffb84d'},
+    {id:'medium',label:'Balanced',radius:42,points:100,color:'rgba(255,226,92,.16)',stroke:'#ffe25c'},
+    {id:'large',label:'Wide',radius:62,points:100,color:'rgba(74,215,209,.12)',stroke:'#4ad7d1'}
+  ];
+  function distanceMeters(a,b){return distanceKm(a,b)*1000;}
+  function sniperRingsForSpot(spot){const base=sniperTierById(spot?.tier);const r=Number(base.radius||28);return [{radius:r,points:100,label:'Perfect'},{radius:r*2.2,points:50,label:'Hit'},{radius:r*4.2,points:20,label:'Zone'},{radius:r*8,points:10,label:'Edge'}];}
+  function sniperTierForSpotDistance(spot,m){return sniperRingsForSpot(spot).find(t=>m<=t.radius)||null;}
+  function sniperTierForDistance(m){return SNIPER_TARGET_TIERS.find(t=>m<=t.radius)||null;}
+  function sniperTierById(id){return SNIPER_TARGET_TIERS.find(t=>t.id===id)||SNIPER_TARGET_TIERS[1];}
+  function nextSniperTier(index){return SNIPER_TARGET_TIERS[Math.abs(Number(index||0))%SNIPER_TARGET_TIERS.length];}
+  function isSniperMode(s){return (s?.mode||'')==='sniper';}
+  function ensureSniperState(s){
+    if(!s)return s;
+    s.sniperSpots=Array.isArray(s.sniperSpots)?s.sniperSpots:[];
+    s.sniperScore=s.sniperScore&&typeof s.sniperScore==='object'?s.sniperScore:{};
+    s.sniperConfig=s.sniperConfig&&typeof s.sniperConfig==='object'?s.sniperConfig:null;
+    if(isSniperMode(s)){
+      const players=[s.captainId,s.opponentId].filter(Boolean);
+      s.sniperConfig={spotsPerPlayer:Number(s.sniperConfig?.spotsPerPlayer||2),currentTurn:Number(s.sniperConfig?.currentTurn||0),players:s.sniperConfig?.players?.length?s.sniperConfig.players:players,locked:!!s.sniperConfig?.locked,setupDone:!!s.sniperConfig?.setupDone,setupActive:!!s.sniperConfig?.setupActive};
+      s.sniperConfig.spotsPerPlayer=Math.max(1,Math.min(3,Number(s.sniperConfig.spotsPerPlayer||2)));
+      s.sniperConfig.players=players.length?players:s.sniperConfig.players;
+      s.sniperConfig.currentTurn=Math.max(0,Math.min(s.sniperConfig.currentTurn,Math.max(0,s.sniperConfig.players.length-1)));
+      players.forEach(id=>{if(s.sniperScore[id]==null)s.sniperScore[id]=0;});
+    }
+    return s;
+  }
+  function currentSniperPlayerId(s){ensureSniperState(s);return s.sniperConfig?.players?.[s.sniperConfig.currentTurn]||s.captainId||s.opponentId||null;}
+  function sniperSpotsForPlayer(s,id){return (s.sniperSpots||[]).filter(p=>p.ownerId===id);}
+  function buildSniperScore(route,spots){
+    const scores={};
+    const normalizedRoute=normalizeDuelRoute(route||[]);
+    (spots||[]).forEach(spot=>{
+      const owner=spot.ownerId||spot.owner||null;if(owner&&!scores[owner])scores[owner]=0;
+      let best=Infinity;
+      normalizedRoute.forEach(p=>{const d=distanceMeters(spot,p);if(d<best)best=d;});
+      const tier=Number.isFinite(best)?sniperTierForSpotDistance(spot,best):null;
+      spot.bestDistanceM=Number.isFinite(best)?Math.round(best):null;
+      spot.hitTier=tier?.label||null;
+      spot.pointsAwarded=tier?.points||0;
+      if(owner)scores[owner]=Number(scores[owner]||0)+Number(spot.pointsAwarded||0);
+    });
+    return scores;
+  }
+  function sniperTotalScore(s,id){return isSniperMode(s)?Number(s.sniperScore?.[id]||0):0;}
+  function sniperSummaryText(s){
+    if(!isSniperMode(s))return '';
+    const cfg=ensureSniperState(s).sniperConfig;
+    if(cfg?.setupActive&&!cfg.locked){const pid=currentSniperPlayerId(s),count=sniperSpotsForPlayer(s,pid).length;return `🎯 Setup: ${participantName(pid)} setzt ${count}/${cfg.spotsPerPlayer} Spots`;}
+    if(cfg?.locked)return `🔒 Sniper locked · ${(s.sniperSpots||[]).length} Ziele · Elite-Ringe aktiv`;
+    return '🎯 Spot Sniper Elite bereit';
+  }
+  function renderSniperHud(){
+    let hud=document.getElementById('sniperEliteHud');
+    const panel=document.getElementById('duelPanel');
+    if(!panel)return;
+    const s=ensureSniperState(getDuelState());
+    const show=isSniperMode(s);
+    if(!hud){hud=document.createElement('div');hud.id='sniperEliteHud';hud.className='sniper-elite-hud hidden';const mapCard=document.querySelector('.duel-map-card');(mapCard||panel).appendChild(hud);}
+    if(!show){hud.classList.add('hidden');return;}
+    const cfg=s.sniperConfig||{};
+    const pid=currentSniperPlayerId(s);
+    const count=sniperSpotsForPlayer(s,pid).length;
+    const rows=(cfg.players||[s.captainId,s.opponentId]).filter(Boolean).map(id=>`<div><span>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</span><b>${sniperSpotsForPlayer(s,id).length}/${cfg.spotsPerPlayer||2} Spots · ${Number(s.sniperScore?.[id]||0)} P</b></div>`).join('');
+    hud.innerHTML=`<strong>${escapeHtml(sniperSummaryText(s))}</strong><small>${cfg?.setupActive&&!cfg.locked?'Tippe auf die Karte, um Ziele zu setzen. Unterschiedliche Ringgrössen entstehen automatisch.':'Trefferzonen: 100 / 50 / 20 / 10 Punkte.'}</small><div class="sniper-hud-rows">${rows}</div>${cfg?.setupActive&&!cfg.locked?`<button type="button" class="pill primary" id="sniperTurnDoneBtn" ${count<Number(cfg.spotsPerPlayer||2)?'disabled':''}>${count<Number(cfg.spotsPerPlayer||2)?'Noch Spots setzen':'Spots locken'}</button>`:''}`;
+    hud.classList.remove('hidden');
+  }
+  function openSniperSetupModal(){
+    const s=ensureSniperState(getDuelState());if(!isSniperMode(s)||!s.sniperConfig?.setupActive||s.sniperConfig.locked)return;
+    const pid=currentSniperPlayerId(s),count=sniperSpotsForPlayer(s,pid).length,need=Number(s.sniperConfig.spotsPerPlayer||2);
+    let modal=document.getElementById('sniperSetupModal');
+    if(!modal){modal=document.createElement('div');modal.id='sniperSetupModal';modal.className='sniper-setup-modal hidden';modal.innerHTML='<div class="sniper-setup-card glass-card"><div id="sniperSetupBody"></div></div>';document.body.appendChild(modal);}
+    const body=modal.querySelector('#sniperSetupBody');
+    if(body)body.innerHTML=`<p class="eyebrow">Spot Sniper Elite</p><h2>🎯 ${escapeHtml(participantName(pid))} ist dran</h2><p>${escapeHtml(participantName(pid))} darf <b>${need} Spot${need===1?'':'s'}</b> auf der Karte setzen. Danach wird gelockt und der nächste Spieler kommt dran.</p><div class="sniper-setup-meter"><span style="width:${Math.min(100,(count/need)*100)}%"></span></div><small>${count}/${need} Spots gesetzt · transparente Ringe: 100 / 50 / 20 / 10 Punkte</small><div class="sniper-setup-actions"><button type="button" class="pill" id="sniperSetupCloseBtn">Auf Karte setzen</button><button type="button" class="pill primary" id="sniperTurnDoneBtn" ${count<need?'disabled':''}>${count<need?'Noch Spots setzen':'Spots locken'}</button></div>`;
+    modal.classList.remove('hidden');document.body.classList.add('sniper-setup-open');
+  }
+  function closeSniperSetupModal(){const modal=document.getElementById('sniperSetupModal');if(modal)modal.classList.add('hidden');document.body.classList.remove('sniper-setup-open');}
+  async function finishSniperTurn(){
+    let s=ensureSniperState(getDuelState());if(!isSniperMode(s)||!s.sniperConfig?.setupActive||s.sniperConfig.locked)return;
+    const pid=currentSniperPlayerId(s),need=Number(s.sniperConfig.spotsPerPlayer||2);
+    if(sniperSpotsForPlayer(s,pid).length<need){openSniperSetupModal();return;}
+    if(s.sniperConfig.currentTurn < s.sniperConfig.players.length-1){s.sniperConfig.currentTurn+=1;s.lastTalk=`${participantName(pid)} hat gelockt. ${participantName(currentSniperPlayerId(s))} setzt jetzt die nächsten Elite-Spots.`;saveDuelState(s);renderSniperSpots();renderSniperHud();openSniperSetupModal();return;}
+    await lockSniperSetupAndStart();
+  }
+  async function lockSniperSetupAndStart(){
+    let s=ensureSniperState(getDuelState());if(!isSniperMode(s))return;
+    const startIso=new Date().toISOString();
+    s.sniperConfig.locked=true;s.sniperConfig.setupDone=true;s.sniperConfig.setupActive=false;s.active=true;s.startedAt=startIso;s.startTimestamp=startIso;s.endedAt=null;
+    s.lastTalk='🔒 Spot Sniper Elite ist gelockt. Jetzt zählt Präzision: 100 / 50 / 20 / 10 Punkte.';
+    saveDuelState(s);closeSniperSetupModal();document.body.classList.add('sniper-lock-flash');setTimeout(()=>document.body.classList.remove('sniper-lock-flash'),700);
+    s=await createRemoteDuel(s);saveDuelState(s);startTimers();if(!s.route||!s.route.length)addGpsPoint();updateDuelUi();
+  }
+  function addSniperSpotAt(latlng){
+    let s=ensureSniperState(getDuelState());if(!isSniperMode(s)||!s.sniperConfig?.setupActive||s.sniperConfig.locked)return;
+    const ownerId=currentSniperPlayerId(s),existing=sniperSpotsForPlayer(s,ownerId),need=Number(s.sniperConfig.spotsPerPlayer||2);
+    if(existing.length>=need){openSniperSetupModal();return;}
+    const idx=(s.sniperSpots||[]).length;
+    const tier=nextSniperTier(idx+existing.length);
+    s.sniperSpots=[...(s.sniperSpots||[]),{id:crypto.randomUUID(),lat:Number(latlng.lat),lng:Number(latlng.lng),ownerId,ownerName:participantName(ownerId),tier:tier.id,baseRadiusM:tier.radius,basePoints:tier.points,locked:false,createdAt:new Date().toISOString()}];
+    s.lastTalk=`${participantName(ownerId)} setzt einen ${tier.label}-Spot (${tier.points}P Kern).`;
+    saveDuelState(s);renderSniperSpots();renderSniperHud();openSniperSetupModal();
+  }
+  function renderSniperSpots(){
+    if(!duelMap||typeof L==='undefined')return;
+    if(!sniperLayer)sniperLayer=L.layerGroup().addTo(duelMap);
+    sniperLayer.clearLayers();
+    const s=ensureSniperState(getDuelState());
+    if(!isSniperMode(s))return;
+    (s.sniperSpots||[]).forEach((spot,i)=>{
+      const base=sniperTierById(spot.tier);
+      const ringBase=sniperRingsForSpot(spot);
+      const rings=[
+        {...ringBase[3],color:'rgba(74,215,209,.10)',stroke:'rgba(74,215,209,.42)'},
+        {...ringBase[2],color:'rgba(255,226,92,.13)',stroke:'rgba(255,226,92,.46)'},
+        {...ringBase[1],color:'rgba(255,184,77,.17)',stroke:'rgba(255,184,77,.52)'},
+        {...ringBase[0],color:'rgba(255,72,72,.24)',stroke:'rgba(255,112,112,.72)'}
+      ];
+      rings.forEach(r=>L.circle([spot.lat,spot.lng],{radius:r.radius,color:r.stroke,fillColor:r.color,fillOpacity:s.sniperConfig?.locked?.55:.72,weight:1.3,interactive:false,className:'sniper-ring'}).addTo(sniperLayer));
+      const marker=L.circleMarker([spot.lat,spot.lng],{radius:7,color:'#fff',fillColor:spot.hitTier?'#8ff0a7':'#ff7070',fillOpacity:.96,weight:2.5,className:'sniper-core'}).addTo(sniperLayer);
+      marker.bindTooltip(`🎯 ${participantName(spot.ownerId)} · ${base.label} · ${spot.pointsAwarded?spot.pointsAwarded+'P':'100/50/20/10'}`);
+    });
+  }
+  function drawSniperSpotsOnCanvas(ctx,finalCanvas,mapElement,s){
+    if(!ctx||!duelMap||!isSniperMode(s)||!s.sniperSpots?.length)return;
+    const scaleX=finalCanvas.width/Math.max(1,mapElement.clientWidth||finalCanvas.width),scaleY=finalCanvas.height/Math.max(1,mapElement.clientHeight||finalCanvas.height);
+    ctx.save();ctx.globalCompositeOperation='source-over';
+    (s.sniperSpots||[]).forEach(spot=>{
+      let c;try{c=duelMap.latLngToContainerPoint([Number(spot.lat),Number(spot.lng)]);}catch(e){return;}
+      const rings=sniperRingsForSpot(spot),meters=[rings[3].radius,rings[2].radius,rings[1].radius,rings[0].radius];
+      const colors=['rgba(74,215,209,.12)','rgba(255,226,92,.16)','rgba(255,184,77,.20)','rgba(255,72,72,.28)'];
+      meters.forEach((m,idx)=>{let edge;try{edge=duelMap.latLngToContainerPoint([Number(spot.lat),Number(spot.lng)+(m/(111320*Math.max(.2,Math.cos(Number(spot.lat)*Math.PI/180))))]);}catch(e){edge=null;}const r=edge?Math.abs(edge.x-c.x)*scaleX:Math.max(10,m*.3);ctx.beginPath();ctx.arc(c.x*scaleX,c.y*scaleY,r,0,Math.PI*2);ctx.fillStyle=colors[idx];ctx.fill();ctx.lineWidth=Math.max(1.5,2*scaleX);ctx.strokeStyle='rgba(255,255,255,.42)';ctx.stroke();});
+      ctx.shadowColor='rgba(255,112,112,.8)';ctx.shadowBlur=Math.max(10,14*scaleX);ctx.beginPath();ctx.arc(c.x*scaleX,c.y*scaleY,Math.max(7,8*scaleX),0,Math.PI*2);ctx.fillStyle=spot.hitTier?'#8ff0a7':'#ff7070';ctx.fill();ctx.lineWidth=Math.max(2,3*scaleX);ctx.strokeStyle='#fff';ctx.stroke();
+    });ctx.restore();
+  }
   function elapsedHours(s){if(!s.startedAt)return 0;const end=s.endedAt?new Date(s.endedAt).getTime():Date.now();return Math.max(0,(end-new Date(s.startedAt).getTime())/3600000);}
   function avgSpeed(s){const h=elapsedHours(s);return h>0?routeDistanceKm(s.route||[])/h:0;}
   function speedBonus(s){if(s.mode!=='trolling')return 0;const speed=avgSpeed(s);if(!speed)return 0;let bonus=0;if(speed>=2.0&&speed<=4.0)bonus+=4;else if(speed>=1.5&&speed<=4.8)bonus+=2;if(Number(s.weather?.wind_ms||99)<=6)bonus+=2;return bonus;}
   function captainBonus(s){return s.mode==='trolling'&&s.startedAt?5:0;}
-  function totalScore(s,id){return Number(s.score?.[id]||0)+(id===s.captainId?captainBonus(s)+speedBonus(s):0);}
+  function totalScore(s,id){return Number(s.score?.[id]||0)+(id===s.captainId?captainBonus(s)+speedBonus(s):0)+sniperTotalScore(s,id);}
   function formatTime(ms){const total=Math.max(0,Math.ceil(ms/1000));const m=Math.floor(total/60),sec=total%60;return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
   function remainingMs(s){if(!s.active||!s.startedAt)return Number(s.durationMin||60)*60000;return Math.max(0,new Date(s.startedAt).getTime()+Number(s.durationMin||60)*60000-Date.now());}
   function routeSnapshotSvg(route){
@@ -3437,11 +3572,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function normalizeDuelRoute(route){return (route||[]).filter(p=>Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))).map(p=>({lat:Number(p.lat),lng:Number(p.lng),timestamp:p.timestamp||p.at||p.created_at||new Date().toISOString(),accuracy:p.accuracy??p.accuracy_m??null,speed_ms:p.speed_ms??null,demo:!!p.demo}));}
   function mergeDuelFishState(...states){return states.reduce((acc,item)=>{if(!item)return acc;let value=item;if(typeof value==='string'){try{value=JSON.parse(value);}catch(e){value=null;}}if(Array.isArray(value))return {...acc,players:value};if(value&&typeof value==='object')return {...acc,...value};return acc;},{});}
   function extractDuelRoute(d){const trackRoute=(d?.tracks||[]).map(t=>({lat:t.lat,lng:t.lng,timestamp:t.created_at,accuracy:t.accuracy_m??null,speed_ms:t.speed_ms??null}));if(trackRoute.length)return normalizeDuelRoute(trackRoute);const fs=mergeDuelFishState(d?.fish_state,d?.result?.fish_state);return normalizeDuelRoute(fs.gps_route||d?.result?.gps_route||[]);}
-  function buildDuelResult(s){const route=normalizeDuelRoute(s.route||[]);const winner=[s.captainId,s.opponentId].filter(Boolean).sort((a,b)=>totalScore(s,b)-totalScore(s,a))[0]||null;const fishState=mergeDuelFishState(s.fishState,s.feedFish?.players);if(route.length)fishState.gps_route=route;return {winner_id:winner,winner_name:participantName(winner),captain_bonus:captainBonus(s),speed_bonus:speedBonus(s),avg_speed_kmh:Number(avgSpeed(s).toFixed(2)),distance_km:Number(routeDistanceKm(route).toFixed(3)),route_points:route.length,score:s.score||{},catches:s.catches||[],gps_route:route,route_snapshot_svg:s.routeSnapshotSvg||routeSnapshotSvg(route),fish_image:s.fishImage||null,feed_snapshot:s.feedFish||null,fish_state:fishState};}
+  function buildDuelResult(s){s=ensureSniperState(s);const route=normalizeDuelRoute(s.route||[]);if(isSniperMode(s)){s.sniperScore=buildSniperScore(route,s.sniperSpots||[]);}const winner=[s.captainId,s.opponentId].filter(Boolean).sort((a,b)=>totalScore(s,b)-totalScore(s,a))[0]||null;const fishState=mergeDuelFishState(s.fishState,s.feedFish?.players);if(route.length)fishState.gps_route=route;if(isSniperMode(s)){fishState.sniper_spots=s.sniperSpots||[];fishState.sniper_config=s.sniperConfig||null;fishState.sniper_score=s.sniperScore||{};}return {winner_id:winner,winner_name:participantName(winner),captain_bonus:captainBonus(s),speed_bonus:speedBonus(s),sniper_score:s.sniperScore||{},sniper_spots:s.sniperSpots||[],sniper_config:s.sniperConfig||null,avg_speed_kmh:Number(avgSpeed(s).toFixed(2)),distance_km:Number(routeDistanceKm(route).toFixed(3)),route_points:route.length,score:s.score||{},catches:s.catches||[],gps_route:route,route_snapshot_svg:s.routeSnapshotSvg||routeSnapshotSvg(route),fish_image:s.fishImage||null,feed_snapshot:s.feedFish||null,fish_state:fishState};}
   async function createRemoteDuel(s){
     if(!db||s.duelId)return s;
     try{
-      const isFeed=s.mode==='feed';const payload={title:isFeed?'Feed your Fish Duell':'Schleppmeister Duell',duel_type:isFeed?'feed_your_fish':(s.mode==='trolling'?'trolling_master':'blitz'),status:'active',duration_minutes:Number(s.durationMin||60),captain_id:isUuid(s.captainId)?s.captainId:null,start_time:s.startedAt,target_species:fishTiles.map(f=>f.species),settings:{mode:s.mode}};if(isFeed){payload.fish_image=s.fishImage||feedFishFinalImageUrl(s);payload.feed_snapshot=s.feedFish||null;payload.fish_state=s.feedFish?.players||null;}
+      const isFeed=s.mode==='feed',isSniper=s.mode==='sniper';const payload={title:isFeed?'Feed your Fish Duell':(isSniper?'Spot Sniper Elite':'Schleppmeister Duell'),duel_type:isFeed?'feed_your_fish':(isSniper?'spot_sniper_elite':(s.mode==='trolling'?'trolling_master':'blitz')),status:'active',duration_minutes:Number(s.durationMin||60),captain_id:isUuid(s.captainId)?s.captainId:null,start_time:s.startedAt,target_species:fishTiles.map(f=>f.species),settings:{mode:s.mode, sniping:isSniper?{spots:s.sniperSpots||[],config:s.sniperConfig||null}:null}};if(isFeed){payload.fish_image=s.fishImage||feedFishFinalImageUrl(s);payload.feed_snapshot=s.feedFish||null;payload.fish_state=s.feedFish?.players||null;}if(isSniper){payload.fish_state={sniper_spots:s.sniperSpots||[],sniper_config:s.sniperConfig||null,sniper_score:s.sniperScore||{}};}
       if(isUuid(activeTournamentId))payload.tournament_id=activeTournamentId;
       const {data,error}=await db.from('duels').insert(payload).select('id').single();
       if(error)throw error;
@@ -3455,7 +3590,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   async function syncRemoteParticipants(s){
     if(!db||!s.duelId)return;
-    const rows=[s.captainId,s.opponentId].filter(Boolean).map(id=>({duel_id:s.duelId,participant_id:id,display_name:participantName(id),is_captain:id===s.captainId,score:Number(s.score?.[id]||0),bonus_score:id===s.captainId?captainBonus(s)+speedBonus(s):0,catches_count:(s.catches||[]).filter(c=>c.participantId===id).length}));
+    const rows=[s.captainId,s.opponentId].filter(Boolean).map(id=>({duel_id:s.duelId,participant_id:id,display_name:participantName(id),is_captain:id===s.captainId,score:isSniperMode(s)?Number(s.sniperScore?.[id]||0):Number(s.score?.[id]||0),bonus_score:isSniperMode(s)?0:(id===s.captainId?captainBonus(s)+speedBonus(s):0),catches_count:(s.catches||[]).filter(c=>c.participantId===id).length}));
     if(!rows.length)return;
     const {error}=await db.from('duel_participants').upsert(rows,{onConflict:'duel_id,participant_id'});
     if(error)console.warn('Duell Teilnehmer Sync fehlgeschlagen',error);
@@ -3499,12 +3634,13 @@ setInterval(injectWeatherIntoCatchCards, 800);
     try{
       const mapElement=document.getElementById('duelMap');
       if(!mapElement||typeof html2canvas!=='function'||!duelMap)return null;
-      try{const latLngs=route.map(p=>[p.lat,p.lng]);if(latLngs.length&&duelMap.fitBounds&&typeof L!=='undefined'){duelMap.fitBounds(L.latLngBounds(latLngs).pad(.25),{maxZoom:14,animate:false});await new Promise(resolve=>setTimeout(resolve,160));}}catch(e){console.warn('Duell Map Bounds für Preview fehlgeschlagen',e);}
+      try{const latLngs=[...route.map(p=>[p.lat,p.lng]),...(isSniperMode(s)?(s.sniperSpots||[]).map(p=>[p.lat,p.lng]):[])];if(latLngs.length&&duelMap.fitBounds&&typeof L!=='undefined'){duelMap.fitBounds(L.latLngBounds(latLngs).pad(.25),{maxZoom:14,animate:false});await new Promise(resolve=>setTimeout(resolve,160));}}catch(e){console.warn('Duell Map Bounds für Preview fehlgeschlagen',e);}
       const baseCanvas=await html2canvas(mapElement,{useCORS:true,allowTaint:true,backgroundColor:null,scale:2,logging:false});
       const finalCanvas=document.createElement('canvas');finalCanvas.width=baseCanvas.width;finalCanvas.height=baseCanvas.height;
       const ctx=finalCanvas.getContext('2d');if(!ctx)return null;
       ctx.drawImage(baseCanvas,0,0);
       if(!drawFinalDuelRouteOverlay(ctx,finalCanvas,mapElement,route))return null;
+      drawSniperSpotsOnCanvas(ctx,finalCanvas,mapElement,s);
       const blob=await canvasBlob(finalCanvas,'image/png');
       return await uploadDuelImageBlob(blob,s.duelId);
     }catch(e){console.warn('Finales Duell Preview konnte nicht erzeugt werden',e);return null;}
@@ -3517,7 +3653,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     try{const current=await db.from('duels').select('fish_state,feed_snapshot,result,fish_image,image_url').eq('id',s.duelId).maybeSingle();existingDuel=current?.data||null;}catch(e){console.warn('Bestehende Duell-Daten konnten nicht gelesen werden',e);}
     const routePoints=normalizeDuelRoute(s.route||[]);
     const mergedFishState=mergeDuelFishState(existingDuel?.fish_state,existingDuel?.result?.fish_state,result.fish_state);
-    if(routePoints.length)mergedFishState.gps_route=routePoints;
+    if(routePoints.length)mergedFishState.gps_route=routePoints;if(isSniperMode(s)){mergedFishState.sniper_spots=s.sniperSpots||[];mergedFishState.sniper_config=s.sniperConfig||null;mergedFishState.sniper_score=s.sniperScore||{};}
     const mergedResult={...(existingDuel?.result||{}),...result,fish_state:mergedFishState};
     if(routePoints.length){mergedResult.gps_route=routePoints;mergedResult.route_snapshot_svg=result.route_snapshot_svg||routeSnapshotSvg(routePoints);}else{if(existingDuel?.result?.gps_route)mergedResult.gps_route=existingDuel.result.gps_route;if(existingDuel?.result?.route_snapshot_svg)mergedResult.route_snapshot_svg=existingDuel.result.route_snapshot_svg;}
     const updatePayload={status:'finished',end_time:s.endedAt,result:mergedResult,fish_state:mergedFishState};
@@ -3528,6 +3664,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       updatePayload.feed_snapshot=s.feedFish||existingDuel?.feed_snapshot||null;
       updatePayload.result={...mergedResult,fish_image:updatePayload.fish_image,feed_snapshot:updatePayload.feed_snapshot,fish_state:updatePayload.fish_state};
     }else{
+      if(isSniperMode(s))updatePayload.duel_type='spot_sniper_elite';
       updatePayload.fish_image=s.fishImage||existingDuel?.fish_image||null;
       updatePayload.image_url=s.imageUrl||s.fishImage||existingDuel?.image_url||null;
       updatePayload.result={...mergedResult,fish_image:updatePayload.fish_image,image_url:updatePayload.image_url};
@@ -3558,7 +3695,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const el=document.getElementById('duelLeaderboard');if(!el)return;
     const local=getDuelState();
     const localResult=buildDuelResult(local);
-    const localEntry=local.startedAt?{id:local.duelId||'local',status:local.active?'active':'finished',created_at:local.startedAt,end_time:local.endedAt,duel_type:local.mode==='feed'?'feed_your_fish':undefined,result:localResult,image_url:local.imageUrl,fish_image:local.fishImage,fish_state:localResult.fish_state,participants:[local.captainId,local.opponentId].filter(Boolean).map(id=>({participant_id:id,display_name:participantName(id),score:Number(local.score?.[id]||0),bonus_score:id===local.captainId?captainBonus(local)+speedBonus(local):0,catches_count:(local.catches||[]).filter(c=>c.participantId===id).length,is_captain:id===local.captainId})),tracks:local.route||[]}:null;
+    const localEntry=local.startedAt?{id:local.duelId||'local',status:local.active?'active':'finished',created_at:local.startedAt,end_time:local.endedAt,duel_type:local.mode==='feed'?'feed_your_fish':(local.mode==='sniper'?'spot_sniper_elite':undefined),result:localResult,image_url:local.imageUrl,fish_image:local.fishImage,fish_state:localResult.fish_state,participants:[local.captainId,local.opponentId].filter(Boolean).map(id=>({participant_id:id,display_name:participantName(id),score:Number(local.score?.[id]||0),bonus_score:id===local.captainId?captainBonus(local)+speedBonus(local):0,catches_count:(local.catches||[]).filter(c=>c.participantId===id).length,is_captain:id===local.captainId})),tracks:local.route||[]}:null;
     const entries=[...(localEntry?[localEntry]:[]),...leaderboardCache.filter(d=>d.id!==local.duelId)];
     if(!entries.length){el.innerHTML='<div class="meta">Noch keine Duelle gespeichert.</div>';return;}
     el.innerHTML=entries.map(d=>{
@@ -3574,6 +3711,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
         : null;
       
       const isFeedDuel=(d.duel_type==='feed_your_fish'||d.result?.feed_snapshot||d.feed_snapshot);
+      const isSniperDuel=(d.duel_type==='spot_sniper_elite'||d.result?.sniper_config||d.result?.fish_state?.sniper_config);
+      const sniperBadge=isSniperDuel?`<div class="sniper-history-badge">🎯 Spot Sniper Elite · 🔒 ${(d.result?.sniper_spots||d.result?.fish_state?.sniper_spots||[]).length} Ziele</div>`:'';
       const feedFishFallback=isFeedDuel?'Transformation/Stufe_1.png':null;
       const imageUrl=isFeedDuel
         ? (d.fish_image||d.result?.fish_image||feedFishFallback||null)
@@ -3586,6 +3725,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
         <div class="duel-history-copy">
           <strong>${d.status==='active'?'Live Duell':'Duell abgeschlossen'}</strong>
           <small>${escapeHtml(meta)}</small>
+          ${sniperBadge}
           ${rows || '<div class="meta">Keine Teilnehmerdaten.</div>'}
         </div>
       
@@ -3615,21 +3755,24 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function updateDuelUi(){
     const s=getDuelState();
     const pill=document.getElementById('duelStatusPill');
-    if(pill){pill.textContent=s.active?'Live':(s.endedAt?'Beendet':'Bereit');pill.classList.toggle('is-live',!!s.active);pill.classList.toggle('is-ended',!!s.endedAt&&!s.active);}
+    if(pill){pill.textContent=s.active?'Live':(isSniperMode(s)&&s.sniperConfig?.setupActive?'Setup':(s.endedAt?'Beendet':'Bereit'));pill.classList.toggle('is-live',!!s.active);pill.classList.toggle('is-ended',!!s.endedAt&&!s.active);}
     const timer=document.getElementById('duelTimer');if(timer)timer.textContent=formatTime(remainingMs(s));
     const sp=document.getElementById('duelAvgSpeed');if(sp)sp.textContent=(avgSpeed(s)||0).toFixed(1).replace('.',',')+' km/h';
-    const weather=document.getElementById('duelWeather');if(weather)weather.textContent=s.mode==='feed'?'Fischpflege':(s.weather?`${Math.round(Number(s.weather.temp_c||0))}° · ${Number(s.weather.wind_ms||0).toFixed(1).replace('.',',')} m/s`:'–');
+    const weather=document.getElementById('duelWeather');if(weather)weather.textContent=s.mode==='feed'?'Fischpflege':(isSniperMode(s)?'Sniper Elite':(s.weather?`${Math.round(Number(s.weather.temp_c||0))}° · ${Number(s.weather.wind_ms||0).toFixed(1).replace('.',',')} m/s`:'–'));
+    const sniperWrap=document.getElementById('sniperSpotsPerPlayerWrap');if(sniperWrap)sniperWrap.classList.toggle('hidden',!isSniperMode(s));
+    const sniperSelect=document.getElementById('sniperSpotsPerPlayerSelect');if(sniperSelect&&s.sniperConfig?.spotsPerPlayer)sniperSelect.value=String(s.sniperConfig.spotsPerPlayer);
     const talk=document.getElementById('duelTrashTalk');if(talk)talk.textContent=s.lastTalk||roasts[0];
     const scoreText=document.getElementById('duelScoreText');if(scoreText)scoreText.textContent=`${totalScore(s,s.captainId)} : ${totalScore(s,s.opponentId)}`;
     const scoreList=document.getElementById('duelScoreList');
     if(scoreList){
-      const rows=[s.captainId,s.opponentId].filter(Boolean).map(id=>`<article class="duel-score-entry"><div><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}${id===s.captainId?' · Kapitän':''}</strong><small>${(s.catches||[]).filter(c=>c.participantId===id).length} Fänge${id===s.captainId?` · Bonus ${captainBonus(s)+speedBonus(s)}`:''}</small></div><b>${totalScore(s,id)} P</b></article>`).join('');
+      const rows=[s.captainId,s.opponentId].filter(Boolean).map(id=>`<article class="duel-score-entry"><div><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}${id===s.captainId?' · Kapitän':''}</strong><small>${isSniperMode(s)?`${sniperSpotsForPlayer(s,id).length} Spots · Sniper ${Number(s.sniperScore?.[id]||0)}P`:`${(s.catches||[]).filter(c=>c.participantId===id).length} Fänge${id===s.captainId?` · Bonus ${captainBonus(s)+speedBonus(s)}`:''}`}</small></div><b>${totalScore(s,id)} P</b></article>`).join('');
       scoreList.innerHTML=rows||'<div class="meta">Wähle zwei Teilnehmer.</div>';
     }
     const tiles=document.getElementById('duelFishTiles');
     if(tiles&&!tiles.dataset.ready){tiles.innerHTML=fishTiles.map(f=>`<button type="button" class="duel-fish-tile" data-duel-fish="${escapeHtml(f.species)}"><b>${escapeHtml(f.species)}</b><small>+${f.points} P</small></button>`).join('');tiles.dataset.ready='1';}
     updateDuelMap();
     renderFeedFishUi();
+    renderSniperHud();
     renderDuelLeaderboard();
   }
   function initDuelMap(){
@@ -3637,6 +3780,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     duelMap=L.map(el,{zoomControl:true,attributionControl:false}).setView([59.442773,11.654906],8);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true}).addTo(duelMap);
     duelRoute=L.polyline([], {color:'#4ad7d1',weight:5,opacity:.85}).addTo(duelMap);
+    duelMap.on('click',e=>addSniperSpotAt(e.latlng));
     setTimeout(()=>duelMap.invalidateSize(),120);
     updateDuelMap();
   }
@@ -3645,7 +3789,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
     duelRoute.setLatLngs(pts);duelMarkers.forEach(m=>duelMap.removeLayer(m));duelMarkers=[];
     pts.forEach((pt,i)=>{if(i!==0&&i!==pts.length-1)return;duelMarkers.push(L.circleMarker(pt,{radius:i===pts.length-1?9:6,color:'#fff',fillColor:i===0?'#ffb84d':'#8ff0a7',fillOpacity:.9,weight:3,className:'duel-route-marker'}).addTo(duelMap).bindPopup(i===0?'Start':'Aktuell'));});
     if(pts.length)duelMap.fitBounds(L.latLngBounds(pts).pad(.25),{maxZoom:14});
-    const meta=document.getElementById('duelMapMeta');if(meta)meta.textContent=pts.length?`${pts.length} GPS-Punkte · ${routeDistanceKm(s.route||[]).toFixed(2)} km Route · Punkte alle 2 Min.`:'Noch keine Route – GPS starten oder Punkt setzen.';
+    renderSniperSpots();
+    const meta=document.getElementById('duelMapMeta');if(meta)meta.textContent=isSniperMode(s)?(sniperSummaryText(s)+(pts.length?` · ${pts.length} GPS-Punkte · ${routeDistanceKm(s.route||[]).toFixed(2)} km`:' · Karte antippen für Spots')):(pts.length?`${pts.length} GPS-Punkte · ${routeDistanceKm(s.route||[]).toFixed(2)} km Route · Punkte alle 2 Min.`:'Noch keine Route – GPS starten oder Punkt setzen.');
   }
   function startTimers(){stopTimers();tickTimer=setInterval(()=>{let s=getDuelState();if(s.active&&s.mode==='feed')s=feedFishApplyDecay(s);if(s.active&&remainingMs(s)<=0){endDuel();return;}updateDuelUi();},1000);gpsTimer=setInterval(addGpsPoint,GPS_INTERVAL_MS);talkTimer=setInterval(()=>{const s=getDuelState();const pool=s.mode==='feed'?[...roasts,...feedRoasts]:roasts;s.lastTalk=pool[Math.floor(Math.random()*pool.length)];saveDuelState(s);addRemoteEvent(s,'message',null,{message:s.lastTalk});updateDuelUi();},TALK_INTERVAL_MS);}
   function stopTimers(){[tickTimer,gpsTimer,talkTimer].forEach(t=>{if(t)clearInterval(t)});tickTimer=gpsTimer=talkTimer=null;}
@@ -3662,6 +3807,31 @@ setInterval(injectWeatherIntoCatchCards, 800);
     }
   
     const startIso=new Date().toISOString();
+
+    if(selectedMode==='sniper'){
+      const spotsPerPlayer=Math.max(1,Math.min(3,Number(document.getElementById('sniperSpotsPerPlayerSelect')?.value||2)));
+      s=ensureSniperState({
+        ...defaultDuelState(),
+        active:false,
+        startedAt:null,
+        startTimestamp:null,
+        durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),
+        captainId:cap,
+        opponentId:opp,
+        mode:selectedMode,
+        score:{[cap]:0,[opp]:0},
+        sniperScore:{[cap]:0,[opp]:0},
+        sniperSpots:[],
+        sniperConfig:{spotsPerPlayer,currentTurn:0,players:[cap,opp],locked:false,setupDone:false,setupActive:true},
+        lastTalk:`Spot Sniper Elite Setup: ${participantName(cap)} darf zuerst ${spotsPerPlayer} Spot${spotsPerPlayer===1?'':'s'} setzen.`
+      });
+      saveDuelState(s);
+      stopTimers();
+      updateDuelUi();
+      openSniperSetupModal();
+      setTimeout(()=>{try{duelMap?.invalidateSize();}catch(e){}},160);
+      return;
+    }
   
     s={
       ...defaultDuelState(),
@@ -3721,6 +3891,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const routePoints=normalizeDuelRoute(s.route||[]);
     s.route=routePoints;
     s.routeSnapshotSvg=routeSnapshotSvg(routePoints);
+    if(isSniperMode(s)){s.sniperScore=buildSniperScore(routePoints,s.sniperSpots||[]);}
     if(s.mode==='feed'){
       s=feedFishApplyDecay(s);
       s.fishImage=feedFishFinalImageUrl(s);
@@ -3728,7 +3899,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const finalImageUrl=await buildFinalDuelPreviewImage(s);
       if(finalImageUrl){s.fishImage=finalImageUrl;s.imageUrl=finalImageUrl;}else{s.fishImage=svgDataUrl(s.routeSnapshotSvg);}
     }
-    s.lastTalk=s.mode==='feed'?'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.':'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.';
+    s.lastTalk=s.mode==='feed'?'Abpfiff. Wer seinen Fisch lebend heimbringt, darf ihn morgen wieder enttäuschen.':(isSniperMode(s)?'Abpfiff. Sniper-Zonen ausgewertet: Präzision schlägt Ausreden.':'Abpfiff. Jetzt zählen nur noch Punkte, Ausreden und wer den Kescher vergessen hat.');
     saveDuelState(s);
     updateDuelUi();
     await finishRemoteDuel(s);
@@ -3801,7 +3972,7 @@ async function addGpsPoint(){
   function openDuelMapModal(imageUrl){if(!imageUrl)return;let modal=document.getElementById('duelMapPreviewModal');if(!modal){modal=document.createElement('div');modal.id='duelMapPreviewModal';modal.className='duel-map-preview-modal hidden';modal.innerHTML='<div class="duel-map-preview-card glass-card"><button class="duel-map-preview-close" type="button" data-close-duel-map-preview aria-label="Schliessen">×</button><img id="duelMapPreviewImage" class="duel-map-preview-image" alt="Gespeicherte Duell-Karte"></div>';document.body.appendChild(modal);}const img=modal.querySelector('#duelMapPreviewImage');if(img)img.src=imageUrl;modal.classList.remove('hidden');document.body.classList.add('duel-map-preview-open');}
   function closeDuelMapModal(){const modal=document.getElementById('duelMapPreviewModal');if(modal)modal.classList.add('hidden');document.body.classList.remove('duel-map-preview-open');}
   async function addDuelCatch(species){let s=getDuelState();if(!s.active){alert('Starte zuerst ein Duell.');return;}const fish=fishTiles.find(f=>f.species===species)||fishTiles[fishTiles.length-1];const target=document.getElementById('duelCatchParticipantSelect')?.value||s.captainId;if(!target){alert('Bitte zuerst einen Fänger auswählen.');return;}s.score=s.score||{};s.score[target]=Number(s.score[target]||0)+fish.points;const catchEvent={id:crypto.randomUUID(),participantId:target,species:fish.species,points:fish.points,at:new Date().toISOString()};s.catches=[...(s.catches||[]),catchEvent];s.lastTalk=`${participantName(target)} legt ${fish.species} vor. +${fish.points} Punkte – der Kescher applaudiert.`;if(s.mode==='feed')feedFishAfterCatch(s,target,fish);saveDuelState(s);await addRemoteEvent(s,'catch',target,catchEvent);await syncRemoteParticipants(s);updateDuelUi();}
-  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{const mapBtn=e.target.closest('[data-duel-map-image]');if(mapBtn){e.preventDefault();openDuelMapModal(mapBtn.dataset.duelMapImage);return;}if(e.target.closest('[data-close-duel-map-preview]')||e.target.id==='duelMapPreviewModal'){closeDuelMapModal();return;}if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDuelMapModal();});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);}saveDuelState(s);updateDuelUi();});}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{const mapBtn=e.target.closest('[data-duel-map-image]');if(mapBtn){e.preventDefault();openDuelMapModal(mapBtn.dataset.duelMapImage);return;}if(e.target.closest('[data-close-duel-map-preview]')||e.target.id==='duelMapPreviewModal'){closeDuelMapModal();return;}if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();if(e.target.closest('#sniperSetupCloseBtn'))closeSniperSetupModal();if(e.target.closest('#sniperTurnDoneBtn'))finishSniperTurn();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDuelMapModal();closeSniperSetupModal();}});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);if(s.mode==='sniper')ensureSniperState(s);}if(e.target.id==='sniperSpotsPerPlayerSelect'){s.sniperConfig=s.sniperConfig||{};s.sniperConfig.spotsPerPlayer=Number(e.target.value||2);}saveDuelState(s);updateDuelUi();});}
   const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
   if(originalRenderTournaments){
     renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
