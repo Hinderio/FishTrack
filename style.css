@@ -599,7 +599,7 @@
 
 .timeline-chart-wrap{
   width:100% !important;
-  height:360px !important;
+  height:380px !important;
   margin:0 !important;
   padding:0 !important;
   background:transparent !important;
@@ -2322,7 +2322,7 @@ body.light .analytics-empty{background:rgba(255,255,255,.55);border-color:rgba(1
 .compare-cumulative-grid line,.compare-cumulative-axis line{stroke:rgba(255,255,255,.075);stroke-width:1}
 .compare-cumulative-grid text,.compare-cumulative-axis text{fill:var(--muted);font-size:12px;font-weight:800}
 .compare-cumulative-area{display:none;fill:none;stroke:none}
-.compare-cumulative-line{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:2.2;filter:none}
+.compare-cumulative-line{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:3;filter:none}
 .compare-cumulative-line--a{stroke:var(--compare-a);opacity:1}
 .compare-cumulative-line--b{stroke:var(--compare-b);opacity:.5;stroke-width:2}
 .compare-cumulative-dot{stroke:rgba(11,18,32,.9);stroke-width:2;filter:none}
