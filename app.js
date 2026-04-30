@@ -2202,6 +2202,7 @@ function renderPremiumAnalyticsDashboard(){
       if(!navigator.geolocation)return alert('Geolocation wird auf diesem Gerät nicht unterstützt.');
       navigator.geolocation.watchPosition(
         pos=>{
+          if(window.__fishTrackDuelForceGpsLock?.ignoreWatchUpdates)return;
           const {latitude,longitude}=pos.coords;
           updateLiveCatchPredictionLocation(latitude,longitude);
         },
@@ -3316,6 +3317,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   const KEY='fishtrack-duel-v2';
   const GPS_INTERVAL_MS=120000;
   const TALK_INTERVAL_MS=150000;
+  const duelGpsForceLock=window.__fishTrackDuelForceGpsLock=window.__fishTrackDuelForceGpsLock||{isFetchingLocation:false,ignoreWatchUpdates:false,lastForceStartedAt:0};
   const fishTiles=[
     {species:'Hecht',points:8},
     {species:'Zander',points:6},
@@ -3963,6 +3965,14 @@ function setDuelGpsMessage(message){
   const meta=document.getElementById('duelMapMeta');
   if(meta)meta.textContent=message;
 }
+function setDuelForceLocationBusy(isBusy){
+  const btn=document.getElementById('duelForceCurrentLocationBtn');
+  if(!btn)return;
+  if(!btn.dataset.defaultText)btn.dataset.defaultText=btn.textContent||'📍 Aktuellen Standort verwenden';
+  btn.disabled=!!isBusy;
+  btn.setAttribute('aria-busy',isBusy?'true':'false');
+  btn.textContent=isBusy?'📍 Standort wird geholt …':btn.dataset.defaultText;
+}
 function getFreshDuelPosition(timeout=9000){
   return new Promise((resolve,reject)=>{
     if(!navigator.geolocation){reject({code:0});return;}
@@ -4019,6 +4029,8 @@ async function appendDuelGpsPoint(point){
   return true;
 }
 async function addGpsPoint(){
+  if(duelGpsForceLock.ignoreWatchUpdates)return;
+  const requestStartedAt=Date.now();
   let s=getDuelState();
   if(!s.active)return;
 
@@ -4030,6 +4042,7 @@ async function addGpsPoint(){
   // 🔥 FIX: State nach await neu holen + erneut prüfen
   s = getDuelState();
   if(!s.active) return;
+  if(duelGpsForceLock.ignoreWatchUpdates||requestStartedAt<Number(duelGpsForceLock.lastForceStartedAt||0))return;
   
   if(!point){
     const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};
@@ -4041,30 +4054,41 @@ async function addGpsPoint(){
     };
   }
 
+  if(duelGpsForceLock.ignoreWatchUpdates||requestStartedAt<Number(duelGpsForceLock.lastForceStartedAt||0))return;
   await appendDuelGpsPoint(point);
 }
 async function forceCurrentDuelLocation(){
   let s=getDuelState();
   if(!s.active){alert('Starte zuerst ein Duell, bevor ein GPS-Punkt gesetzt wird.');return;}
+  if(duelGpsForceLock.isFetchingLocation){
+    setDuelGpsMessage('Standortabfrage läuft bereits …');
+    return;
+  }
+  duelGpsForceLock.isFetchingLocation=true;
+  duelGpsForceLock.ignoreWatchUpdates=true;
+  duelGpsForceLock.lastForceStartedAt=Date.now();
+  setDuelForceLocationBusy(true);
   setDuelGpsMessage('Aktueller Standort wird frisch abgefragt …');
-  let point;
   try{
-    point=await getFreshDuelPosition(12000);
+    const point=await getFreshDuelPosition(10000);
+    s=getDuelState();
+    if(!s.active)return;
+    if(Number(point.accuracy||0)>50){
+      const message=`GPS ist aktuell nur auf ca. ${Math.round(Number(point.accuracy))} m genau. Bitte erneut versuchen.`;
+      setDuelGpsMessage(message);
+      alert(message);
+      return;
+    }
+    await appendDuelGpsPoint(point);
   }catch(error){
     const message=duelGpsErrorMessage(error);
     setDuelGpsMessage(message);
     alert(message);
-    return;
+  }finally{
+    duelGpsForceLock.isFetchingLocation=false;
+    duelGpsForceLock.ignoreWatchUpdates=false;
+    setDuelForceLocationBusy(false);
   }
-  s=getDuelState();
-  if(!s.active)return;
-  if(Number(point.accuracy||0)>50){
-    const message=`GPS ist aktuell nur auf ca. ${Math.round(Number(point.accuracy))} m genau. Bitte erneut versuchen.`;
-    setDuelGpsMessage(message);
-    alert(message);
-    return;
-  }
-  await appendDuelGpsPoint(point);
 }
 
   function openDuelMapModal(imageUrl){if(!imageUrl)return;let modal=document.getElementById('duelMapPreviewModal');if(!modal){modal=document.createElement('div');modal.id='duelMapPreviewModal';modal.className='duel-map-preview-modal hidden';modal.innerHTML='<div class="duel-map-preview-card glass-card"><button class="duel-map-preview-close" type="button" data-close-duel-map-preview aria-label="Schliessen">×</button><img id="duelMapPreviewImage" class="duel-map-preview-image" alt="Gespeicherte Duell-Karte"></div>';document.body.appendChild(modal);}const img=modal.querySelector('#duelMapPreviewImage');if(img)img.src=imageUrl;modal.classList.remove('hidden');document.body.classList.add('duel-map-preview-open');}
