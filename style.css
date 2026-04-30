@@ -351,7 +351,7 @@
 .fish-icon.pike{color:#22c55e}
 .fish-icon.zander{color:#facc15}
 .fish-icon.trout{color:#fb923c}
-.fish-icon.cod{color:#a78bfa}
+.fish-icon.carp{color:#a78bfa}
 .fish-icon.generic{color:#94a3b8}
 .species-card{gap:8px}
 
@@ -381,7 +381,7 @@
 .fish-icon.barsch{color:#8BE39A;}
 .fish-icon.forelle{color:#F48AB5;}
 .fish-icon.zander{color:#66D9F3;}
-.fish-icon.dorsch{color:#A997FF;}
+.fish-icon.karpfen{color:#A997FF;}
 .fish-icon.andere{color:#D9DEE5;}
 
 .species-card strong{
@@ -639,7 +639,7 @@
 #speciesTimelineLegend .legend-fish.hecht{ color:#F6B84C; }
 #speciesTimelineLegend .legend-fish.forelle{ color:#F48AB5; }
 #speciesTimelineLegend .legend-fish.zander{ color:#66D9F3; }
-#speciesTimelineLegend .legend-fish.dorsch{ color:#A997FF; }
+#speciesTimelineLegend .legend-fish.karpfen{ color:#A997FF; }
 #speciesTimelineLegend .legend-fish.andere{ color:#D9DEE5; }
 
 #speciesTimelineChart{
