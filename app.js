@@ -3949,6 +3949,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
 /* Duell / Schleppmeister Challenge – additive Supabase-backed tournament extension */
 (function(){
   const KEY='fishtrack-duel-v2';
+  const PARALLEL_DUELS_KEY=`${KEY}-parallel-duels`;
+  const PARALLEL_SELECTED_KEY=`${KEY}-parallel-selected`;
   const GPS_INTERVAL_MS=120000;
   const TALK_INTERVAL_MS=150000;
   const duelGpsForceLock=window.__fishTrackDuelForceGpsLock=window.__fishTrackDuelForceGpsLock||{isFetchingLocation:false,ignoreWatchUpdates:false,lastForceStartedAt:0};
@@ -4049,7 +4051,15 @@ setInterval(injectWeatherIntoCatchCards, 800);
   let tickTimer=null,gpsTimer=null,talkTimer=null,sniperTickTimer=null,sniperLiveSyncTimer=null,leaderboardCache=[];
   function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null,fishImage:null,startTimestamp:null,sniperSpots:[],sniperConfig:null,sniperScore:{},dartTargets:[],dartConfig:null,dartScore:{},dartEvents:[]};}
   function getDuelState(){try{return normalizeLegacySpeciesInObject({...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})});}catch{return defaultDuelState();}}
-  function saveDuelState(s){s=normalizeLegacySpeciesInObject(s);localStorage.setItem(KEY,JSON.stringify(s));window.duelState=s;}
+  function saveDuelState(s){
+    s=normalizeLegacySpeciesInObject(s);
+    if(isParallelDuelTrackable(s)){
+      ensureParallelDuelId(s);
+      upsertParallelDuel(s,{select:true});
+    }
+    localStorage.setItem(KEY,JSON.stringify(s));
+    window.duelState=s;
+  }
   function participant(id){return (state.participants||[]).find(p=>p.id===id)||null;}
   function participantName(id){return participant(id)?.name||'–';}
   function participantAvatar(id){return participant(id)?.avatar||'🎣';}
@@ -4161,10 +4171,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function saveActiveSniperDuel(data){
     if(!data)return;
     const active=ensureSniperState(normalizeLegacySpeciesInObject({...defaultDuelState(),...data,mode:'sniper',route:[]}));
+    if(isParallelDuelTrackable(active)){ensureParallelDuelId(active);upsertParallelDuel(active,{select:false});}
     localStorage.setItem(SNIPER_ACTIVE_KEY,JSON.stringify(active));
     window.sniperDuelState=active;
   }
-  function clearActiveSniperDuel(){localStorage.removeItem(SNIPER_ACTIVE_KEY);window.sniperDuelState=null;}
+  function clearActiveSniperDuel(){const active=getActiveSniperDuel();if(active)removeParallelDuel(active);localStorage.removeItem(SNIPER_ACTIVE_KEY);window.sniperDuelState=null;}
   function hasActiveSniperDuel(){const s=getActiveSniperDuel();return !!(s&&s.active);}
   function currentSniperPlayerId(s){ensureSniperState(s);return s.sniperConfig?.players?.[s.sniperConfig.currentTurn]||s.captainId||s.opponentId||null;}
   function sniperSpotsForPlayer(s,id){return (s.sniperSpots||[]).filter(p=>p.ownerId===id);}
@@ -4477,6 +4488,123 @@ setInterval(injectWeatherIntoCatchCards, 800);
       source:'catches'
     };
   }
+  function getOpenDuelsForCatch(catchData,exclude=[]){
+    const participantId=catchParticipantId(catchData);
+    if(!participantId)return [];
+    return getActiveDuels().filter(duel=>{
+      if(!duel?.active)return false;
+      if(exclude.some(item=>sameParallelDuel(item,duel)))return false;
+      const allowed=[duel.captainId,duel.opponentId].filter(Boolean);
+      if(!allowed.includes(participantId))return false;
+      if(!isCatchInsideDuelWindow(duel,catchData))return false;
+      if(hasDuelProcessedCatch(duel,catchData))return false;
+      return true;
+    });
+  }
+  function persistParallelSyncedDuel(duel){
+    if(!duel)return;
+    duel.lastActivityAt=new Date().toISOString();
+    duel.updatedAt=duel.lastActivityAt;
+    const current=getDuelState();
+    if(sameParallelDuel(current,duel)){
+      saveDuelState(duel);
+    }else{
+      upsertParallelDuel(duel,{select:false,unreadActivity:true});
+    }
+  }
+  async function syncCatchIntoDuel(duel,catchData){
+    duel=normalizeParallelDuel(duel);
+    if(!duel?.active||!catchData)return null;
+    const participantId=catchParticipantId(catchData);
+    const allowed=[duel.captainId,duel.opponentId].filter(Boolean);
+    if(!participantId||!allowed.includes(participantId)||!isCatchInsideDuelWindow(duel,catchData)||hasDuelProcessedCatch(duel,catchData))return null;
+    try{
+      if(isSniperMode(duel)){
+        duel=ensureSniperState(duel);
+        const lat=Number(catchData.location?.lat??catchData.lat??catchData.latitude);
+        const lng=Number(catchData.location?.lng??catchData.lng??catchData.longitude);
+        if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;
+        const beforeHits=(duel.sniperSpots||[]).filter(spot=>spot.hit).length;
+        const catchEvent=buildSyncedDuelCatch(catchData,participantId,fishTileForCatch(catchData),{duelSynced:true,sniperAttached:true,duelType:'sniper',scoringSource:'catches'});
+        catchEvent.location={...(catchData.location||{}),lat,lng};
+        duel=attachCatchToDuel(duel,catchEvent);
+        const afterHits=(duel.sniperSpots||[]).filter(spot=>spot.hit).length;
+        duel.lastTalk=afterHits>beforeHits?duel.lastTalk:`🎯 Sniper: ${participantName(participantId)} ausserhalb der Zielscheibe – Fang wurde dennoch dedupliziert registriert.`;
+        persistParallelSyncedDuel(duel);
+        await addRemoteEvent(duel,'catch',participantId,{...catchEvent,sniperAttached:afterHits>beforeHits});
+        await syncRemoteParticipants(duel);
+        return duel;
+      }
+      if(duel.mode==='dart'){
+        duel=ensureDuelParticipants(duel);
+        duel=ensureDartState(duel);
+        const fish=fishTileForCatch(catchData);
+        const catchEvent=buildSyncedDuelCatch(catchData,participantId,{species:fish.species,points:0},{duelSynced:true,dartSynced:true,duelType:'dart',points:0,scoringSource:'catches'});
+        duel=attachCatchToDuel(duel,catchEvent);
+        persistParallelSyncedDuel(duel);
+        await addRemoteEvent(duel,'catch',participantId,{...catchEvent,dartSynced:true,dartPoints:duel.catches?.find(c=>String(c.id)===String(catchEvent.id))?.dartPoints||0});
+        await syncRemoteParticipants(duel);
+        return duel;
+      }
+      if(duel.mode==='feed'){
+        duel=ensureDuelParticipants(duel);
+        ensureFeedFishState(duel);
+        const fish=fishTileForCatch(catchData);
+        const catchEvent=buildSyncedDuelCatch(catchData,participantId,fish,{feedSynced:true,feedSyncSource:'catches'});
+        duel.score=duel.score||{};
+        duel.score[participantId]=Number(duel.score[participantId]||0)+Number(fish.points||0);
+        duel=attachCatchToDuel(duel,catchEvent);
+        feedFishAfterCatch(duel,participantId,fish);
+        const feed=ensureFeedFishState(duel);
+        feed.events=Array.isArray(feed.events)?feed.events:[];
+        feed.events.push({type:'catch_sync',catchId:catchEvent.id,participantId,species:fish.species,points:Number(fish.points||0),at:catchEvent.at,source:'catches'});
+        duel.fishImage=feedFishFinalImageUrl(duel);
+        duel.lastTalk=`${participantName(participantId)} füttert Feed your Fish parallel aus „Fänge“ mit ${fish.species}. +${Number(fish.points||0)}P.`;
+        persistParallelSyncedDuel(duel);
+        await addRemoteEvent(duel,'catch',participantId,catchEvent);
+        await syncRemoteParticipants(duel);
+        return duel;
+      }
+      if(duel.mode==='trolling'){
+        const fish=fishTileForCatch(catchData);
+        const catchId=duelCatchKey(catchData);
+        const avgSpeedKmh=getSchleppmeisterAverageSpeedKmh(duel);
+        const speedBonusPoints=getSchleppmeisterSpeedBonus(avgSpeedKmh);
+        const basePoints=5;
+        const catchEvent=buildSyncedDuelCatch(catchData,participantId,{species:fish.species,points:basePoints},{duelSynced:true,schleppmeisterSynced:true,catchId,basePoints,speedBonusPoints,speedBonusParticipantId:duel.captainId||null,avgSpeedKmh:avgSpeedKmh!=null&&Number.isFinite(Number(avgSpeedKmh))?Number(Number(avgSpeedKmh).toFixed(2)):null,speedBonusApplied:!!speedBonusPoints,scoringSource:'catches'});
+        duel.score=duel.score||{};
+        duel.score[participantId]=Number(duel.score[participantId]||0)+basePoints;
+        const sm=ensureSchleppmeisterScoringState(duel);
+        duel.schleppmeisterScoringV2=true;
+        sm.processedCatches[catchEvent.id]={catchId:catchEvent.id,participantId,basePoints,speedBonusPoints,avgSpeedKmh:catchEvent.avgSpeedKmh,at:catchEvent.at};
+        sm.speedBonusTotal=Number(sm.speedBonusTotal||0)+speedBonusPoints;
+        duel=attachCatchToDuel(duel,catchEvent);
+        duel.lastTalk=`${participantName(participantId)} bringt einen parallelen Schleppmeister-Fang. +${basePoints}P${speedBonusPoints?` · Kapitän-Speed-Bonus +${speedBonusPoints}P`:''}`;
+        persistParallelSyncedDuel(duel);
+        await addRemoteEvent(duel,'catch',participantId,catchEvent);
+        if(speedBonusPoints&&duel.captainId)await addRemoteEvent(duel,'speed_bonus',duel.captainId,{catchId:catchEvent.id,points:speedBonusPoints,avgSpeedKmh:catchEvent.avgSpeedKmh,source:'catches'});
+        await syncRemoteParticipants(duel);
+        return duel;
+      }
+      const fish=fishTileForCatch(catchData);
+      const catchEvent=buildSyncedDuelCatch(catchData,participantId,fish,{duelSynced:true});
+      duel=attachCatchToDuel(duel,catchEvent);
+      persistParallelSyncedDuel(duel);
+      await addRemoteEvent(duel,'catch',participantId,catchEvent);
+      await syncRemoteParticipants(duel);
+      return duel;
+    }catch(e){
+      console.warn('Parallel-Duell Catch-Sync fehlgeschlagen',e);
+      return null;
+    }
+  }
+  async function syncCatchIntoAllOpenDuels(catchEntry,exclude=[]){
+    const eligible=getOpenDuelsForCatch(catchEntry,exclude);
+    for(const duel of eligible){await syncCatchIntoDuel(duel,catchEntry);}
+    if(eligible.length)renderParallelDuelsHub(getDuelState());
+    return eligible.length;
+  }
+  window.syncCatchIntoAllOpenDuels=syncCatchIntoAllOpenDuels;
   async function attachCatchToDuelFromCatch(catchData){
     let duel=getDuelState();
     if(duel?.active&&catchData&&!isSniperMode(duel)){
@@ -4552,6 +4680,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
         }
       }
     }
+    await syncCatchIntoAllOpenDuels(catchData,[duel,getActiveSniperDuel()].filter(Boolean));
     await attachCatchToActiveSniperFromCatch(catchData);
     updateDuelUi();
   }
@@ -5604,6 +5733,179 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function latestDuelCatch(s){
     return (Array.isArray(s.catches)?s.catches:[]).slice().sort((a,b)=>new Date(catchTimestampValue(b)).getTime()-new Date(catchTimestampValue(a)).getTime())[0]||null;
   }
+  function safeParallelJson(key,fallback){try{const parsed=JSON.parse(localStorage.getItem(key)||'null');return parsed??fallback;}catch(e){return fallback;}}
+  function ensureParallelDuelId(s){
+    if(!s)return '';
+    if(s.parallelId)return String(s.parallelId);
+    if(s.duelId||s.id){s.parallelId=`remote-${s.duelId||s.id}`;return s.parallelId;}
+    if(s.startedAt||s.startTimestamp){s.parallelId=`local-${s.mode||'duel'}-${s.startedAt||s.startTimestamp}-${s.captainId||'na'}-${s.opponentId||'na'}`;return s.parallelId;}
+    s.parallelId=`draft-${s.mode||'duel'}-${crypto.randomUUID()}`;
+    return s.parallelId;
+  }
+  function sameParallelDuel(a,b){
+    if(!a||!b)return false;
+    const aid=a.parallelId||a.duelId||a.id;
+    const bid=b.parallelId||b.duelId||b.id;
+    if(aid&&bid&&String(aid)===String(bid))return true;
+    if(a.duelId&&b.duelId&&String(a.duelId)===String(b.duelId))return true;
+    const ast=a.startedAt||a.startTimestamp||'';
+    const bst=b.startedAt||b.startTimestamp||'';
+    return !!(ast&&bst&&String(ast)===String(bst)&&String(a.mode||'')===String(b.mode||'')&&String(a.captainId||'')===String(b.captainId||'')&&String(a.opponentId||'')===String(b.opponentId||''));
+  }
+  function normalizeParallelDuel(s){
+    if(!s)return null;
+    let d=normalizeLegacySpeciesInObject({...defaultDuelState(),...s});
+    if(isSniperMode(d))d=ensureSniperState(d);
+    if(isDartMode(d))d=ensureDartState(d);
+    if(d.mode==='feed')ensureFeedFishState(d);
+    return d;
+  }
+  function isParallelDuelOpen(s){
+    if(!s)return false;
+    return !!(s.active||(isSniperMode(s)&&s.sniperConfig?.setupActive)||(isSniperMode(s)&&s.sniperConfig?.setupDone&&!s.endedAt)||(isDartMode(s)&&s.dartConfig?.setupActive)||(isDartMode(s)&&s.dartConfig?.setupDone&&!s.endedAt));
+  }
+  function isParallelDuelTrackable(s){
+    if(!s)return false;
+    const hasPlayers=!!(s.captainId||s.opponentId);
+    if(!hasPlayers)return false;
+    if(isParallelDuelOpen(s)||s.duelId)return true;
+    if(s.endedAt){const endMs=new Date(s.endedAt).getTime();return Number.isFinite(endMs)&&Date.now()-endMs<24*60*60*1000;}
+    return false;
+  }
+  function readParallelDuelStore(){
+    const raw=safeParallelJson(PARALLEL_DUELS_KEY,[]);
+    const list=Array.isArray(raw)?raw:[];
+    return list.map(normalizeParallelDuel).filter(isParallelDuelTrackable);
+  }
+  function writeParallelDuelStore(list){
+    const clean=dedupeParallelDuels(list).filter(isParallelDuelTrackable).slice(0,24);
+    localStorage.setItem(PARALLEL_DUELS_KEY,JSON.stringify(clean));
+    return clean;
+  }
+  function dedupeParallelDuels(list){
+    const out=[];
+    (list||[]).map(normalizeParallelDuel).filter(Boolean).forEach(item=>{
+      ensureParallelDuelId(item);
+      const idx=out.findIndex(existing=>sameParallelDuel(existing,item));
+      if(idx<0){out.push(item);return;}
+      const oldMs=new Date(out[idx].updatedAt||out[idx].lastActivityAt||out[idx].startedAt||0).getTime();
+      const newMs=new Date(item.updatedAt||item.lastActivityAt||item.startedAt||0).getTime();
+      out[idx]=Number.isFinite(newMs)&&newMs>=oldMs?{...out[idx],...item}:{...item,...out[idx]};
+    });
+    return out;
+  }
+  function upsertParallelDuel(s,{select=false,unreadActivity=false}={}){
+    if(!isParallelDuelTrackable(s))return;
+    const item=normalizeParallelDuel(s);
+    ensureParallelDuelId(item);
+    item.updatedAt=new Date().toISOString();
+    if(unreadActivity)item.unreadActivity=true;
+    const next=writeParallelDuelStore([...readParallelDuelStore().filter(d=>!sameParallelDuel(d,item)),item]);
+    if(select)localStorage.setItem(PARALLEL_SELECTED_KEY,item.parallelId);
+    return next.find(d=>sameParallelDuel(d,item))||item;
+  }
+  function removeParallelDuel(s){
+    if(!s)return;
+    writeParallelDuelStore(readParallelDuelStore().filter(item=>!sameParallelDuel(item,s)));
+  }
+  function parallelDuelSort(a,b){
+    const au=a.unreadActivity?1:0,bu=b.unreadActivity?1:0;if(au!==bu)return bu-au;
+    const ao=isParallelDuelOpen(a)?1:0,bo=isParallelDuelOpen(b)?1:0;if(ao!==bo)return bo-ao;
+    const ar=remainingMs(a),br=remainingMs(b);if(a.active&&b.active&&ar!==br)return ar-br;
+    const as=Math.abs(totalScore(a,a.captainId)-totalScore(a,a.opponentId));
+    const bs=Math.abs(totalScore(b,b.captainId)-totalScore(b,b.opponentId));
+    if(a.active&&b.active&&as!==bs)return as-bs;
+    return new Date(b.lastActivityAt||b.updatedAt||b.startedAt||0)-new Date(a.lastActivityAt||a.updatedAt||a.startedAt||0);
+  }
+  function getActiveDuels(){
+    const current=normalizeParallelDuel(getDuelState());
+    const activeSniper=normalizeParallelDuel(getActiveSniperDuel());
+    const pendingSniper=normalizeParallelDuel(getPendingSniperDuel());
+    const combined=[...readParallelDuelStore()];
+    if(isParallelDuelTrackable(current))combined.push(current);
+    if(isParallelDuelTrackable(activeSniper))combined.push(activeSniper);
+    if(isParallelDuelTrackable(pendingSniper))combined.push(pendingSniper);
+    return dedupeParallelDuels(combined).filter(isParallelDuelTrackable).sort(parallelDuelSort);
+  }
+  function getDuelModeLabel(duel){return duelModeCopy(duel?.mode||'trolling').name;}
+  function getDuelModeIcon(duel){return duelModeCopy(duel?.mode||'trolling').icon;}
+  function getDuelScoreSummary(duel){
+    const a=duel?.captainId,b=duel?.opponentId;
+    if(!a&&!b)return 'Score offen';
+    return `${totalScore(duel,a)} : ${totalScore(duel,b)}`;
+  }
+  function getDuelLeaderSummary(duel){
+    const ids=[duel?.captainId,duel?.opponentId].filter(Boolean);
+    if(ids.length<2)return 'Teilnehmer offen';
+    const scores=ids.map(id=>({id,score:totalScore(duel,id)})).sort((a,b)=>b.score-a.score);
+    if(scores[0].score===scores[1].score)return 'Gleichstand';
+    return `${participantName(scores[0].id)} führt`;
+  }
+  function getDuelLastActivity(duel){
+    const last=latestDuelCatch(duel);
+    if(last)return `${participantName(catchParticipantId(last)||last.participantId)} · ${last.species||speciesName(last)||'Fang'} · ${fmtDateTime(catchTimestampValue(last))}`;
+    if(duel?.lastTalk)return duel.lastTalk;
+    return 'Noch keine Aktivität';
+  }
+  function getDuelStatusBadge(duel){
+    if(duel?.unreadActivity)return 'Neu';
+    if(duel?.active&&remainingMs(duel)<=5*60*1000)return 'Knapp';
+    if(duel?.active)return 'Aktiv';
+    if((isSniperMode(duel)&&duel.sniperConfig?.setupActive)||(isDartMode(duel)&&duel.dartConfig?.setupActive))return 'Setup offen';
+    if((isSniperMode(duel)&&duel.sniperConfig?.setupDone)||(isDartMode(duel)&&duel.dartConfig?.setupDone))return 'Startbereit';
+    if(duel?.endedAt)return 'Abgeschlossen';
+    return 'Bereit';
+  }
+  function renderActiveDuelSwitcher(){renderParallelDuelsHub(getDuelState());}
+  function renderParallelDuelsHub(selectedState){
+    const el=document.getElementById('parallelDuelsHub');if(!el)return;
+    const duels=getActiveDuels();
+    const selected=normalizeParallelDuel(selectedState||getDuelState());
+    const activeCount=duels.filter(isParallelDuelOpen).length;
+    if(!duels.length){
+      el.innerHTML=`<div class="parallel-duels-empty"><div><b>Keine parallelen Duelle aktiv</b><span>Starte ein Duell – danach bleibt es hier als Live-Challenge sichtbar.</span></div><button type="button" class="pill primary" data-parallel-new-duel>+ Neues Duell</button></div>`;
+      return;
+    }
+    const cards=duels.map(duel=>{
+      ensureParallelDuelId(duel);
+      const active=sameParallelDuel(duel,selected);
+      const info=duelModeCopy(duel.mode||'trolling');
+      const status=getDuelStatusBadge(duel);
+      const last=latestDuelCatch(duel);
+      const lastText=last?`${last.dartSynced?`🎯 ${last.dartRingLabel||'Dart'}`:(last.feedSynced?'🐟 Feed':(last.schleppmeisterSynced?'🚤 Sync':'🎣 Fang'))} · ${fmtDateTime(catchTimestampValue(last))}`:getDuelLastActivity(duel);
+      return `<button type="button" class="parallel-duel-card ${active?'is-active':''} ${duel.unreadActivity&&!active?'has-new':''}" data-parallel-duel-key="${escapeHtml(duel.parallelId)}">
+        <span class="parallel-duel-icon">${escapeHtml(info.icon)}</span>
+        <span class="parallel-duel-main"><b>${escapeHtml(info.name)}</b><small>${escapeHtml(participantName(duel.captainId))} vs ${escapeHtml(participantName(duel.opponentId))}</small><em>${escapeHtml(lastText)}</em></span>
+        <span class="parallel-duel-side"><strong>${escapeHtml(getDuelScoreSummary(duel))}</strong><small>${escapeHtml(getDuelLeaderSummary(duel))}</small><i>${escapeHtml(status)}</i></span>
+      </button>`;
+    }).join('');
+    el.innerHTML=`<div class="parallel-duels-head"><div><p class="eyebrow">Aktive Duelle</p><h4>${activeCount} Live-Challenge${activeCount===1?'':'s'}</h4></div><button type="button" class="pill secondary" data-parallel-new-duel>+ Neues Duell</button></div><div class="parallel-duels-strip" role="list">${cards}</div>`;
+  }
+  function switchParallelDuel(key){
+    const duel=getActiveDuels().find(d=>String(d.parallelId||'')===String(key));
+    if(!duel)return;
+    duel.unreadActivity=false;
+    duel.updatedAt=new Date().toISOString();
+    upsertParallelDuel(duel,{select:true});
+    localStorage.setItem(KEY,JSON.stringify(duel));
+    window.duelState=duel;
+    updateDuelUi();
+    renderDuelSection();
+    setTimeout(()=>{try{initDuelMap();duelMap?.invalidateSize();}catch(e){}},90);
+  }
+  function startNewParallelDuelDraft(){
+    const current=getDuelState();
+    if(isParallelDuelTrackable(current))upsertParallelDuel(current,{select:false});
+    let draft=ensureDuelParticipants({...defaultDuelState(),durationMin:Number(document.getElementById('duelDurationSelect')?.value||current.durationMin||60),mode:'trolling',lastTalk:'Neues Duell vorbereitet. Wähle Modus und Teilnehmer – bestehende Duelle laufen parallel weiter.'});
+    localStorage.removeItem(PARALLEL_SELECTED_KEY);
+    localStorage.setItem(KEY,JSON.stringify(draft));
+    window.duelState=draft;
+    const mode=document.getElementById('duelModeSelect');if(mode)mode.value='trolling';
+    updateDuelUi();
+    renderDuelSection();
+  }
+  window.getActiveDuels=getActiveDuels;
+  window.renderParallelDuelsHub=renderParallelDuelsHub;
   function renderDuelMiniGameSummary(s){
     const el=document.getElementById('duelMiniGameSummary');if(!el)return;
     const pending=getPendingSniperDuel();
@@ -5671,6 +5973,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const mode=document.getElementById('duelModeSelect');if(mode)mode.value=s.mode||'trolling';
     if((s.mode||'trolling')==='feed'){ensureFeedFishState(s);saveDuelState(s);}if((s.mode||'trolling')==='dart'){ensureDartState(s);saveDuelState(s);}
     setDuelHubTab(document.getElementById('duelPanel')?.dataset.activeDuelTab||'overview');
+    renderParallelDuelsHub(s);
     updateDuelUi();
     renderDuelLeaderboard();
     setTimeout(initDuelMap,80);
@@ -5690,6 +5993,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const talk=document.getElementById('duelTrashTalk');if(talk)talk.textContent=s.lastTalk||roasts[0];
     const scoreText=document.getElementById('duelScoreText');if(scoreText)scoreText.textContent=`${totalScore(s,s.captainId)} : ${totalScore(s,s.opponentId)}`;
     renderDuelHubChrome(s);
+    renderParallelDuelsHub(s);
     const scoreList=document.getElementById('duelScoreList');
     if(scoreList){
       const rows=[s.captainId,s.opponentId].filter(Boolean).map(id=>{
@@ -6222,7 +6526,7 @@ async function forceCurrentDuelLocation(){
     if(s.mode==='feed')feedFishAfterCatch(s,target,fish);
     saveDuelState(s);await addRemoteEvent(s,'catch',target,catchEvent);await syncRemoteParticipants(s);updateDuelUi();
   }
-  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{const tabBtn=e.target.closest('[data-duel-tab]');if(tabBtn){setDuelHubTab(tabBtn.dataset.duelTab);return;}const mapBtn=e.target.closest('[data-duel-map-image]');if(mapBtn){e.preventDefault();openDuelMapModal(mapBtn.dataset.duelMapImage);return;}if(e.target.closest('[data-close-duel-map-preview]')||e.target.id==='duelMapPreviewModal'){closeDuelMapModal();return;}const deleteBtn=e.target.closest('[data-delete-duel-id]');if(deleteBtn){deleteDuelFromLeaderboard(deleteBtn.dataset.deleteDuelId);return;}if(e.target.closest('#sniperActiveEndBtn')||e.target.closest('#sniperActiveEndBtnInline')){endActiveSniperDuel();return;}if(e.target.closest('#sniperActiveCancelBtn')||e.target.closest('#sniperActiveCancelBtnInline')){cancelActiveSniperDuel();return;}if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#duelForceCurrentLocationBtn'))forceCurrentDuelLocation();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();if(e.target.closest('#sniperPendingStartBtn'))startPendingSniperDuel();if(e.target.closest('#sniperPendingEditBtn'))editPendingSniperSetup();if(e.target.closest('#sniperPendingClearBtn'))clearPendingSniperSetup();if(e.target.closest('#sniperSetupCloseBtn'))closeSniperSetupModal();if(e.target.closest('#sniperTurnDoneBtn'))finishSniperTurn();if(e.target.closest('#dartSetupCloseBtn'))closeDartSetupModal();if(e.target.closest('#dartTurnDoneBtn'))finishDartTurn();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDuelMapModal();closeSniperSetupModal();closeDartSetupModal();}});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);if(s.mode==='sniper')ensureSniperState(s);if(s.mode==='dart')ensureDartState(s);}if(e.target.id==='sniperSpotsPerPlayerSelect'){if(isDartMode(s)){s=ensureDartState(s);s.dartConfig=s.dartConfig||{};s.dartConfig.targetsPerPlayer=Number(e.target.value||1);}else{s.sniperConfig=s.sniperConfig||{};s.sniperConfig.spotsPerPlayer=Number(e.target.value||2);}}saveDuelState(s);updateDuelUi();});}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{const newParallelBtn=e.target.closest('[data-parallel-new-duel]');if(newParallelBtn){e.preventDefault();startNewParallelDuelDraft();return;}const parallelBtn=e.target.closest('[data-parallel-duel-key]');if(parallelBtn){e.preventDefault();switchParallelDuel(parallelBtn.dataset.parallelDuelKey);return;}const tabBtn=e.target.closest('[data-duel-tab]');if(tabBtn){setDuelHubTab(tabBtn.dataset.duelTab);return;}const mapBtn=e.target.closest('[data-duel-map-image]');if(mapBtn){e.preventDefault();openDuelMapModal(mapBtn.dataset.duelMapImage);return;}if(e.target.closest('[data-close-duel-map-preview]')||e.target.id==='duelMapPreviewModal'){closeDuelMapModal();return;}const deleteBtn=e.target.closest('[data-delete-duel-id]');if(deleteBtn){deleteDuelFromLeaderboard(deleteBtn.dataset.deleteDuelId);return;}if(e.target.closest('#sniperActiveEndBtn')||e.target.closest('#sniperActiveEndBtnInline')){endActiveSniperDuel();return;}if(e.target.closest('#sniperActiveCancelBtn')||e.target.closest('#sniperActiveCancelBtnInline')){cancelActiveSniperDuel();return;}if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#duelForceCurrentLocationBtn'))forceCurrentDuelLocation();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();if(e.target.closest('#sniperPendingStartBtn'))startPendingSniperDuel();if(e.target.closest('#sniperPendingEditBtn'))editPendingSniperSetup();if(e.target.closest('#sniperPendingClearBtn'))clearPendingSniperSetup();if(e.target.closest('#sniperSetupCloseBtn'))closeSniperSetupModal();if(e.target.closest('#sniperTurnDoneBtn'))finishSniperTurn();if(e.target.closest('#dartSetupCloseBtn'))closeDartSetupModal();if(e.target.closest('#dartTurnDoneBtn'))finishDartTurn();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDuelMapModal();closeSniperSetupModal();closeDartSetupModal();}});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);if(s.mode==='sniper')ensureSniperState(s);if(s.mode==='dart')ensureDartState(s);}if(e.target.id==='sniperSpotsPerPlayerSelect'){if(isDartMode(s)){s=ensureDartState(s);s.dartConfig=s.dartConfig||{};s.dartConfig.targetsPerPlayer=Number(e.target.value||1);}else{s.sniperConfig=s.sniperConfig||{};s.sniperConfig.spotsPerPlayer=Number(e.target.value||2);}}saveDuelState(s);updateDuelUi();});}
   const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
   if(originalRenderTournaments){
     renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
