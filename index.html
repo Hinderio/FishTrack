@@ -367,7 +367,7 @@
                 <label><span>Kapitän</span><select id="duelCaptainSelect"></select></label>
                 <label><span>Herausforderer</span><select id="duelOpponentSelect"></select></label>
                 <label><span>Fänger</span><select id="duelCatchParticipantSelect"></select></label>
-                <label><span>Dauer</span><select id="duelDurationSelect"><option value="60">1 Stunde</option><option value="30">30 Min. Quick Fight</option><option value="15">15 Min. Hafen-Randale</option></select></label>
+                <label><span>Dauer</span><select id="duelDurationSelect"><option value="15">15 Min. Hafen-Randale</option><option value="30">30 Min. Quick Fight</option><option value="60">1 Stunde</option><option value="120">2 Stunden</option><option value="240">4 Stunden</option><option value="480">8 Stunden</option></select></label>
                 <label><span>Modus</span><select id="duelModeSelect"><option value="trolling">Schleppmeister</option><option value="blitz">Blitz-Battle</option><option value="sniper">Spot Sniper Elite</option><option value="feed">Feed your Fish</option></select></label>
                 <label id="sniperSpotsPerPlayerWrap" class="sniper-config-field hidden"><span>Sniper-Spots je Spieler</span><select id="sniperSpotsPerPlayerSelect"><option value="1">1 Spot</option><option value="2" selected>2 Spots</option><option value="3">3 Spots</option></select></label>
               </div>
@@ -413,6 +413,22 @@
             </div>
             <div class="feed-fish-help">Jeder Spieler besitzt einen Fisch. Ohne Fang verkümmert er Stufe für Stufe – ein eigener Fang füttert nur den eigenen Fisch.</div>
             <div id="feedFishGrid" class="feed-fish-grid"></div>
+          </section>
+
+          <section class="sniper-elite-card" id="sniperEliteCard" aria-label="Spot Sniper Elite Setup">
+            <div class="duel-score-head sniper-elite-head">
+              <div>
+                <span>Mini-Game</span>
+                <strong>🎯 Spot Sniper Elite</strong>
+              </div>
+              <div class="sniper-elite-actions">
+                <button type="button" class="pill primary hidden" id="sniperPendingStartBtn">Sniper-Duell starten</button>
+                <button type="button" class="pill secondary hidden" id="sniperPendingEditBtn">Setup bearbeiten</button>
+                <button type="button" class="pill secondary hidden" id="sniperPendingClearBtn">Setup verwerfen</button>
+              </div>
+            </div>
+            <div class="sniper-elite-help">Spots zuerst setzen, später unabhängig starten. Punkte gibt es nur für Catches innerhalb der Zielscheiben.</div>
+            <div id="sniperEliteGrid" class="sniper-elite-grid"></div>
           </section>
 
           <section class="duel-history-card">
