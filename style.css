@@ -3420,3 +3420,153 @@ body.light .map-tournament-select{
   .duel-arena-entry,.duel-history-entry{grid-template-columns:1fr}
   .duel-live-card,.duel-podium-card{align-items:flex-start;flex-direction:column}
 }
+
+/* Tournament catch route map – additive, isolated to tournament view */
+.tournament-catch-map-card{
+  overflow:hidden;
+  background:linear-gradient(135deg,rgba(74,215,209,.075),rgba(255,255,255,.045));
+}
+
+.tournament-catch-map-head{
+  align-items:flex-start;
+}
+
+.tournament-catch-map{
+  position:relative;
+  min-height:320px;
+  height:clamp(300px,38vh,460px);
+  overflow:hidden;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.065);
+  background:radial-gradient(circle at 25% 20%,rgba(74,215,209,.18),transparent 34%),rgba(7,16,28,.72);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 18px 42px rgba(0,0,0,.24);
+}
+
+.tournament-catch-map.is-empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  text-align:center;
+}
+
+.tournament-catch-map-empty{
+  max-width:280px;
+  color:var(--muted);
+  line-height:1.45;
+}
+
+.tournament-catch-map-empty strong{
+  display:block;
+  color:var(--text);
+  margin-bottom:6px;
+}
+
+.tournament-catch-map .leaflet-control-attribution{
+  border-radius:12px 0 0 0;
+  background:rgba(5,12,21,.68);
+  color:rgba(255,255,255,.58);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+.tournament-catch-map .leaflet-control-attribution a{
+  color:rgba(143,240,167,.86);
+}
+
+.tournament-catch-popup .leaflet-popup-content-wrapper,
+.tournament-catch-popup .leaflet-popup-tip{
+  background:rgba(7,16,28,.94);
+  color:var(--text);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 18px 46px rgba(0,0,0,.38);
+}
+
+.tournament-catch-popup .leaflet-popup-content{
+  margin:12px 14px;
+}
+
+.tournament-catch-popup-content{
+  min-width:180px;
+  line-height:1.35;
+}
+
+.tournament-catch-popup-content strong{
+  display:block;
+  margin-bottom:4px;
+}
+
+.tournament-catch-popup-content small{
+  display:block;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.tournament-catch-map-number{
+  width:20px!important;
+  height:20px!important;
+  margin-left:-10px!important;
+  margin-top:-10px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:999px;
+  background:rgba(7,16,28,.76)!important;
+  color:#fff!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.34),0 7px 16px rgba(0,0,0,.34);
+  font-size:.68rem;
+  font-weight:900;
+  line-height:20px;
+  text-align:center;
+}
+
+.tournament-catch-map-number::before{
+  display:none!important;
+}
+
+.tournament-catch-map-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:12px;
+}
+
+.tournament-catch-map-legend .legend-item{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.045);
+  color:var(--text);
+  font-size:.82rem;
+  font-weight:700;
+}
+
+.tournament-catch-map-legend .legend-color{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+  box-shadow:0 0 0 2px rgba(255,255,255,.12);
+}
+
+body.light .tournament-catch-map-card{
+  background:linear-gradient(135deg,rgba(74,215,209,.12),rgba(255,255,255,.72));
+}
+
+body.light .tournament-catch-map{
+  border-color:rgba(17,36,58,.10);
+  background:radial-gradient(circle at 25% 20%,rgba(74,215,209,.22),transparent 34%),rgba(255,255,255,.62);
+}
+
+body.light .tournament-catch-map-legend .legend-item{
+  border-color:rgba(17,36,58,.08);
+  background:rgba(255,255,255,.68);
+}
+
+@media (max-width:760px){
+  .tournament-catch-map{
+    min-height:280px;
+    height:340px;
+  }
+}
