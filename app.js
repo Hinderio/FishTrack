@@ -3953,12 +3953,19 @@ setInterval(injectWeatherIntoCatchCards, 800);
     updateDuelUi();
     await finishRemoteDuel(s);
   }
-async function addGpsPoint(){
-  let s=getDuelState();
-  if(!s.active)return;
-
-  const got=await new Promise(resolve=>{
-    if(!navigator.geolocation)return resolve(null);
+function duelGpsErrorMessage(error){
+  if(!error)return 'Standort konnte nicht ermittelt werden. Bitte GPS und Berechtigung prüfen.';
+  if(error.code===1)return 'GPS-Berechtigung verweigert. Bitte Standortzugriff erlauben.';
+  if(error.code===3)return 'GPS-Timeout. Bitte freien Himmel prüfen und erneut versuchen.';
+  return 'Standort konnte nicht ermittelt werden. Bitte GPS und Berechtigung prüfen.';
+}
+function setDuelGpsMessage(message){
+  const meta=document.getElementById('duelMapMeta');
+  if(meta)meta.textContent=message;
+}
+function getFreshDuelPosition(timeout=9000){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){reject({code:0});return;}
     navigator.geolocation.getCurrentPosition(
       pos=>resolve({
         lat:pos.coords.latitude,
@@ -3967,28 +3974,16 @@ async function addGpsPoint(){
         accuracy:pos.coords.accuracy,
         speed_ms:pos.coords.speed
       }),
-      ()=>resolve(null),
-      {enableHighAccuracy:true,timeout:9000,maximumAge:0}
+      reject,
+      {enableHighAccuracy:true,timeout,maximumAge:0}
     );
   });
+}
+async function appendDuelGpsPoint(point){
+  let s=getDuelState();
+  if(!s.active)return false;
 
-  let point=got;
-  
-  // 🔥 FIX: State nach await neu holen + erneut prüfen
-  s = getDuelState();
-  if(!s.active) return;
-  
-  if(!point){
-    const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};
-    point={
-      lat:Number(last.lat)+(Math.random()-.45)*.006,
-      lng:Number(last.lng)+(.004+Math.random()*.004),
-      at:new Date().toISOString(),
-      demo:true
-    };
-  }
-
-  if(Number(point.accuracy||0)>30){console.warn('GPS Genauigkeit über 30m:',point.accuracy);const meta=document.getElementById('duelMapMeta');if(meta)meta.textContent=`GPS ungenau (${Math.round(Number(point.accuracy))} m) – bitte freien Himmel prüfen.`;}
+  if(Number(point.accuracy||0)>30){console.warn('GPS Genauigkeit über 30m:',point.accuracy);setDuelGpsMessage(`GPS ungenau (${Math.round(Number(point.accuracy))} m) – bitte freien Himmel prüfen.`);}
 
   if(!s.weather && typeof getWeather==='function'){
     try{
@@ -4005,14 +4000,14 @@ async function addGpsPoint(){
   }
 
   s = getDuelState();
-  if(!s.active) return;
+  if(!s.active) return false;
   s.route=[...(s.route||[]),point];
   s.routeSnapshotSvg=routeSnapshotSvg(s.route||[]);
   saveDuelState(s);
 
   await addRemoteTrack(s,point);
   s = getDuelState();
-  if(!s.active) return;
+  if(!s.active) return false;
   await addRemoteEvent(s,'gps',s.captainId,{
     lat:point.lat,
     lng:point.lng,
@@ -4021,11 +4016,61 @@ async function addGpsPoint(){
   });
 
   updateDuelUi();
+  return true;
 }
+async function addGpsPoint(){
+  let s=getDuelState();
+  if(!s.active)return;
+
+  let point=null;
+  try{
+    point=await getFreshDuelPosition(9000);
+  }catch(e){}
+  
+  // 🔥 FIX: State nach await neu holen + erneut prüfen
+  s = getDuelState();
+  if(!s.active) return;
+  
+  if(!point){
+    const last=(s.route||[]).slice(-1)[0]||{lat:59.442773,lng:11.654906};
+    point={
+      lat:Number(last.lat)+(Math.random()-.45)*.006,
+      lng:Number(last.lng)+(.004+Math.random()*.004),
+      at:new Date().toISOString(),
+      demo:true
+    };
+  }
+
+  await appendDuelGpsPoint(point);
+}
+async function forceCurrentDuelLocation(){
+  let s=getDuelState();
+  if(!s.active){alert('Starte zuerst ein Duell, bevor ein GPS-Punkt gesetzt wird.');return;}
+  setDuelGpsMessage('Aktueller Standort wird frisch abgefragt …');
+  let point;
+  try{
+    point=await getFreshDuelPosition(12000);
+  }catch(error){
+    const message=duelGpsErrorMessage(error);
+    setDuelGpsMessage(message);
+    alert(message);
+    return;
+  }
+  s=getDuelState();
+  if(!s.active)return;
+  if(Number(point.accuracy||0)>50){
+    const message=`GPS ist aktuell nur auf ca. ${Math.round(Number(point.accuracy))} m genau. Bitte erneut versuchen.`;
+    setDuelGpsMessage(message);
+    alert(message);
+    return;
+  }
+  await appendDuelGpsPoint(point);
+}
+
   function openDuelMapModal(imageUrl){if(!imageUrl)return;let modal=document.getElementById('duelMapPreviewModal');if(!modal){modal=document.createElement('div');modal.id='duelMapPreviewModal';modal.className='duel-map-preview-modal hidden';modal.innerHTML='<div class="duel-map-preview-card glass-card"><button class="duel-map-preview-close" type="button" data-close-duel-map-preview aria-label="Schliessen">×</button><img id="duelMapPreviewImage" class="duel-map-preview-image" alt="Gespeicherte Duell-Karte"></div>';document.body.appendChild(modal);}const img=modal.querySelector('#duelMapPreviewImage');if(img)img.src=imageUrl;modal.classList.remove('hidden');document.body.classList.add('duel-map-preview-open');}
   function closeDuelMapModal(){const modal=document.getElementById('duelMapPreviewModal');if(modal)modal.classList.add('hidden');document.body.classList.remove('duel-map-preview-open');}
   async function addDuelCatch(species){let s=getDuelState();if(!s.active){alert('Starte zuerst ein Duell.');return;}const fish=fishTiles.find(f=>f.species===species)||fishTiles[fishTiles.length-1];const target=document.getElementById('duelCatchParticipantSelect')?.value||s.captainId;if(!target){alert('Bitte zuerst einen Fänger auswählen.');return;}s.score=s.score||{};s.score[target]=Number(s.score[target]||0)+fish.points;const catchEvent={id:crypto.randomUUID(),participantId:target,species:fish.species,points:fish.points,at:new Date().toISOString()};s.catches=[...(s.catches||[]),catchEvent];s.lastTalk=`${participantName(target)} legt ${fish.species} vor. +${fish.points} Punkte – der Kescher applaudiert.`;if(s.mode==='feed')feedFishAfterCatch(s,target,fish);saveDuelState(s);await addRemoteEvent(s,'catch',target,catchEvent);await syncRemoteParticipants(s);updateDuelUi();}
-  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{const mapBtn=e.target.closest('[data-duel-map-image]');if(mapBtn){e.preventDefault();openDuelMapModal(mapBtn.dataset.duelMapImage);return;}if(e.target.closest('[data-close-duel-map-preview]')||e.target.id==='duelMapPreviewModal'){closeDuelMapModal();return;}if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();if(e.target.closest('#sniperSetupCloseBtn'))closeSniperSetupModal();if(e.target.closest('#sniperTurnDoneBtn'))finishSniperTurn();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDuelMapModal();closeSniperSetupModal();}});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);if(s.mode==='sniper')ensureSniperState(s);}if(e.target.id==='sniperSpotsPerPlayerSelect'){s.sniperConfig=s.sniperConfig||{};s.sniperConfig.spotsPerPlayer=Number(e.target.value||2);}saveDuelState(s);updateDuelUi();});}
+  function bindDuel(){if(document.body.dataset.duelBound==='1')return;document.body.dataset.duelBound='1';document.addEventListener('click',e=>{const mapBtn=e.target.closest('[data-duel-map-image]');if(mapBtn){e.preventDefault();openDuelMapModal(mapBtn.dataset.duelMapImage);return;}if(e.target.closest('[data-close-duel-map-preview]')||e.target.id==='duelMapPreviewModal'){closeDuelMapModal();return;}if(e.target.closest('#duelStartBtn'))startDuel();if(e.target.closest('#duelStopBtn'))endDuel();if(e.target.closest('#duelGpsBtn'))addGpsPoint();if(e.target.closest('#duelForceCurrentLocationBtn'))forceCurrentDuelLocation();if(e.target.closest('#feedFishActivateBtn'))activateFeedFishMode(false);if(e.target.closest('#feedFishStartBtn'))activateFeedFishMode(true);if(e.target.closest('#feedFishResetBtn'))resetFeedFish();if(e.target.closest('#sniperSetupCloseBtn'))closeSniperSetupModal();if(e.target.closest('#sniperTurnDoneBtn'))finishSniperTurn();const tile=e.target.closest('[data-duel-fish]');if(tile)addDuelCatch(tile.dataset.duelFish);});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDuelMapModal();closeSniperSetupModal();}});document.addEventListener('change',e=>{if(!e.target.closest('#duelPanel'))return;let s=ensureDuelParticipants(getDuelState());if(e.target.id==='duelCaptainSelect')s.captainId=e.target.value;if(e.target.id==='duelOpponentSelect')s.opponentId=e.target.value;if(e.target.id==='duelDurationSelect')s.durationMin=Number(e.target.value||60);if(e.target.id==='duelModeSelect'){s.mode=e.target.value;if(s.mode==='feed')ensureFeedFishState(s);if(s.mode==='sniper')ensureSniperState(s);}if(e.target.id==='sniperSpotsPerPlayerSelect'){s.sniperConfig=s.sniperConfig||{};s.sniperConfig.spotsPerPlayer=Number(e.target.value||2);}saveDuelState(s);updateDuelUi();});}
   const originalRenderTournaments=typeof renderTournaments==='function'?renderTournaments:null;
   if(originalRenderTournaments){
     renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
