@@ -4416,3 +4416,16 @@ body.light .fish-companion-card,body.light .fish-badge-collection,body.light .fi
 body.light .fish-evolution-step,body.light .fish-seniority-panel{background:rgba(255,255,255,.58);border-color:rgba(17,36,58,.08)}body.light .fish-badge-toggle{background:linear-gradient(135deg,rgba(74,215,209,.16),rgba(143,240,167,.10));border-color:rgba(17,36,58,.08)}body.light .fish-seniority-hero,body.light .fish-seniority-score{background:rgba(255,255,255,.56);border-color:rgba(17,36,58,.08)}body.light .fish-seniority-ladder span{background:rgba(255,255,255,.62);border-color:rgba(17,36,58,.08)}
 @media (max-width:900px){.fish-game-panel{grid-template-columns:1fr}.fish-companion-card{order:0}.fish-badge-collection{order:1}.fish-evolution-step{min-width:64px}.fish-evolution-step small{max-width:56px}}
 @media (max-width:560px){.fish-companion-card,.fish-badge-collection{padding:14px}.fish-evolution-journey{margin-top:10px;padding-bottom:8px}.fish-evolution-step{min-width:60px;border-radius:15px}.fish-badge-extra.is-open{max-height:520px}.fish-badge-toggle{min-height:42px}.fish-seniority-panel{padding:12px;border-radius:20px}.fish-seniority-hero{align-items:flex-start;flex-direction:column}.fish-seniority-score{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left}.fish-seniority-ladder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.fish-seniority-ladder span{text-align:center}.fish-badge-grid--extra{padding-bottom:6px}}
+
+/* Dart mini-game: additive Sniper sibling styling */
+.dart-game-hud{background:radial-gradient(circle at 12% 0%,rgba(255,184,77,.26),transparent 40%),linear-gradient(135deg,rgba(74,215,209,.12),rgba(255,112,112,.08));border-color:rgba(255,184,77,.16)}
+.dart-game-hud strong{display:flex;align-items:center;gap:6px}
+.dart-hud-rows>div{background:linear-gradient(135deg,rgba(255,184,77,.08),rgba(74,215,209,.045));border-color:rgba(255,184,77,.10)}
+.dart-setup-modal .sniper-setup-card{border-color:rgba(255,184,77,.22);background:radial-gradient(circle at 10% 0%,rgba(255,184,77,.18),transparent 36%),linear-gradient(145deg,rgba(12,24,35,.96),rgba(7,15,24,.94))}
+.dart-setup-meter span{background:linear-gradient(90deg,#ffb84d,#8ff0a7)}
+.dart-core{filter:drop-shadow(0 0 12px rgba(255,184,77,.5))}
+.dart-ring{filter:drop-shadow(0 0 4px rgba(255,184,77,.22))}
+.duel-arena-entry.is-dart .duel-mode-badge{background:linear-gradient(135deg,rgba(255,184,77,.18),rgba(74,215,209,.10));border-color:rgba(255,184,77,.18)}
+body.light .dart-game-hud{background:linear-gradient(135deg,rgba(255,184,77,.18),rgba(74,215,209,.10));border-color:rgba(17,36,58,.08)}
+body.light .dart-setup-modal .sniper-setup-card{background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(238,247,252,.94));border-color:rgba(255,184,77,.25)}
+@media (max-width:760px){.dart-game-hud{gap:10px}.dart-game-hud .pill{width:100%}.dart-setup-modal .sniper-setup-card{max-width:min(420px,100%)}}
