@@ -457,7 +457,7 @@ function renderParticipantMicroAwards(awards){
 /* Premium FishTrack Game Layer: derived profile companion, XP, evolution and SVG badges. */
 const FISH_GAME_RARITIES={common:{label:'Common'},rare:{label:'Rare'},epic:{label:'Epic'},legendary:{label:'Legendary'}};
 const FISH_GAME_BADGE_EXPANDED=new Set();
-const FISH_GAME_EVOLUTION_THRESHOLDS=[0,150,350,650,1000,1450,2000,2700,3600,4800];
+const FISH_GAME_EVOLUTION_THRESHOLDS=[0,300,700,1300,2000,2900,4000,5400,7200,9500];
 const FISH_GAME_SPECIES={
   pike:{keys:['hecht','pike'],base:'Schilfjäger',theme:'#ffb84d',accent:'#8ff0a7',evolutions:['Schnapper','Schilfblitz','Uferjäger','Krautschreck','Revierklinge','Tiefenjäger','Schattenzahn','Seeräuber','Schilfkönig','See-Legende'],flavor:'Lauert ruhig im Schilf und explodiert beim perfekten Moment.'},
   perch:{keys:['barsch','egli','perch'],base:'Streifenflitzer',theme:'#8ff0a7',accent:'#4ad7d1',evolutions:['Streifenling','Schwarmblick','Kantenjäger','Wirbelflitzer','Riffräuber','Stachelprofi','Kantenmeister','Beuteblick','Stachel-Champion','Barsch-Legende'],flavor:'Schnell, frech und immer dort, wo Bewegung im Wasser ist.'},
@@ -466,6 +466,92 @@ const FISH_GAME_SPECIES={
   carp:{keys:['karpfen','karpfe','carp'],base:'Grundwächter',theme:'#b7a0ff',accent:'#ffb84d',evolutions:['Gründler','Moosnase','Grundsucher','Schuppenwächter','Teichläufer','Grundwächter','Seidenrücken','Spiegelmeister','Teich-Titan','Karpfen-Legende'],flavor:'Geduldig am Grund, stark wenn es zählt.'},
   catfish:{keys:['wels','catfish'],base:'Nachtkoloss',theme:'#a6b0bd',accent:'#ff8ab4',evolutions:['Bartling','Nachtfloh','Grundschlurfer','Schattenbart','Schlammjäger','Nachtwächter','Tiefenkoloss','Bartenmeister','Urgrund-Titan','Wels-Legende'],flavor:'Ein leiser Riese, der nachts seine Bahn zieht.'},
   default:{keys:[],base:'Uferling',theme:'#4ad7d1',accent:'#8ff0a7',evolutions:['Uferling','Revierfreund','Fanggeist','Wellenläufer','Spotwächter','Wasserkundiger','Reviermeister','Fanghüter','Spot-Champion','Gewässer-Legende'],flavor:'Wächst mit jedem echten Fang und jedem neuen Revier.'}
+};
+const FISH_GAME_STAGE_FLAVOR={
+  perch:{
+    1:"Noch klein, aber aufmerksam – Streifenflitzer spürt jede Bewegung im Flachwasser.",
+    2:"Er wird mutiger und jagt dort, wo kleine Beute in Schwärmen flüchtet.",
+    3:"Mit scharfem Blick hält er sich an Kanten auf und liest das Wasser besser als zuvor.",
+    4:"Jetzt zeigt er echten Jagdinstinkt und reagiert blitzschnell auf jede Unruhe.",
+    5:"Sein Revier wächst – entschlossener, fokussierter und deutlich abgeklärter.",
+    6:"Stachel und Timing sitzen – Streifenflitzer wird zu einem ernstzunehmenden Räuber.",
+    7:"Er dominiert sein Umfeld, bleibt wachsam und nutzt jede Gelegenheit konsequent.",
+    8:"Ein ausgereifter Jäger, der Struktur und Beutebewegung fast perfekt liest.",
+    9:"Seine Präsenz ist unverkennbar – schnell, präzise und mit echtem Champion-Instinkt.",
+    10:"Eine wahre Barsch-Legende – souverän, reaktionsstark und in jedem Revier zuhause."
+  },
+  pike:{
+    1:"Schilfjäger wartet reglos am Rand – noch jung, aber bereits gefährlich geduldig.",
+    2:"Der erste Antritt sitzt; wenn Beute zu nahe kommt, explodiert das Wasser.",
+    3:"Er nutzt Deckung cleverer und verschwindet dort, wo Kraut und Schatten eins werden.",
+    4:"Krautschreck kennt sein Revier und attackiert nur, wenn der Moment wirklich passt.",
+    5:"Seine Präsenz verändert das Ufer – ruhig, scharf und kompromisslos fokussiert.",
+    6:"Tiefenjäger verlässt die Komfortzone und findet Druckkanten mit kalter Präzision.",
+    7:"Schattenzahn jagt aus dem Nichts; jeder Sprint wirkt berechnet und brutal sauber.",
+    8:"Der Seeräuber beherrscht Krautfelder, Buchten und Kanten mit souveräner Kraft.",
+    9:"Schilfkönig duldet keine Hektik – er wartet, liest, trifft und verschwindet wieder.",
+    10:"Eine See-Legende mit absoluter Revierkontrolle – still, mächtig und unvergesslich."
+  },
+  zander:{
+    1:"Dämmerling tastet sich an die Kante heran und vertraut mehr dem Gefühl als dem Licht.",
+    2:"Tiefenblick erkennt erste Linien im Grund und bleibt nahe an der stillen Beute.",
+    3:"Nachtspur wird sicherer, wenn das Wasser dunkler und die Fehler kleiner werden.",
+    4:"Kantenzahn hält die Tiefe konsequent und setzt kurze, präzise Impulse.",
+    5:"Nebeljäger bewegt sich sparsam, aber jeder Richtungswechsel wirkt absichtlich.",
+    6:"Schattenschwimmer liest harte Kanten und weiche Übergänge mit wachsender Ruhe.",
+    7:"Dämmermeister nutzt das letzte Licht wie ein Werkzeug und schlägt im richtigen Fenster zu.",
+    8:"Tiefenräuber bleibt unsichtbar, bis der Kontakt plötzlich unvermeidlich wird.",
+    9:"Nachtkönig wirkt fast lautlos – kontrolliert, wach und gnadenlos im Timing.",
+    10:"Eine Zander-Legende der Dämmerung – feinfühlig, präzise und tief verankert."
+  },
+  trout:{
+    1:"Flitzer steht sauber im Strom und lernt, welche Strömung Nahrung trägt.",
+    2:"Stromfunke reagiert schneller auf Wirbel, Schatten und kleine Driftbewegungen.",
+    3:"Silberfloss hält die Linie elegant und spart Kraft, bis der Impuls passt.",
+    4:"Wirbelpfeil nutzt schnelle Wechsel und bleibt auch im Druckwasser kontrolliert.",
+    5:"Bachjäger kennt die Taschen hinter Steinen und liest die Oberfläche mit Ruhe.",
+    6:"Stromspringer verbindet Tempo mit Präzision – jede Attacke wirkt federleicht.",
+    7:"Flussglanz trägt Erfahrung im Schuppenkleid und findet Nahrung in komplexer Strömung.",
+    8:"Strömungsmeister bewegt sich mühelos zwischen Zug, Kante und ruhigem Wasser.",
+    9:"Silber-Champion ist schnell, wach und selbst in schwerem Wasser kaum zu überraschen.",
+    10:"Eine Fluss-Legende – elegant, klar und vollkommen eins mit der Strömung."
+  },
+  carp:{
+    1:"Gründler zieht ruhig über den Boden und entdeckt die ersten sicheren Futterspuren.",
+    2:"Moosnase wird vertrauter mit dem Grund und prüft jede Veränderung geduldig.",
+    3:"Grundsucher findet Muschelbänke, weiche Zonen und kleine Signale im Sediment.",
+    4:"Schuppenwächter wirkt gelassener – vorsichtig, stark und schwer zu täuschen.",
+    5:"Teichläufer kennt seine Routen und kehrt dorthin zurück, wo der Boden lebt.",
+    6:"Grundwächter baut Präsenz auf; jeder Zug wirkt langsam, aber voller Druck.",
+    7:"Seidenrücken gleitet souverän durch vertrautes Wasser und meidet unnötiges Risiko.",
+    8:"Spiegelmeister erkennt Futterplätze mit beeindruckender Ruhe und perfektem Timing.",
+    9:"Teich-Titan trägt Masse, Erfahrung und Geduld wie eine eigene Strategie.",
+    10:"Eine Karpfen-Legende – majestätisch, ausdauernd und tief mit dem Gewässer verbunden."
+  },
+  catfish:{
+    1:"Bartling folgt leisen Vibrationen am Grund und wächst langsam in die Nacht hinein.",
+    2:"Nachtfloh wird mutiger, wenn das Licht fällt und das Wasser schwerer wirkt.",
+    3:"Grundschlurfer spürt Druckwellen genauer und findet Nahrung ohne Hast.",
+    4:"Schattenbart hält sich verborgen, doch seine Bewegungen werden entschlossener.",
+    5:"Schlammjäger kennt dunkle Rinnen und nutzt jede Trübung zu seinem Vorteil.",
+    6:"Nachtwächter patrouilliert tiefer, ruhiger und mit wachsender Autorität.",
+    7:"Tiefenkoloss bewegt Wasser, ohne laut zu werden – ein Riese im Aufbau.",
+    8:"Bartenmeister liest den Grund mit den Barteln wie andere eine Karte.",
+    9:"Urgrund-Titan wirkt uralt, kraftvoll und gefährlich ruhig in jeder Bewegung.",
+    10:"Eine Wels-Legende – gewaltig, nachtstark und mit echter Herrschaft über die Tiefe."
+  },
+  default:{
+    1:"Uferling beginnt still und neugierig – jeder Fang öffnet ein neues Stück Wasser.",
+    2:"Revierfreund erkennt vertraute Plätze wieder und sammelt erste echte Erfahrung.",
+    3:"Fanggeist verbindet Geduld mit Gefühl und wirkt von Ausflug zu Ausflug sicherer.",
+    4:"Wellenläufer folgt Wind, Kanten und kleinen Zeichen mit wachsender Aufmerksamkeit.",
+    5:"Spotwächter kennt seine Gewässer besser und entwickelt einen eigenen Rhythmus.",
+    6:"Wasserkundiger liest Bedingungen ruhiger und trifft Entscheidungen bewusster.",
+    7:"Reviermeister bewegt sich mit Vertrauen durch bekannte und neue Spots.",
+    8:"Fanghüter trägt Erfahrung sichtbar in jeder Spur, jedem Fang und jedem Revier.",
+    9:"Spot-Champion bündelt Instinkt und Ausdauer zu einer klaren Handschrift.",
+    10:"Eine Gewässer-Legende – gewachsen durch echte Fänge, starke Spots und lange Tage."
+  }
 };
 
 function normalizeFishGameSpecies(value){
@@ -476,6 +562,11 @@ function normalizeFishGameSpecies(value){
   return found?found[0]:'default';
 }
 function getFishGameSpeciesTheme(speciesKey){return FISH_GAME_SPECIES[speciesKey]||FISH_GAME_SPECIES.default;}
+function getCompanionFlavorText(speciesKey,stageIndex){
+  const safeKey=FISH_GAME_STAGE_FLAVOR[speciesKey]?speciesKey:'default';
+  const safeStage=Math.max(1,Math.min(FISH_GAME_EVOLUTION_THRESHOLDS.length,Number(stageIndex||1)));
+  return FISH_GAME_STAGE_FLAVOR[safeKey]?.[safeStage]||FISH_GAME_STAGE_FLAVOR.default?.[safeStage]||getFishGameSpeciesTheme(speciesKey)?.flavor||FISH_GAME_SPECIES.default.flavor;
+}
 function getCompanionEvolutionStages(speciesKey){
   const theme=getFishGameSpeciesTheme(speciesKey);
   return FISH_GAME_EVOLUTION_THRESHOLDS.map((min,index)=>({stage:index+1,min,name:theme.evolutions[index]||theme.base}));
@@ -536,7 +627,7 @@ function computeCompanionEvolution(profile){
   const nextIndex=Math.min(stageIndex+1,stages.length-1);
   const current=stages[stageIndex]||stages[0],next=stages[nextIndex]||current;
   const isMax=stageIndex===stages.length-1,span=Math.max(1,next.min-current.min);
-  return{stage:stageIndex+1,totalStages:stages.length,name:current.name,nextName:isMax?null:next.name,remaining:isMax?0:Math.max(0,next.min-xp),percent:isMax?100:Math.max(0,Math.min(100,Math.round(((xp-current.min)/span)*100))),isMax,level:Math.max(1,Math.floor(xp/170)+1),currentMin:current.min,nextMin:next.min};
+  return{stage:stageIndex+1,totalStages:stages.length,name:current.name,nextName:isMax?null:next.name,remaining:isMax?0:Math.max(0,next.min-xp),percent:isMax?100:Math.max(0,Math.min(100,Math.round(((xp-current.min)/span)*100))),isMax,level:Math.max(1,Math.floor(xp/340)+1),currentMin:current.min,nextMin:next.min};
 }
 
 function computeParticipantGameProfile(data,allStats=[],allCatches=[]){
@@ -549,7 +640,7 @@ function computeParticipantGameProfile(data,allStats=[],allCatches=[]){
   const longest=catches.reduce((m,c)=>!m||Number(c.lengthCm||0)>Number(m.lengthCm||0)?c:m,null);
   const heaviest=catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);
   const evolution=computeCompanionEvolution({xp,speciesKey});
-  return{participant,catches,xp,speciesKey,theme,speciesProgress,dominantSpecies:speciesProgress.dominant,companionBase:theme.base,evolution,catchCount:catches.length,longest,heaviest,uniqueSpecies:speciesProgress.uniqueCount,flavor:theme.flavor};
+  return{participant,catches,xp,speciesKey,theme,speciesProgress,dominantSpecies:speciesProgress.dominant,companionBase:theme.base,evolution,catchCount:catches.length,longest,heaviest,uniqueSpecies:speciesProgress.uniqueCount,flavor:getCompanionFlavorText(speciesKey,evolution.stage)};
 }
 function computeParticipantPremiumBadges(profile,data,allStats=[],allCatches=[]){
   const badges=[];
@@ -748,7 +839,7 @@ function renderParticipantComparison(primaryId,secondaryId){
   document.body.classList.add('participant-detail-open');
 }
 
-function renderParticipantDetail(participantId){const modal=document.getElementById('participantDetailModal'),body=document.getElementById('participantDetailBody');if(!modal||!body)return;const data=participantDetailData(participantId);if(!data)return;const p=data.participant,rank=(data.stats?computeParticipantStats().findIndex(x=>x.id===participantId)+1:0),compareEntry=renderParticipantComparePicker(participantId),recent=[...data.catches].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4),seniorityBadge=renderSeniorityBadge(data.stats||p),seniorityProgress=renderSeniorityProgress(data.stats||p),awards=computeParticipantMicroAwards(data,computeParticipantStats(),state.catches),tournamentSummary=participantTournamentSummary(participantId),tournamentSection=renderParticipantTournamentSection(tournamentSummary);if(document.getElementById('participantDetailTitle'))document.getElementById('participantDetailTitle').textContent='Teilnehmer-Detail';modal.dataset.view='detail';modal.dataset.returnParticipantId='';body.innerHTML=`<div class="participant-detail-hero" style="--participant-color:${p.color||'#4ad7d1'}"><div class="participant-detail-avatar">${escapeHtml(p.avatar||'🎣')}</div><div><p class="eyebrow">Teilnehmer-Insights</p><h2>${escapeHtml(p.name)}</h2><div class="meta">${rank?`Rang #${rank} · `:''}${data.stats?.points||0} Punkte · ${data.catches.length} Fänge</div></div></div>${renderParticipantGameLayer(data,computeParticipantStats(),state.catches)}${renderParticipantCoachLauncher(participantId)}${compareEntry}${tournamentSection}<div class="participant-detail-kpis"><article><span>Fänge</span><strong>${data.catches.length}</strong><small>gesamt erfasst</small></article><article><span>Top Gewicht</span><strong>${data.heaviest?fmtKg(data.heaviest.weightKg):'–'}</strong><small>${data.heaviest?escapeHtml(speciesName(data.heaviest)):'noch offen'}</small></article><article><span>Ø Gewicht</span><strong>${fmtKg(data.avgWeight)}</strong><small>pro Fang</small></article><article><span>Ø Länge</span><strong>${Math.round(data.avgLength||0)} cm</strong><small>pro Fang</small></article></div><div class="participant-detail-grid"><section class="participant-detail-panel"><h3>Stärken</h3><div class="detail-fact"><span>Grösster Fang</span><strong>${data.longest?`${escapeHtml(speciesName(data.longest))} · ${Number(data.longest.lengthCm||0).toFixed(0)} cm`:'–'}</strong></div><div class="detail-fact"><span>Beste Fischart</span><strong>${data.topSpecies?`${escapeHtml(data.topSpecies[0])} · ${data.topSpecies[1]}x`:'–'}</strong></div><div class="detail-fact"><span>Bester Spot</span><strong>${data.topSpot?`${escapeHtml(data.topSpot[0])} · ${data.topSpot[1]}x`:'–'}</strong></div><div class="detail-fact"><span>Beste Zeit</span><strong>${data.bestHour.count?`${String(data.bestHour.hour).padStart(2,'0')}:00 · ${data.bestHour.count}x`:'–'}</strong></div></section><section class="participant-detail-panel"><h3>Entwicklung über Zeit</h3><div class="participant-detail-timeline">${participantTimelineBars(data.days)}</div></section></div><section class="participant-detail-panel"><h3>Letzte Fänge</h3><div class="participant-detail-recent">${recent.length?recent.map(c=>`<article><strong>${escapeHtml(speciesName(c))}</strong><span>${Number(c.lengthCm||0).toFixed(0)} cm · ${fmtKg(c.weightKg)} · ${fmtDateTime(c.timestamp)}</span><small>${escapeHtml(c.spotLabel||c.location?.label||'Kein Spot')}${c.bait?` · ${escapeHtml(c.bait)}`:''}</small></article>`).join(''):'<div class="meta">Noch keine Fänge vorhanden.</div>'}</div></section>`;modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');document.body.classList.add('participant-detail-open')}
+function renderParticipantDetail(participantId){const modal=document.getElementById('participantDetailModal'),body=document.getElementById('participantDetailBody');if(!modal||!body)return;const data=participantDetailData(participantId);if(!data)return;const p=data.participant,rank=(data.stats?computeParticipantStats().findIndex(x=>x.id===participantId)+1:0),compareEntry=renderParticipantComparePicker(participantId),recent=[...data.catches].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).slice(0,4),seniorityBadge=renderSeniorityBadge(data.stats||p),seniorityProgress=renderSeniorityProgress(data.stats||p),awards=computeParticipantMicroAwards(data,computeParticipantStats(),state.catches),tournamentSummary=participantTournamentSummary(participantId),tournamentSection=renderParticipantTournamentSection(tournamentSummary);if(document.getElementById('participantDetailTitle'))document.getElementById('participantDetailTitle').textContent='Teilnehmer-Detail';modal.dataset.view='detail';modal.dataset.returnParticipantId='';body.innerHTML=`<div class="participant-detail-hero" style="--participant-color:${p.color||'#4ad7d1'}"><div class="participant-detail-avatar">${escapeHtml(p.avatar||'🎣')}</div><div><p class="eyebrow">Teilnehmer-Insights</p><h2>${escapeHtml(p.name)}</h2><div class="meta">${rank?`Rang #${rank} · `:''}${data.stats?.points||0} Punkte · ${data.catches.length} Fänge</div></div></div>${renderParticipantGameLayer(data,computeParticipantStats(),state.catches)}${tournamentSection}<div class="participant-detail-kpis"><article><span>Fänge</span><strong>${data.catches.length}</strong><small>gesamt erfasst</small></article><article><span>Top Gewicht</span><strong>${data.heaviest?fmtKg(data.heaviest.weightKg):'–'}</strong><small>${data.heaviest?escapeHtml(speciesName(data.heaviest)):'noch offen'}</small></article><article><span>Ø Gewicht</span><strong>${fmtKg(data.avgWeight)}</strong><small>pro Fang</small></article><article><span>Ø Länge</span><strong>${Math.round(data.avgLength||0)} cm</strong><small>pro Fang</small></article></div><div class="participant-detail-grid"><section class="participant-detail-panel"><h3>Stärken</h3><div class="detail-fact"><span>Grösster Fang</span><strong>${data.longest?`${escapeHtml(speciesName(data.longest))} · ${Number(data.longest.lengthCm||0).toFixed(0)} cm`:'–'}</strong></div><div class="detail-fact"><span>Beste Fischart</span><strong>${data.topSpecies?`${escapeHtml(data.topSpecies[0])} · ${data.topSpecies[1]}x`:'–'}</strong></div><div class="detail-fact"><span>Bester Spot</span><strong>${data.topSpot?`${escapeHtml(data.topSpot[0])} · ${data.topSpot[1]}x`:'–'}</strong></div><div class="detail-fact"><span>Beste Zeit</span><strong>${data.bestHour.count?`${String(data.bestHour.hour).padStart(2,'0')}:00 · ${data.bestHour.count}x`:'–'}</strong></div></section><section class="participant-detail-panel"><h3>Entwicklung über Zeit</h3><div class="participant-detail-timeline">${participantTimelineBars(data.days)}</div></section></div><section class="participant-detail-panel"><h3>Letzte Fänge</h3><div class="participant-detail-recent">${recent.length?recent.map(c=>`<article><strong>${escapeHtml(speciesName(c))}</strong><span>${Number(c.lengthCm||0).toFixed(0)} cm · ${fmtKg(c.weightKg)} · ${fmtDateTime(c.timestamp)}</span><small>${escapeHtml(c.spotLabel||c.location?.label||'Kein Spot')}${c.bait?` · ${escapeHtml(c.bait)}`:''}</small></article>`).join(''):'<div class="meta">Noch keine Fänge vorhanden.</div>'}</div></section>${renderParticipantCoachLauncher(participantId)}${compareEntry}`;modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');document.body.classList.add('participant-detail-open')}
 function closeParticipantDetail(){const modal=document.getElementById('participantDetailModal');if(!modal)return;if(modal.dataset.view==='compare'&&modal.dataset.returnParticipantId){renderParticipantDetail(modal.dataset.returnParticipantId);return}modal.classList.add('hidden');modal.setAttribute('aria-hidden','true');modal.dataset.view='';modal.dataset.returnParticipantId='';document.body.classList.remove('participant-detail-open')}
 function initParticipantDetailModal(){const list=document.getElementById('leaderboardList'),modal=document.getElementById('participantDetailModal'),closeBtn=document.getElementById('closeParticipantDetail');if(!list||!modal||modal.dataset.bound==='1')return;list.addEventListener('click',e=>{const card=e.target.closest('.participant-leaderboard-card');if(!card)return;renderParticipantDetail(card.dataset.participantId)});list.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.closest('.participant-leaderboard-card')){e.preventDefault();renderParticipantDetail(e.target.closest('.participant-leaderboard-card').dataset.participantId)}});modal.addEventListener('click',e=>{const badgeToggle=e.target.closest('[data-toggle-premium-badges]');if(badgeToggle){const participantId=badgeToggle.dataset.togglePremiumBadges||'';const isOpen=badgeToggle.getAttribute('aria-expanded')==='true';const nextOpen=!isOpen;if(participantId){if(nextOpen)FISH_GAME_BADGE_EXPANDED.add(participantId);else FISH_GAME_BADGE_EXPANDED.delete(participantId);}const extra=[...modal.querySelectorAll('[data-badge-extra-for]')].find(el=>el.dataset.badgeExtraFor===participantId);if(extra)extra.classList.toggle('is-open',nextOpen);badgeToggle.setAttribute('aria-expanded',nextOpen?'true':'false');badgeToggle.textContent=nextOpen?(badgeToggle.dataset.openLabel||'Weniger anzeigen'):(badgeToggle.dataset.closedLabel||'Weitere Badges anzeigen');return}const compareBtn=e.target.closest('[data-start-participant-compare]');if(compareBtn){const select=modal.querySelector('#participantCompareSelect');const targetId=select?.value;if(targetId)renderParticipantComparison(compareBtn.dataset.startParticipantCompare,targetId);return}if(e.target===modal||e.target.closest('[data-close-participant-detail]'))closeParticipantDetail()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.classList.contains('hidden'))closeParticipantDetail()});if(closeBtn)closeBtn.addEventListener('click',closeParticipantDetail);modal.dataset.bound='1'}
 function dailyBuckets(){const map=new Map();[...state.catches].forEach(c=>{const key=new Date(c.timestamp).toISOString().slice(0,10);map.set(key,(map.get(key)||0)+1)});return[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]))}function speciesBuckets(){const map=new Map();state.catches.forEach(c=>{const key=speciesName(c);map.set(key,(map.get(key)||0)+1)});return[...map.entries()].sort((a,b)=>b[1]-a[1])}function getInsights(){const insights=[];const summary=computeSummary();if(summary.biggest){const p=participantById(summary.biggest.participantId);insights.push({title:'Größter Fisch',body:`${speciesName(summary.biggest)} mit ${fmtKg(summary.biggest.weightKg)} und ${summary.biggest.lengthCm} cm von ${p?.name||'–'}.`})}const species=speciesBuckets();if(species[0])insights.push({title:'Häufigste Art',body:`${species[0][0]} führt mit ${species[0][1]} Fang${species[0][1]===1?'':'en'}.`});const spotMap=new Map();state.catches.forEach(c=>{const label=c.spotLabel||c.location?.label||'Unbekannter Spot';spotMap.set(label,(spotMap.get(label)||0)+1)});const topSpot=[...spotMap.entries()].sort((a,b)=>b[1]-a[1])[0];if(topSpot)insights.push({title:'Hot Spot',body:`${topSpot[0]} brachte ${topSpot[1]} Fang${topSpot[1]===1?'':'e'}.`});if(summary.bestHour.count>0)insights.push({title:'Beste Zeit',body:`Die beste Fangzeit liegt aktuell um ${String(summary.bestHour.hour).padStart(2,'0')}:00 Uhr.`});

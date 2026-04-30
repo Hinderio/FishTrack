@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v28-dart-minigame';
+const CACHE_NAME = 'fishtrack-v29-companion-evolution-v3';
 const ASSETS = [
   './',
   './index.html',
