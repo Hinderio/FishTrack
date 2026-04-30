@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v29-companion-evolution-v3';
+const CACHE_NAME = 'fishtrack-v30-ui-alignment-fix';
 const ASSETS = [
   './',
   './index.html',

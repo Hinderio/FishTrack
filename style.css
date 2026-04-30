@@ -4429,3 +4429,139 @@ body.light .fish-evolution-step,body.light .fish-seniority-panel{background:rgba
 body.light .dart-game-hud{background:linear-gradient(135deg,rgba(255,184,77,.18),rgba(74,215,209,.10));border-color:rgba(17,36,58,.08)}
 body.light .dart-setup-modal .sniper-setup-card{background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(238,247,252,.94));border-color:rgba(255,184,77,.25)}
 @media (max-width:760px){.dart-game-hud{gap:10px}.dart-game-hud .pill{width:100%}.dart-setup-modal .sniper-setup-card{max-width:min(420px,100%)}}
+
+/* UI Alignment Fix: Turniere + Dart/Duell-Spalten (minimal-invasive, scoped) */
+#tournamentList,
+#tournamentList *{min-width:0}
+#tournamentList .tournament-group,
+#tournamentList .t-group-list,
+#tournamentList .tournament-card{width:100%;box-sizing:border-box}
+#tournamentList .tournament-card{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:12px;padding:14px}
+#tournamentList .tournament-card>div:first-child{min-width:0}
+#tournamentList .tournament-card .list-title-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:10px;width:100%;margin-bottom:6px}
+#tournamentList .tournament-card .list-title-row strong,
+#tournamentList .tournament-card .meta,
+#tournamentList .tournament-card .tournament-rule{min-width:0;overflow:hidden;text-overflow:ellipsis}
+#tournamentList .tournament-card .list-title-row strong,
+#tournamentList .tournament-card .meta{white-space:nowrap}
+#tournamentList .tournament-card .tournament-rule{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#tournamentList .tournament-card .badge{justify-self:end;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tournamentList .tournament-card .list-actions{justify-self:end;align-self:center;display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:8px}
+#tournamentList .tournament-card .list-actions .icon-btn{flex:0 0 42px}
+.tournament-section-card,
+.tournament-leader-card,
+.tournament-challenge-card,
+.tournament-last-catch-item,
+.tournament-timeline-row{box-sizing:border-box;min-width:0}
+.tournament-leader-card{grid-template-columns:48px minmax(0,1fr) minmax(118px,max-content);gap:12px;width:100%;align-items:center}
+.tournament-rank-mark{justify-self:start}
+.tournament-leader-copy .list-title-row{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:10px;width:100%;flex-wrap:nowrap}
+.tournament-leader-copy .list-title-row strong,
+.tournament-leader-copy .meta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tournament-leader-copy .badge{justify-self:end;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tournament-gap-pill{justify-self:end;text-align:right}
+.tournament-highlights-grid{gap:10px}
+.tournament-highlight,
+.tournament-challenge-card>div:nth-child(2),
+.tournament-last-catch-item>div:last-child,
+.tournament-timeline-row>div{min-width:0}
+.tournament-highlight strong,
+.tournament-highlight .meta,
+.tournament-challenge-card strong,
+.tournament-challenge-card small,
+.tournament-challenge-card p,
+.tournament-challenge-card em,
+.tournament-last-catch-item strong,
+.tournament-last-catch-item span,
+.tournament-last-catch-item small,
+.tournament-timeline-row strong,
+.tournament-timeline-row small{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tournament-challenge-card .pill{justify-self:end;white-space:nowrap}
+#duelPanel,
+#duelPanel *{min-width:0}
+#duelPanel .duel-layout,
+#duelPanel .duel-score-row,
+#duelPanel .duel-arena-grid,
+#duelPanel .duel-arena-history-grid{width:100%;box-sizing:border-box;align-items:start}
+#duelPanel .duel-control-card,
+#duelPanel .duel-map-card,
+#duelPanel .duel-score-card,
+#duelPanel .duel-sync-card,
+#duelPanel .feed-fish-card,
+#duelPanel .sniper-elite-card,
+#duelPanel .duel-history-card,
+#duelPanel .duel-arena-card,
+#duelPanel .duel-arena-podium,
+#duelPanel .duel-arena-live,
+#duelPanel .duel-arena-history{width:100%;box-sizing:border-box}
+#duelPanel .duel-score-head{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:12px}
+#duelPanel .duel-score-head>div,
+#duelPanel .duel-score-head span,
+#duelPanel .duel-score-head strong{min-width:0}
+#duelPanel .duel-score-head strong{justify-self:end;text-align:right;white-space:nowrap}
+#duelPanel .duel-score-entry,
+#duelPanel .duel-history-row,
+#duelPanel .sniper-live-score{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:12px;width:100%}
+#duelPanel .duel-score-entry>div,
+#duelPanel .sniper-live-score>div{min-width:0}
+#duelPanel .duel-score-entry strong,
+#duelPanel .duel-score-entry small,
+#duelPanel .duel-history-row span,
+#duelPanel .sniper-live-score strong,
+#duelPanel .sniper-live-score small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#duelPanel .duel-score-entry b,
+#duelPanel .duel-history-row b,
+#duelPanel .sniper-live-score b{justify-self:end;text-align:right;white-space:nowrap}
+#duelPanel .duel-live-card,
+#duelPanel .duel-podium-card,
+#duelPanel .duel-mini-card,
+#duelPanel .duel-card-topline{min-width:0}
+#duelPanel .duel-live-card{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:12px}
+#duelPanel .duel-live-card>div:first-child,
+#duelPanel .duel-podium-card>div,
+#duelPanel .duel-mini-card>div{min-width:0}
+#duelPanel .duel-live-card strong,
+#duelPanel .duel-live-card small,
+#duelPanel .duel-podium-card strong,
+#duelPanel .duel-podium-card small,
+#duelPanel .duel-mini-card strong,
+#duelPanel .duel-mini-card small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#duelPanel .duel-history-entry.duel-arena-entry{width:100%;grid-template-columns:minmax(0,1fr) minmax(150px,220px);align-items:stretch}
+#duelPanel .duel-card-topline{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:8px}
+#duelPanel .duel-status-badge{justify-self:end}
+#duelPanel .duel-mode-badge,
+#duelPanel .duel-status-badge{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:760px){
+  #tournamentList .tournament-card{grid-template-columns:1fr;align-items:start}
+  #tournamentList .tournament-card .list-actions{justify-self:stretch;width:100%;justify-content:flex-end}
+  #tournamentList .tournament-card .list-title-row,
+  .tournament-leader-copy .list-title-row{grid-template-columns:1fr;gap:7px}
+  #tournamentList .tournament-card .badge,
+  .tournament-leader-copy .badge{justify-self:start;max-width:100%}
+  .tournament-leader-card{grid-template-columns:42px minmax(0,1fr);align-items:start}
+  .tournament-gap-pill{grid-column:2;justify-self:start;text-align:left}
+  .tournament-challenge-card{grid-template-columns:auto minmax(0,1fr)}
+  #duelPanel .duel-live-card,
+  #duelPanel .duel-history-entry.duel-arena-entry,
+  #duelPanel .duel-card-topline{grid-template-columns:1fr}
+  #duelPanel .duel-status-badge{justify-self:start}
+  #duelPanel .duel-live-card .duel-history-actions{justify-self:stretch}
+  #duelPanel .duel-score-entry,
+  #duelPanel .duel-history-row,
+  #duelPanel .sniper-live-score{grid-template-columns:minmax(0,1fr) auto}
+}
+@media (max-width:430px){
+  #tournamentList .tournament-card .list-actions .icon-btn{flex:1 1 42px}
+  #duelPanel .duel-score-entry strong,
+  #duelPanel .duel-score-entry small,
+  #duelPanel .duel-history-row span,
+  #duelPanel .sniper-live-score strong,
+  #duelPanel .sniper-live-score small{white-space:normal}
+}
+
+@media (max-width:760px){
+  #duelPanel .duel-score-head{grid-template-columns:1fr;align-items:start}
+  #duelPanel .duel-score-head strong{justify-self:start;text-align:left}
+  #duelPanel .duel-score-head .feed-fish-actions,
+  #duelPanel .duel-score-head .sniper-elite-actions{justify-self:stretch;width:100%}
+}
