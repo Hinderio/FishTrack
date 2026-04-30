@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v31-parallel-duels-hub';
+const CACHE_NAME = 'fishtrack-v32-rules-readme-modal';
 const ASSETS = [
   './',
   './index.html',

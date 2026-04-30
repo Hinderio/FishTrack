@@ -4661,3 +4661,158 @@ body.light #duelPanel .parallel-duel-card{background:rgba(255,255,255,.78);borde
   #duelPanel .parallel-duels-head .pill,
   #duelPanel .parallel-duels-empty .pill{width:100%;justify-content:center}
 }
+
+/* FishTrack Rules README modal — isolated, minimal-invasive UI layer */
+.rules-readme-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+  font-size:1rem;
+  line-height:1;
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow:0 10px 28px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.rules-readme-button:focus-visible,
+.rules-readme-close:focus-visible{
+  outline:2px solid rgba(74,215,209,.72);
+  outline-offset:3px;
+}
+
+.rules-readme-overlay{
+  position:fixed;
+  inset:0;
+  z-index:1100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(2,8,15,.70);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+
+.rules-readme-overlay.hidden{
+  display:none !important;
+}
+
+body.rules-readme-open{
+  overflow:hidden;
+}
+
+.rules-readme-modal{
+  width:min(860px,100%);
+  max-height:min(86vh,780px);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  border-radius:32px;
+  background:linear-gradient(145deg,rgba(15,27,40,.94),rgba(7,17,26,.92));
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 28px 80px rgba(0,0,0,.44), 0 0 0 1px rgba(74,215,209,.06), inset 0 1px 0 rgba(255,255,255,.06);
+}
+
+.rules-readme-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:24px 24px 18px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.rules-readme-header h3{
+  font-size:clamp(1.35rem,3vw,2rem);
+  letter-spacing:-.03em;
+}
+
+.rules-readme-subtitle{
+  margin-top:7px;
+  color:var(--muted);
+  line-height:1.45;
+}
+
+.rules-readme-close{
+  flex:0 0 42px;
+  border:1px solid rgba(255,255,255,.10);
+}
+
+.rules-readme-content{
+  overflow:auto;
+  padding:18px 24px 24px;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  -webkit-overflow-scrolling:touch;
+}
+
+.rules-readme-section{
+  padding:16px;
+  border-radius:22px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.065);
+}
+
+.rules-readme-section h4{
+  margin:0 0 9px;
+  font-size:1rem;
+  letter-spacing:-.01em;
+}
+
+.rules-readme-section p{
+  color:var(--muted);
+  line-height:1.52;
+  font-size:.95rem;
+}
+
+.rules-readme-section strong{
+  color:var(--text);
+}
+
+.rules-readme-section--summary{
+  grid-column:1/-1;
+  background:linear-gradient(135deg,rgba(74,215,209,.14),rgba(143,240,167,.08));
+  border-color:rgba(74,215,209,.22);
+}
+
+.rules-readme-motto{
+  margin-top:10px;
+  color:var(--text) !important;
+}
+
+body.light .rules-readme-modal{
+  background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(237,244,251,.94));
+}
+
+body.light .rules-readme-overlay{
+  background:rgba(14,28,44,.34);
+}
+
+@media (max-width:760px){
+  .topbar-actions{
+    align-self:stretch;
+    width:100%;
+    justify-content:flex-start;
+  }
+
+  .rules-readme-overlay{
+    align-items:flex-end;
+    padding:12px;
+  }
+
+  .rules-readme-modal{
+    width:100%;
+    max-height:88vh;
+    border-radius:28px;
+  }
+
+  .rules-readme-header{
+    padding:20px 18px 14px;
+  }
+
+  .rules-readme-content{
+    grid-template-columns:1fr;
+    padding:14px 18px 20px;
+  }
+}

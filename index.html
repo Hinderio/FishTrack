@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="style.css?v=123" />
+  <link rel="stylesheet" href="style.css?v=126" />
 </head>
 <body>
 <div id="tournamentSaveToast" class="save-toast hidden" role="status" aria-live="polite">Erfolgreich Turnier gespeichert</div>
@@ -33,6 +33,7 @@
         <h1>FishTrack</h1>
       </div>
       <div class="topbar-actions">
+        <button id="rulesReadmeBtn" class="icon-btn rules-readme-button" type="button" title="Regeln &amp; Punkte" aria-label="Regeln öffnen" aria-controls="rulesReadmeOverlay" aria-expanded="false">?</button>
         <button id="themeToggle" class="icon-btn" title="Theme wechseln">◐</button>
         <button id="installPromptBtn" class="pill secondary hidden">App installieren</button>
       </div>
@@ -555,6 +556,52 @@
   </div>
 
 
+  <div id="rulesReadmeOverlay" class="rules-readme-overlay hidden" aria-hidden="true">
+    <section class="rules-readme-modal glass" role="dialog" aria-modal="true" aria-labelledby="rulesReadmeTitle" aria-describedby="rulesReadmeSubtitle" tabindex="-1">
+      <header class="rules-readme-header">
+        <div>
+          <p class="eyebrow">FishTrack Guide</p>
+          <h3 id="rulesReadmeTitle">FishTrack Regeln &amp; Punkte</h3>
+          <p id="rulesReadmeSubtitle" class="rules-readme-subtitle">Kurz erklärt: So funktionieren Fänge, Duelle, Turniere und Companion.</p>
+        </div>
+        <button id="rulesReadmeClose" class="icon-btn rules-readme-close" type="button" aria-label="Regeln schließen">✕</button>
+      </header>
+
+      <div class="rules-readme-content">
+        <article class="rules-readme-section">
+          <h4>🎣 Fänge</h4>
+          <p><strong>Fänge sind die Basis von FishTrack.</strong> Jeder sauber gespeicherte Fang kann je nach Kontext für Statistiken, Profile, Duelle, Mini-Games, Turniere, Companion-Fortschritt und Badges zählen.</p>
+        </article>
+
+        <article class="rules-readme-section">
+          <h4>⚔️ Duelle</h4>
+          <p><strong>Duelle vergleichen Teilnehmer über einen festgelegten Zeitraum.</strong> Je nach Modus zählen Anzahl, Größe, Fischart, Spot, Spezialregeln oder Catch-Sync mit laufenden Challenges.</p>
+        </article>
+
+        <article class="rules-readme-section">
+          <h4>🎯 Mini-Games</h4>
+          <p><strong>Mini-Games bringen eigene Spielregeln ins Duell.</strong> Feed your Fish, Spot Sniper Elite, Dart, Schleppmeister und Blitz-Battle nutzen bestehende Fänge, werten sie aber je nach Modus unterschiedlich aus.</p>
+        </article>
+
+        <article class="rules-readme-section">
+          <h4>🏆 Turniere</h4>
+          <p><strong>Turniere können eigene Punkte-Regeln haben.</strong> Fanganzahl, Länge, Gewicht, Arten, Bonusregeln oder frei konfigurierte Punkte können deshalb von normalen Duellpunkten abweichen.</p>
+        </article>
+
+        <article class="rules-readme-section">
+          <h4>✨ Companion, Badges &amp; Seniority</h4>
+          <p><strong>Diese Elemente zeigen deinen Fortschritt.</strong> Companion wächst mit deiner Entwicklung, Badges markieren besondere Erfolge und Seniority zeigt Erfahrung sowie Langzeitaktivität.</p>
+        </article>
+
+        <article class="rules-readme-section rules-readme-section--summary">
+          <h4>💡 Wichtig zu wissen</h4>
+          <p>Fänge sind die Grundlage. Duelle, Mini-Games und Turniere prüfen danach ihre jeweiligen Regeln. Companion und Badges zeigen Fortschritt, nicht zwingend den aktuellen Sieg.</p>
+          <p class="rules-readme-motto"><strong>Merksatz:</strong> Fang speichern → Modus prüft Regeln → Punkte werden im passenden Kontext angezeigt.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
   <div id="participantDetailModal" class="participant-detail-modal hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="participantDetailTitle">
     <div class="participant-detail-card glass">
       <div class="participant-detail-head">
@@ -585,7 +632,7 @@
   console.log('Supabase erfolgreich verbunden');
 </script>
 
-<script src="app.js?v=125"></script>
+<script src="app.js?v=126"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>

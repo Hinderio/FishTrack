@@ -6599,3 +6599,80 @@ async function exportElementAsImageAndUpload(elementId, duelId){
     });
   });
 }
+
+/* FishTrack Rules README modal — minimal-invasive static UI binding */
+(function(){
+  let rulesReadmeLastFocus = null;
+
+  function getRulesReadmeElements(){
+    const overlay = document.getElementById('rulesReadmeOverlay');
+    return {
+      overlay,
+      modal: overlay ? overlay.querySelector('.rules-readme-modal') : null,
+      openButton: document.getElementById('rulesReadmeBtn'),
+      closeButton: document.getElementById('rulesReadmeClose')
+    };
+  }
+
+  function openRulesReadmeModal(){
+    const { overlay, modal, openButton } = getRulesReadmeElements();
+    if(!overlay || !modal) return;
+    rulesReadmeLastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden','false');
+    if(openButton) openButton.setAttribute('aria-expanded','true');
+    document.body.classList.add('rules-readme-open');
+    requestAnimationFrame(() => modal.focus({ preventScroll:true }));
+  }
+
+  function closeRulesReadmeModal(){
+    const { overlay, openButton } = getRulesReadmeElements();
+    if(!overlay) return;
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden','true');
+    if(openButton) openButton.setAttribute('aria-expanded','false');
+    document.body.classList.remove('rules-readme-open');
+    if(rulesReadmeLastFocus && typeof rulesReadmeLastFocus.focus === 'function'){
+      rulesReadmeLastFocus.focus({ preventScroll:true });
+    }
+  }
+
+  function bindRulesReadmeModalEvents(){
+    if(document.body.dataset.rulesReadmeBound === '1') return;
+    document.body.dataset.rulesReadmeBound = '1';
+
+    document.addEventListener('click', (event) => {
+      const openButton = event.target.closest('#rulesReadmeBtn');
+      if(openButton){
+        event.preventDefault();
+        openRulesReadmeModal();
+        return;
+      }
+
+      const closeButton = event.target.closest('#rulesReadmeClose');
+      if(closeButton){
+        event.preventDefault();
+        closeRulesReadmeModal();
+        return;
+      }
+
+      const overlay = document.getElementById('rulesReadmeOverlay');
+      if(overlay && event.target === overlay){
+        closeRulesReadmeModal();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if(event.key !== 'Escape') return;
+      const overlay = document.getElementById('rulesReadmeOverlay');
+      if(overlay && !overlay.classList.contains('hidden')){
+        closeRulesReadmeModal();
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', bindRulesReadmeModalEvents);
+  window.openRulesReadmeModal = openRulesReadmeModal;
+  window.closeRulesReadmeModal = closeRulesReadmeModal;
+  window.bindRulesReadmeModalEvents = bindRulesReadmeModalEvents;
+})();
