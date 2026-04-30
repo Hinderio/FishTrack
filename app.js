@@ -4083,7 +4083,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function hasDuelProcessedCatch(s,catchData){
     const key=duelCatchKey(catchData);
     if(!key)return false;
-    return Array.isArray(s.catches)&&s.catches.some(c=>String(c.id||c.catch_id||c.localId||c.local_id||'')===String(key));
+    const normalizedKey=String(key);
+    if(Array.isArray(s.catches)&&s.catches.some(c=>String(c.id||c.catch_id||c.localId||c.local_id||c.catchId||'')===normalizedKey))return true;
+    if(s.schleppmeister?.processedCatches&&s.schleppmeister.processedCatches[normalizedKey])return true;
+    if(Array.isArray(s.feedFish?.events)&&s.feedFish.events.some(ev=>String(ev.catchId||ev.catch_id||'')===normalizedKey))return true;
+    return false;
   }
   function fishTileForCatch(catchData){
     const raw=normalizeSpeciesLabel(catchData?.species||catchData?.fish_species||'Andere');
@@ -4098,7 +4102,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       id:duelCatchKey(catchData)||catchData?.id||crypto.randomUUID(),
       participantId,
       species:fish?.species||catchData?.species||'Andere',
-      points:Number(fish?.points||extra.points||0),
+      points:Number(extra.points??fish?.points??0),
       at,
       timestamp:at,
       source:'catches'
@@ -4130,6 +4134,35 @@ setInterval(injectWeatherIntoCatchCards, 800);
           duel.lastTalk=`${participantName(participantId)} füttert Feed your Fish direkt aus „Fänge“ mit ${fish.species}. +${Number(fish.points||0)}P · keine Schnellfang-Kachel nötig.`;
           saveDuelState(duel);
           await addRemoteEvent(duel,'catch',participantId,catchEvent);
+          await syncRemoteParticipants(duel);
+        }else if(duel.mode==='trolling'){
+          const fish=fishTileForCatch(catchData);
+          const catchId=duelCatchKey(catchData);
+          const avgSpeedKmh=getSchleppmeisterAverageSpeedKmh(duel);
+          const speedBonusPoints=getSchleppmeisterSpeedBonus(avgSpeedKmh);
+          const basePoints=5;
+          const catchEvent=buildSyncedDuelCatch(catchData,participantId,{species:fish.species,points:basePoints},{
+            duelSynced:true,
+            schleppmeisterSynced:true,
+            catchId,
+            basePoints,
+            speedBonusPoints,
+            speedBonusParticipantId:duel.captainId||null,
+            avgSpeedKmh:avgSpeedKmh!=null&&Number.isFinite(Number(avgSpeedKmh))?Number(Number(avgSpeedKmh).toFixed(2)):null,
+            speedBonusApplied:!!speedBonusPoints,
+            scoringSource:'catches'
+          });
+          duel.score=duel.score||{};
+          duel.score[participantId]=Number(duel.score[participantId]||0)+basePoints;
+          const sm=ensureSchleppmeisterScoringState(duel);
+          duel.schleppmeisterScoringV2=true;
+          sm.processedCatches[catchEvent.id]={catchId:catchEvent.id,participantId,basePoints,speedBonusPoints,avgSpeedKmh:catchEvent.avgSpeedKmh,at:catchEvent.at};
+          sm.speedBonusTotal=Number(sm.speedBonusTotal||0)+speedBonusPoints;
+          duel=attachCatchToDuel(duel,catchEvent);
+          duel.lastTalk=`${participantName(participantId)} bringt einen Schleppmeister-Fang aus „Fänge“. +${basePoints}P${speedBonusPoints?` · Kapitän-Speed-Bonus +${speedBonusPoints}P`:''}`;
+          saveDuelState(duel);
+          await addRemoteEvent(duel,'catch',participantId,catchEvent);
+          if(speedBonusPoints&&duel.captainId)await addRemoteEvent(duel,'speed_bonus',duel.captainId,{catchId:catchEvent.id,points:speedBonusPoints,avgSpeedKmh:catchEvent.avgSpeedKmh,source:'catches'});
           await syncRemoteParticipants(duel);
         }else{
           const fish=fishTileForCatch(catchData);
@@ -4396,8 +4429,12 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   function elapsedHours(s){if(!s.startedAt)return 0;const end=s.endedAt?new Date(s.endedAt).getTime():Date.now();return Math.max(0,(end-new Date(s.startedAt).getTime())/3600000);}
   function avgSpeed(s){const h=elapsedHours(s);return h>0?routeDistanceKm(s.route||[])/h:0;}
-  function speedBonus(s){if(s.mode!=='trolling')return 0;const speed=avgSpeed(s);if(!speed)return 0;let bonus=0;if(speed>=2.0&&speed<=4.0)bonus+=4;else if(speed>=1.5&&speed<=4.8)bonus+=2;if(Number(s.weather?.wind_ms||99)<=6)bonus+=2;return bonus;}
-  function captainBonus(s){return s.mode==='trolling'&&s.startedAt?5:0;}
+  function getSchleppmeisterAverageSpeedKmh(s){const speed=avgSpeed(s);return Number.isFinite(Number(speed))?Number(speed):null;}
+  function getSchleppmeisterSpeedBonus(avgSpeedKmh){const speed=Number(avgSpeedKmh);if(!Number.isFinite(speed)||speed<=0)return 0;if(speed>=3.0&&speed<=4.0)return 10;if(speed>=2.5&&speed<3.0)return 5;if(speed>4.0&&speed<=5.0)return 5;return 0;}
+  function ensureSchleppmeisterScoringState(s){s.schleppmeister=s.schleppmeister||{};s.schleppmeister.scoringV2=true;s.schleppmeister.processedCatches=s.schleppmeister.processedCatches||{};s.schleppmeister.speedBonusTotal=Number(s.schleppmeister.speedBonusTotal||0);return s.schleppmeister;}
+  function usesSchleppmeisterCatchScoring(s){return s?.mode==='trolling'&&!!(s.schleppmeisterScoringV2||s.schleppmeister?.scoringV2);}
+  function speedBonus(s){if(s.mode!=='trolling')return 0;if(usesSchleppmeisterCatchScoring(s))return Number(s.schleppmeister?.speedBonusTotal||0);const speed=avgSpeed(s);if(!speed)return 0;let bonus=0;if(speed>=2.0&&speed<=4.0)bonus+=4;else if(speed>=1.5&&speed<=4.8)bonus+=2;if(Number(s.weather?.wind_ms||99)<=6)bonus+=2;return bonus;}
+  function captainBonus(s){if(s.mode==='trolling'&&usesSchleppmeisterCatchScoring(s))return 0;return s.mode==='trolling'&&s.startedAt?5:0;}
   function totalScore(s,id){return Number(s.score?.[id]||0)+(id===s.captainId?captainBonus(s)+speedBonus(s):0)+sniperTotalScore(s,id);}
   function formatTime(ms){const total=Math.max(0,Math.ceil(ms/1000));const m=Math.floor(total/60),sec=total%60;return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;}
   function remainingMs(s){if(!s.active||!s.startedAt)return Number(s.durationMin||60)*60000;return Math.max(0,new Date(s.startedAt).getTime()+Number(s.durationMin||60)*60000-Date.now());}
@@ -4533,6 +4570,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       winner_name:participantName(winner),
       captain_bonus:captainBonus(s),
       speed_bonus:speedBonus(s),
+      schleppmeister_scoring:s.schleppmeister||null,
       sniper_score:s.sniperScore||{},
       sniper_spots:s.sniperSpots||[],
       sniper_config:s.sniperConfig||null,
@@ -5029,12 +5067,14 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const sync=document.getElementById('duelCatchSyncStatus');
     if(sync)sync.textContent=s.mode==='feed'
       ? (s.active?'Aktiv: Nur Fänge von Kapitän oder Herausforderer innerhalb der Duellzeit zählen – einmal pro Catch-ID.':'Bereit: Nach dem Start füttern normale Fänge automatisch den richtigen Fisch.')
-      :'Schnellfang-Kacheln sind entfernt. Für Feed your Fish bitte Modus wählen und Fänge normal speichern.';
+      :(s.mode==='trolling'
+        ? (s.active?'Aktiv: Schleppmeister übernimmt normale Fänge dedupliziert mit +5P und Kapitän-Speed-Bonus.':'Bereit: Schleppmeister-Fänge werden nach dem Start aus „Fänge“ synchronisiert.')
+        :'Schnellfang-Kacheln sind entfernt. Für Feed your Fish bitte Modus wählen und Fänge normal speichern.');
     const last=latestDuelCatch(s);
     const lastEl=document.getElementById('duelLastCatch');
     if(lastEl){
       lastEl.innerHTML=last
-        ? `<strong>${escapeHtml(participantName(catchParticipantId(last)||last.participantId))}</strong><span>${escapeHtml(last.species||'Fang')} · ${fmtDateTime(catchTimestampValue(last))}${last.feedSynced?' · Feed-Sync':''}</span>`
+        ? `<strong>${escapeHtml(participantName(catchParticipantId(last)||last.participantId))}</strong><span>${escapeHtml(last.species||'Fang')} · ${fmtDateTime(catchTimestampValue(last))}${last.feedSynced?' · Feed-Sync':(last.schleppmeisterSynced?' · Schleppmeister-Sync':'')}</span>`
         : 'Noch kein synchronisierter Fang in diesem Duell.';
     }
     renderDuelMiniGameSummary(s);
@@ -5315,6 +5355,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(selectedMode==='feed'){
       ensureFeedFishState(s);
       s.fishImage=feedFishFinalImageUrl(s);
+    }
+    if(selectedMode==='trolling'){
+      s.schleppmeisterScoringV2=true;
+      ensureSchleppmeisterScoringState(s);
     }
   
     saveDuelState(s);
