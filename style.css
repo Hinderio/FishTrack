@@ -4020,3 +4020,120 @@ body.light .tournament-timeline-card details{
     grid-template-columns:1fr;
   }
 }
+
+/* Duel Hub Premium Redesign + Catch-Sync polish (minimal-invasive, scoped to #duelPanel) */
+#duelPanel.duel-panel{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.08);
+  background:radial-gradient(circle at 8% 0%,rgba(74,215,209,.16),transparent 34%),radial-gradient(circle at 88% 4%,rgba(255,184,77,.12),transparent 30%),rgba(8,17,27,.74);
+}
+#duelPanel .duel-hub-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(280px,.95fr) auto;
+  gap:16px;
+  align-items:stretch;
+  padding:18px;
+  border-radius:30px;
+  background:linear-gradient(135deg,rgba(255,255,255,.085),rgba(255,255,255,.028));
+  border:1px solid rgba(255,255,255,.075);
+  box-shadow:0 24px 70px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.06);
+  margin-bottom:14px;
+}
+#duelPanel .duel-hub-copy{min-width:0;display:flex;flex-direction:column;justify-content:center;gap:6px}
+#duelPanel .duel-hub-copy h3{margin:0;font-size:clamp(1.35rem,2.5vw,2.35rem);letter-spacing:-.04em}
+#duelPanel .duel-hero-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-self:stretch}
+#duelPanel .duel-hero-kpis div{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  padding:12px 13px;
+  border-radius:22px;
+  background:rgba(255,255,255,.065);
+  border:1px solid rgba(255,255,255,.065);
+}
+#duelPanel .duel-hero-kpis b{font-size:1.05rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#duelPanel .duel-hero-kpis small{color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-size:.68rem;font-weight:850}
+#duelPanel .duel-status-pill{align-self:start;white-space:nowrap;box-shadow:0 14px 34px rgba(0,0,0,.22)}
+#duelPanel .duel-tabs{
+  display:flex;
+  gap:8px;
+  padding:6px;
+  margin:0 0 14px;
+  border-radius:999px;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.06);
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+#duelPanel .duel-tab{
+  border:0;
+  color:var(--muted);
+  background:transparent;
+  border-radius:999px;
+  padding:10px 15px;
+  font-weight:900;
+  cursor:pointer;
+  white-space:nowrap;
+  min-height:42px;
+}
+#duelPanel .duel-tab.is-active{
+  color:#06131c;
+  background:linear-gradient(135deg,#8ff0a7,#4ad7d1);
+  box-shadow:0 12px 28px rgba(74,215,209,.22);
+}
+#duelPanel .duel-control-card,#duelPanel .duel-map-card,#duelPanel .duel-score-card,#duelPanel .duel-sync-card,#duelPanel .feed-fish-card,#duelPanel .sniper-elite-card,#duelPanel .duel-history-card{
+  background:linear-gradient(180deg,rgba(255,255,255,.064),rgba(255,255,255,.032));
+  border:1px solid rgba(255,255,255,.075);
+  box-shadow:0 18px 42px rgba(0,0,0,.18);
+}
+#duelPanel .duel-next-card{
+  margin-top:12px;
+  padding:12px 14px;
+  border-radius:20px;
+  background:rgba(74,215,209,.105);
+  border:1px solid rgba(74,215,209,.22);
+  color:var(--text);
+  font-weight:850;
+  line-height:1.35;
+}
+#duelPanel .duel-mini-game-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+#duelPanel .duel-mini-card{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:18px;background:rgba(255,255,255,.052);border:1px solid rgba(255,255,255,.055)}
+#duelPanel .duel-mini-card>span{width:38px;height:38px;display:grid;place-items:center;border-radius:14px;background:rgba(255,255,255,.075);font-size:1.25rem}
+#duelPanel .duel-mini-card strong{display:block;color:var(--text);font-size:.92rem}
+#duelPanel .duel-mini-card small{display:block;color:var(--muted);font-weight:760;line-height:1.32}
+#duelPanel .duel-sync-card{border-radius:24px;padding:14px;display:flex;flex-direction:column;gap:12px}
+#duelPanel .duel-sync-status{padding:13px 14px;border-radius:18px;background:rgba(143,240,167,.105);border:1px solid rgba(143,240,167,.20);font-weight:850;line-height:1.38;color:var(--text)}
+#duelPanel .duel-last-catch-card{padding:12px 14px;border-radius:18px;background:rgba(255,255,255,.052);border:1px solid rgba(255,255,255,.055);color:var(--muted);font-weight:800;line-height:1.35}
+#duelPanel .duel-last-catch-card strong{display:block;color:var(--text);font-size:1rem;margin-bottom:3px}
+#duelPanel .duel-last-catch-card span{display:block;color:var(--muted)}
+#duelPanel .duel-score-row{grid-template-columns:minmax(280px,.9fr) minmax(280px,1.1fr)}
+#duelPanel .feed-fish-help{background:rgba(74,215,209,.075);border-color:rgba(74,215,209,.18)}
+body.light #duelPanel.duel-panel{background:radial-gradient(circle at 8% 0%,rgba(18,159,150,.14),transparent 34%),radial-gradient(circle at 88% 4%,rgba(237,151,39,.12),transparent 30%),rgba(255,255,255,.82)}
+body.light #duelPanel .duel-hub-hero,body.light #duelPanel .duel-control-card,body.light #duelPanel .duel-map-card,body.light #duelPanel .duel-score-card,body.light #duelPanel .duel-sync-card,body.light #duelPanel .feed-fish-card,body.light #duelPanel .sniper-elite-card,body.light #duelPanel .duel-history-card{background:rgba(255,255,255,.82);border-color:rgba(20,36,50,.08)}
+@media (max-width:1100px){
+  #duelPanel .duel-hub-hero{grid-template-columns:1fr;gap:12px}
+  #duelPanel .duel-status-pill{justify-self:start}
+  #duelPanel .duel-hero-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:760px){
+  #duelPanel.duel-panel{padding:12px;border-radius:28px}
+  #duelPanel .duel-hub-hero{padding:14px;border-radius:26px}
+  #duelPanel .duel-hero-kpis{grid-template-columns:1fr}
+  #duelPanel .duel-tabs{position:sticky;top:8px;z-index:5;border-radius:18px;scroll-snap-type:x mandatory}
+  #duelPanel .duel-tab{flex:1 0 auto;scroll-snap-align:start;padding-inline:14px}
+  #duelPanel .duel-hub-section{display:none!important}
+  #duelPanel[data-active-duel-tab="overview"] [data-duel-section~="overview"],
+  #duelPanel[data-active-duel-tab="score"] [data-duel-section~="score"],
+  #duelPanel[data-active-duel-tab="games"] [data-duel-section~="games"],
+  #duelPanel[data-active-duel-tab="history"] [data-duel-section~="history"]{display:block!important}
+  #duelPanel[data-active-duel-tab="overview"] .duel-layout,
+  #duelPanel[data-active-duel-tab="games"] .duel-layout,
+  #duelPanel[data-active-duel-tab="overview"] .duel-score-row,
+  #duelPanel[data-active-duel-tab="score"] .duel-score-row{display:grid!important}
+  #duelPanel .duel-mini-game-summary{grid-template-columns:1fr}
+  #duelPanel .duel-control-card,#duelPanel .duel-map-card,#duelPanel .duel-score-card,#duelPanel .duel-sync-card{border-radius:22px;padding:12px}
+  #duelPanel .duel-map-card{min-height:300px}
+}
