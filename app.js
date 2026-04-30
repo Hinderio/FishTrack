@@ -861,7 +861,7 @@ async function init(){
 init();
 
 /* Custom grid overlay and KPI integration (2026-04-18)
- * This script adds a 2×2 km raster overlay and "Alle Fänge zeigen" functionality.
+ * This script adds a 2×2 km raster overlay and one-shot current-location map centering.
  * It also updates the species KPI counters on the dashboard after rendering.
  */
 (function() {
@@ -910,6 +910,117 @@ init();
     map.fitBounds(bounds.pad(0.25));
   }
 
+  let mapCurrentLocationMarker = null;
+  let mapCurrentLocationCircle = null;
+  let mapCurrentLocationRequestId = 0;
+  let mapCurrentLocationLoading = false;
+
+  function setMapCurrentLocationButtonBusy(isBusy) {
+    const btn = document.getElementById('use-current-map-location-btn');
+    if (!btn) return;
+    if (!btn.dataset.defaultText) {
+      btn.dataset.defaultText = btn.textContent || 'Aktuellen Standort';
+    }
+    btn.disabled = !!isBusy;
+    btn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+    btn.textContent = isBusy ? 'Standort wird geladen …' : btn.dataset.defaultText;
+  }
+
+  function getFreshMapPosition() {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0
+      });
+    });
+  }
+
+  function showMapLocationError(error) {
+    let message = 'Standort konnte nicht ermittelt werden. Bitte GPS und Berechtigung prüfen.';
+    if (error?.code === 1) {
+      message = 'Standortzugriff wurde verweigert. Bitte Berechtigung im Browser/Gerät erlauben.';
+    } else if (error?.code === 2) {
+      message = 'Standort ist aktuell nicht verfügbar. Bitte freien Himmel/GPS prüfen.';
+    } else if (error?.code === 3) {
+      message = 'Standortabfrage hat zu lange gedauert. Bitte erneut versuchen.';
+    }
+    alert(message);
+  }
+
+  async function useCurrentMapLocation() {
+    if (!navigator.geolocation) {
+      alert('Geolocation wird auf diesem Gerät nicht unterstützt.');
+      return;
+    }
+    if (mapCurrentLocationLoading) return;
+    if (window.__fishTrackDuelForceGpsLock?.isFetchingLocation) {
+      alert('Standortabfrage läuft bereits …');
+      return;
+    }
+
+    const requestId = ++mapCurrentLocationRequestId;
+    mapCurrentLocationLoading = true;
+    setMapCurrentLocationButtonBusy(true);
+
+    try {
+      initMap();
+      const pos = await getFreshMapPosition();
+      if (requestId !== mapCurrentLocationRequestId) return;
+
+      const lat = Number(pos.coords.latitude);
+      const lng = Number(pos.coords.longitude);
+      const accuracy = Number(pos.coords.accuracy || 0);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng) || !map) {
+        alert('Standort konnte nicht korrekt ermittelt werden.');
+        return;
+      }
+
+      if (typeof map.invalidateSize === 'function') map.invalidateSize();
+      const zoom = Math.max((typeof map.getZoom === 'function' ? map.getZoom() : 13) || 13, 15);
+      map.setView([lat, lng], zoom, { animate: true });
+
+      if (typeof L !== 'undefined') {
+        if (!mapCurrentLocationMarker) {
+          mapCurrentLocationMarker = L.circleMarker([lat, lng], {
+            radius: 8,
+            weight: 3,
+            color: '#ffffff',
+            fillColor: '#4ad7d1',
+            fillOpacity: 0.9
+          }).addTo(map);
+        } else {
+          mapCurrentLocationMarker.setLatLng([lat, lng]);
+        }
+
+        if (Number.isFinite(accuracy) && accuracy > 0) {
+          if (!mapCurrentLocationCircle) {
+            mapCurrentLocationCircle = L.circle([lat, lng], {
+              radius: accuracy,
+              weight: 1,
+              opacity: 0.45,
+              fillOpacity: 0.08
+            }).addTo(map);
+          } else {
+            mapCurrentLocationCircle.setLatLng([lat, lng]);
+            mapCurrentLocationCircle.setRadius(accuracy);
+          }
+        }
+
+        mapCurrentLocationMarker
+          .bindPopup(`Aktueller Standort${Number.isFinite(accuracy) && accuracy > 0 ? `<br>Genauigkeit ca. ${Math.round(accuracy)} m` : ''}`)
+          .openPopup();
+      }
+    } catch (error) {
+      if (requestId === mapCurrentLocationRequestId) showMapLocationError(error);
+    } finally {
+      if (requestId === mapCurrentLocationRequestId) {
+        mapCurrentLocationLoading = false;
+        setMapCurrentLocationButtonBusy(false);
+      }
+    }
+  }
+
   // Wrap renderMap to insert grid overlay drawing
   if (typeof renderMap === 'function') {
     const originalRenderMap = renderMap;
@@ -949,7 +1060,7 @@ init();
   // Attach event listeners on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById('toggle-grid-btn');
-    const showAllBtn = document.getElementById('show-all-catches-btn');
+    const useCurrentMapLocationBtn = document.getElementById('use-current-map-location-btn');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
         gridVisibleNew = !gridVisibleNew;
@@ -958,12 +1069,9 @@ init();
         drawGridNew(points);
       });
     }
-    if (showAllBtn) {
-      showAllBtn.addEventListener('click', () => {
-        const bonusMap = getTournamentBonusMap();
-  const points = (typeof getMapVisibleCatches==='function'?getMapVisibleCatches(state.catches):state.catches).filter(c => c.location && c.location.lat != null && c.location.lng != null);
-        fitAllNew(points);
-      });
+    if (useCurrentMapLocationBtn && useCurrentMapLocationBtn.dataset.locationBound !== '1') {
+      useCurrentMapLocationBtn.dataset.locationBound = '1';
+      useCurrentMapLocationBtn.addEventListener('click', useCurrentMapLocation);
     }
   });
 })();
