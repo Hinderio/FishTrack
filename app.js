@@ -3091,7 +3091,10 @@ function renderSpotBaitMatrix(){
   container.className='matrix-grid spot-bait-fit-grid';
   container.style.setProperty('--matrix-cols',baits.length);
   container.style.setProperty('--matrix-rows',spots.length+1);
-  const header='<div class="matrix-label matrix-corner"><span>Spot / Köder</span></div>'+baits.map(b=>`<div class="matrix-label matrix-bait-label"><span class="matrix-icon">${baitIcon(b)}</span><span>${escapeHtml(b)}</span></div>`).join('');
+  container.style.setProperty('--matrix-min-width',`${Math.max(680, 176 + (baits.length * 118) + (baits.length * 10))}px`);
+  container.setAttribute('tabindex','0');
+  container.setAttribute('aria-label','Spot Köder Matrix horizontal scrollbar');
+  const header='<div class="matrix-label matrix-corner" title="Spot / Köder"><span>Spot / Köder</span></div>'+baits.map(b=>`<div class="matrix-label matrix-bait-label" title="${escapeHtml(b)}"><span class="matrix-icon">${baitIcon(b)}</span><span>${escapeHtml(b)}</span></div>`).join('');
   const spotIcon=(spot)=>{
     const key=String(spot||'').toLowerCase();
     if(key.includes('schilf'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 54C18 38 19 24 15 10"/><path d="M30 54C30 34 31 20 28 7"/><path d="M43 54C42 38 43 26 48 13"/><path d="M13 29c8-4 13-3 18 2"/><path d="M29 22c9-5 15-4 21 2"/></svg>';
@@ -3102,11 +3105,12 @@ function renderSpotBaitMatrix(){
     if(key.includes('einlauf')||key.includes('zulauf'))return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M11 23c9-5 18-5 27 0s14 5 19 0"/><path d="M11 38c9-5 18-5 27 0s14 5 19 0"/><path d="M32 8v38"/><path d="M22 36l10 10 10-10"/></svg>';
     return '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 42c9-7 18-9 30-5"/><path d="M17 51h31"/><path d="M25 32c1-9 6-16 15-21"/></svg>';
   };
-  const rows=spots.map(spot=>`<div class="matrix-label matrix-spot-label"><span class="matrix-icon matrix-spot-icon">${spotIcon(spot)}</span><span>${escapeHtml(spot)}</span></div>`+baits.map(bait=>{
+  const rows=spots.map(spot=>`<div class="matrix-label matrix-spot-label" title="${escapeHtml(spot)}"><span class="matrix-icon matrix-spot-icon">${spotIcon(spot)}</span><span>${escapeHtml(spot)}</span></div>`+baits.map(bait=>{
     const v=values.find(x=>x.spot===spot&&x.bait===bait)||{count:0,lift:0};
     const strength=Math.min(1,v.lift/maxLift);
     const opacity=.10+strength*.86;
-    return `<div class="matrix-cell analytics-affinity-cell" style="--affinity:${strength};background:radial-gradient(circle at 50% 30%,rgba(143,240,167,${opacity}),rgba(74,215,209,${Math.max(.06,opacity*.46)}))"><strong>${v.count}</strong><span>${v.lift?`${v.lift.toFixed(1)}× Lift`:'–'}</span></div>`;
+    const liftLabel=v.lift?`${v.lift.toFixed(1)}× Lift`:'–';
+    return `<div class="matrix-cell analytics-affinity-cell" title="${escapeHtml(spot)} × ${escapeHtml(bait)}: ${v.count} Fänge · ${escapeHtml(liftLabel)}" style="--affinity:${strength};background:radial-gradient(circle at 50% 30%,rgba(143,240,167,${opacity}),rgba(74,215,209,${Math.max(.06,opacity*.46)}))"><strong>${v.count}</strong><span>${liftLabel}</span></div>`;
   }).join('')).join('');
   container.innerHTML=header+rows;
 }
