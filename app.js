@@ -4431,6 +4431,31 @@ setInterval(injectWeatherIntoCatchCards, 800);
     }catch(e){console.warn('Duell Preview Upload Exception',e);return null;}
   }
   function canvasBlob(canvas,type='image/png',quality=.92){return new Promise(resolve=>{try{canvas.toBlob(blob=>resolve(blob),type,quality);}catch(e){console.warn('Canvas Blob fehlgeschlagen',e);resolve(null);}});}
+  function waitForLeafletTiles(tileLayer,map,timeoutMs=1800){
+    return new Promise(resolve=>{
+      let done=false;
+      const finish=()=>{
+        if(done)return;
+        done=true;
+        try{tileLayer.off('load',finish);tileLayer.off('tileerror',onTileError);}catch(e){}
+        resolve();
+      };
+      const onTileError=()=>console.warn('[Sniper Snapshot] Tile konnte nicht geladen werden - Timeout/Fallback wartet weiter.');
+      try{tileLayer.on('load',finish);tileLayer.on('tileerror',onTileError);}catch(e){finish();return;}
+      setTimeout(finish,timeoutMs);
+      requestAnimationFrame(()=>{
+        try{map.invalidateSize(false);tileLayer.redraw();}catch(e){}
+      });
+    });
+  }
+  function padSinglePointBounds(bounds,lat,lng){
+    if(!bounds||!Number.isFinite(lat)||!Number.isFinite(lng))return bounds;
+    try{
+      if(bounds.getNorth()===bounds.getSouth())bounds.extend([lat+0.002,lng]);
+      if(bounds.getEast()===bounds.getWest())bounds.extend([lat,lng+0.002]);
+    }catch(e){}
+    return bounds;
+  }
   function drawFinalDuelRouteOverlay(ctx,finalCanvas,mapElement,route){
     if(!ctx||!finalCanvas||!mapElement||!duelMap||!route?.length)return false;
     const scaleX=finalCanvas.width/Math.max(1,mapElement.clientWidth||finalCanvas.width);
@@ -4444,30 +4469,45 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   async function buildSniperFinalMapImage(s){
     if(!s||!isSniperMode(s))return null;
-    const spots=(Array.isArray(s.sniperSpots)?s.sniperSpots:[]).map(spot=>({...spot,lat:Number(spot.lat),lng:Number(spot.lng)})).filter(spot=>Number.isFinite(spot.lat)&&Number.isFinite(spot.lng));
+    const spots=(Array.isArray(s.sniperSpots)?s.sniperSpots:[])
+      .map(spot=>({...spot,lat:Number(spot.lat),lng:Number(spot.lng)}))
+      .filter(spot=>Number.isFinite(spot.lat)&&Number.isFinite(spot.lng));
+    console.debug('[Sniper Snapshot] spots',spots.length);
     if(!spots.length)return svgDataUrl(buildSniperPreviewSvg(s));
-    if(typeof L==='undefined'||typeof html2canvas!=='function')return svgDataUrl(buildSniperPreviewSvg(s));
-    let wrap=null,map=null;
+    if(typeof L==='undefined'||typeof html2canvas!=='function'){
+      console.warn('[Sniper Snapshot] Leaflet/html2canvas nicht verfuegbar - SVG-Fallback wird genutzt.');
+      return svgDataUrl(buildSniperPreviewSvg(s));
+    }
+    let wrap=null,map=null,tileLayer=null;
     try{
       wrap=document.createElement('div');
       wrap.className='sniper-final-map-snapshot';
-      wrap.style.cssText='position:fixed;left:-12000px;top:-12000px;width:720px;height:420px;opacity:1;pointer-events:none;z-index:-1;';
+      wrap.setAttribute('aria-hidden','true');
+      wrap.style.cssText='position:fixed;left:-12000px;top:0;width:900px;height:520px;opacity:1;pointer-events:none;z-index:0;background:#08111b;overflow:hidden;';
       document.body.appendChild(wrap);
-      map=L.map(wrap,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false}).setView([spots[0].lat,spots[0].lng],13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true}).addTo(map);
-      const bounds=L.latLngBounds(spots.map(spot=>[spot.lat,spot.lng]));
-      map.fitBounds(bounds.pad(0.28),{maxZoom:17,animate:false});
-      await new Promise(resolve=>setTimeout(resolve,520));
+      map=L.map(wrap,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,tap:false,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false,preferCanvas:true});
+      tileLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,crossOrigin:true,updateWhenIdle:false,keepBuffer:2});
+      const tileReady=waitForLeafletTiles(tileLayer,map,1800);
+      tileLayer.addTo(map);
+      let bounds=L.latLngBounds(spots.map(spot=>[spot.lat,spot.lng]));
+      bounds=padSinglePointBounds(bounds,spots[0].lat,spots[0].lng);
+      map.fitBounds(bounds.pad(0.32),{maxZoom:17,animate:false,padding:[42,42]});
       map.invalidateSize(false);
-      await new Promise(resolve=>setTimeout(resolve,180));
-      const baseCanvas=await html2canvas(wrap,{useCORS:true,allowTaint:true,backgroundColor:null,scale:2,logging:false});
+      await new Promise(resolve=>map.whenReady(resolve));
+      await tileReady;
+      map.invalidateSize(false);
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const baseCanvas=await html2canvas(wrap,{useCORS:true,allowTaint:true,backgroundColor:null,scale:2,logging:false,width:900,height:520,windowWidth:900,windowHeight:520,scrollX:0,scrollY:0});
       const finalCanvas=document.createElement('canvas');finalCanvas.width=baseCanvas.width;finalCanvas.height=baseCanvas.height;
       const ctx=finalCanvas.getContext('2d');if(!ctx)return svgDataUrl(buildSniperPreviewSvg(s));
       ctx.drawImage(baseCanvas,0,0);
       drawSniperSpotsOnCanvas(ctx,finalCanvas,wrap,{...s,sniperSpots:spots,mode:'sniper'},map);
       const blob=await canvasBlob(finalCanvas,'image/png');
+      if(!blob){console.warn('[Sniper Snapshot] Canvas Blob leer - SVG-Fallback wird genutzt.');return svgDataUrl(buildSniperPreviewSvg(s));}
       const uploaded=await uploadDuelImageBlob(blob,s.duelId||s.id);
-      return uploaded||svgDataUrl(buildSniperPreviewSvg(s));
+      const finalImage=uploaded||svgDataUrl(buildSniperPreviewSvg(s));
+      console.debug('[Sniper Snapshot] generated image?',!!finalImage,finalImage?.slice?.(0,40));
+      return finalImage;
     }catch(e){
       console.warn('Sniper Final Map Preview konnte nicht erzeugt werden',e);
       return svgDataUrl(buildSniperPreviewSvg(s));
@@ -4476,6 +4516,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       try{if(wrap)wrap.remove();}catch(e){}
     }
   }
+
 
   async function buildFinalDuelPreviewImage(s){
     if(!s||s.mode==='feed')return null;
@@ -4510,6 +4551,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(isSniperMode(s)){
       const sniperPreviewSvg=buildSniperPreviewSvg(s);
       const sniperFinalImage=await buildSniperFinalMapImage(s);
+      s.imageUrl=sniperFinalImage||null;
+      s.fishImage=null;
       updatePayload.duel_type='spot_sniper_elite';
       updatePayload.fish_image=null;
       updatePayload.image_url=sniperFinalImage||null;
@@ -4539,11 +4582,13 @@ setInterval(injectWeatherIntoCatchCards, 800);
       updatePayload.image_url=s.imageUrl||s.fishImage||existingDuel?.image_url||null;
       updatePayload.result={...mergedResult,fish_image:updatePayload.fish_image,image_url:updatePayload.image_url};
     }
+    if(isSniperMode(s))console.debug('[Sniper Finish] saved image_url?',!!updatePayload.image_url,updatePayload.image_url?.slice?.(0,40));
     const {error}=await db.from('duels').update(updatePayload).eq('id',s.duelId);
     if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
     await syncRemoteParticipants(s);
     await addRemoteEvent(s,'system',null,{message:'Duell beendet',result:updatePayload.result});
     loadDuelLeaderboard();
+    return updatePayload;
   }
   async function cancelRemoteDuel(duelId){
     if(!db||!duelId||duelId==='local')return false;
@@ -4629,7 +4674,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const localEntry=local.startedAt?{id:local.duelId||'local',status:local.active?'active':'finished',created_at:local.startedAt,end_time:local.endedAt,duel_type:local.mode==='feed'?'feed_your_fish':(local.mode==='sniper'?'spot_sniper_elite':(local.mode==='blitz'?'blitz':'trolling_master')),result:localResult,image_url:local.imageUrl,fish_image:local.fishImage,fish_state:localResult.fish_state,participants:[local.captainId,local.opponentId].filter(Boolean).map(id=>({participant_id:id,display_name:participantName(id),score:isSniperMode(local)?Number(local.sniperScore?.[id]||0):Number(local.score?.[id]||0),bonus_score:isSniperMode(local)?0:(id===local.captainId?captainBonus(local)+speedBonus(local):0),catches_count:(local.catches||[]).filter(c=>c.participantId===id).length,is_captain:id===local.captainId})),tracks:local.route||[]}:null;
     const activeSniper=getActiveSniperDuel();
     const sniperResult=activeSniper?buildDuelResult(activeSniper):null;
-    const sniperEntry=activeSniper?.startedAt?{id:activeSniper.duelId||'sniper-local',status:activeSniper.active?'active':'finished',created_at:activeSniper.startedAt,end_time:activeSniper.endedAt,duel_type:'spot_sniper_elite',result:sniperResult,fish_state:sniperResult?.fish_state,participants:[activeSniper.captainId,activeSniper.opponentId].filter(Boolean).map(id=>({participant_id:id,display_name:participantName(id),score:Number(activeSniper.sniperScore?.[id]||0),bonus_score:0,catches_count:(activeSniper.catches||[]).filter(c=>c.participantId===id).length,is_captain:id===activeSniper.captainId})),tracks:[]}:null;
+    const sniperEntry=activeSniper?.startedAt?{id:activeSniper.duelId||'sniper-local',status:activeSniper.active?'active':'finished',created_at:activeSniper.startedAt,end_time:activeSniper.endedAt,duel_type:'spot_sniper_elite',result:sniperResult,image_url:activeSniper.imageUrl||activeSniper.result?.image_url||activeSniper.result?.sniper_map_image||null,fish_image:null,fish_state:sniperResult?.fish_state,participants:[activeSniper.captainId,activeSniper.opponentId].filter(Boolean).map(id=>({participant_id:id,display_name:participantName(id),score:Number(activeSniper.sniperScore?.[id]||0),bonus_score:0,catches_count:(activeSniper.catches||[]).filter(c=>c.participantId===id).length,is_captain:id===activeSniper.captainId})),tracks:[]}:null;
     const entries=[...(localEntry?[localEntry]:[]),...(sniperEntry?[sniperEntry]:[]),...leaderboardCache.filter(d=>d.id!==local.duelId&&d.id!==activeSniper?.duelId)];
     if(!entries.length){el.innerHTML='<div class="duel-arena-card"><div class="meta">Noch keine Duelle gespeichert.</div></div>';return;}
     const finished=entries.filter(d=>d.status==='finished');
@@ -5027,7 +5072,12 @@ setInterval(injectWeatherIntoCatchCards, 800);
     stopSniperLiveSyncLoop();
     destroySniperSectionMap();
     updateDuelUi();
-    await finishRemoteDuel(s);
+    const finishedPayload=await finishRemoteDuel(s);
+    if(finishedPayload?.image_url)s.imageUrl=finishedPayload.image_url;
+    if(finishedPayload?.result)s.result=finishedPayload.result;
+    s.fishImage=null;
+    saveActiveSniperDuel(s);
+    updateDuelUi();
   }
   async function cancelActiveSniperDuel(){
     const s=getActiveSniperDuel();
