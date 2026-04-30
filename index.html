@@ -330,35 +330,94 @@
         </div>
 
 
-        <section class="panel glass">
-          <div class="panel-head">
-            <h3 id="activeTournamentTitle">Turnierauswertung</h3>
-            <span id="activeTournamentMeta" class="subtle">Noch kein Turnier ausgewählt</span>
-          </div>
-          <div class="grid two-columns">
-            <div>
-              <div id="tournamentLeaderboard" class="stack-list"></div>
+        <section class="panel glass tournament-hub-panel" id="tournamentHubPanel" data-active-tournament-tab="overview">
+          <div class="tournament-hub-hero">
+            <div class="tournament-hub-copy">
+              <p class="eyebrow">Tournament Hub</p>
+              <h3 id="activeTournamentTitle">Turnierauswertung</h3>
+              <span id="activeTournamentMeta" class="subtle">Noch kein Turnier ausgewählt</span>
             </div>
-            <div class="stack-list">
-              <article class="tournament-story-card">
+            <div id="tournamentHeroKpis" class="tournament-hero-kpis" aria-label="Turnier Kennzahlen"></div>
+          </div>
+
+          <nav class="tournament-tabs" aria-label="Turnierbereiche">
+            <button type="button" class="tournament-tab is-active" data-tournament-tab="overview">Übersicht</button>
+            <button type="button" class="tournament-tab" data-tournament-tab="ranking">Rangliste</button>
+            <button type="button" class="tournament-tab" data-tournament-tab="map">Karte</button>
+            <button type="button" class="tournament-tab" data-tournament-tab="story">Story</button>
+            <button type="button" class="tournament-tab" data-tournament-tab="games">Duelle</button>
+          </nav>
+
+          <div class="tournament-hub-layout">
+            <div class="tournament-main-column">
+              <article class="tournament-section-card tournament-leaderboard-card" data-tournament-section="overview ranking">
                 <div class="panel-head compact">
-                  <h3>Turnier-Story</h3>
-                  <span class="subtle">humorvoll aus den Daten</span>
+                  <div>
+                    <h3>Leaderboard</h3>
+                    <span class="subtle">Top 3 sofort sichtbar · volle Rangliste ohne neue Logik</span>
+                  </div>
                 </div>
-                <div id="tournamentStory" class="tournament-story-text"></div>
+                <div id="tournamentLeaderboard" class="stack-list tournament-leaderboard-list"></div>
               </article>
-              <article class="tournament-story-card tournament-catch-map-card">
+
+              <article class="tournament-section-card tournament-catch-map-card" data-tournament-section="map">
                 <div class="panel-head compact tournament-catch-map-head">
                   <div>
                     <h3>Turnier-Karte</h3>
-                    <span class="subtle">chronologisch · früh → spät</span>
+                    <span class="subtle">chronologisch · früh → spät · Teilnehmerfarben</span>
                   </div>
+                  <button type="button" class="pill secondary tournament-mini-action" data-tournament-collapse="tournamentCatchMapLegend">Legende</button>
                 </div>
                 <div id="tournamentCatchMap" class="tournament-catch-map" role="img" aria-label="Chronologischer Fangverlauf des aktiven Turniers"></div>
                 <div id="tournamentCatchMapLegend" class="tournament-catch-map-legend"></div>
               </article>
-              <div id="tournamentHighlights" class="stack-list"></div>
             </div>
+
+            <aside class="tournament-insight-column">
+              <article class="tournament-section-card tournament-duel-summary-card" data-tournament-section="overview games">
+                <div class="panel-head compact">
+                  <div>
+                    <h3>Aktive Duelle & Challenges</h3>
+                    <span class="subtle">Sniper & Mini-Games schnell verstehen</span>
+                  </div>
+                </div>
+                <div id="tournamentDuelSummary" class="tournament-duel-summary"></div>
+              </article>
+
+              <article class="tournament-section-card tournament-last-catch-card" data-tournament-section="overview story">
+                <div class="panel-head compact">
+                  <h3>Letzter Fang</h3>
+                  <span class="subtle">jüngstes Ereignis</span>
+                </div>
+                <div id="tournamentLastCatch" class="tournament-last-catch"></div>
+              </article>
+
+              <article class="tournament-section-card tournament-story-card" data-tournament-section="story">
+                <div class="panel-head compact">
+                  <div>
+                    <h3>Turnier-Story</h3>
+                    <span class="subtle">humorvoll aus den Daten</span>
+                  </div>
+                  <button type="button" class="pill secondary tournament-mini-action" data-tournament-collapse="tournamentStory">Mehr</button>
+                </div>
+                <div id="tournamentStory" class="tournament-story-text"></div>
+              </article>
+
+              <article class="tournament-section-card tournament-highlights-card" data-tournament-section="overview story">
+                <div class="panel-head compact">
+                  <h3>Highlights</h3>
+                  <span class="subtle">Rekorde & Artensieger</span>
+                </div>
+                <div id="tournamentHighlights" class="stack-list tournament-highlights-grid"></div>
+              </article>
+
+              <article class="tournament-section-card tournament-timeline-card" data-tournament-section="story">
+                <details id="tournamentCatchTimelineDetails">
+                  <summary>Chronologische Fangliste anzeigen</summary>
+                  <div id="tournamentCatchTimeline" class="tournament-catch-timeline"></div>
+                </details>
+              </article>
+            </aside>
           </div>
         </section>
 
