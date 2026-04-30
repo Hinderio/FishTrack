@@ -5658,7 +5658,13 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const activeSniper=getActiveSniperDuel();
     const sniperResult=activeSniper?buildDuelResult(activeSniper):null;
     const sniperEntry=activeSniper?.startedAt?{id:activeSniper.duelId||'sniper-local',status:activeSniper.active?'active':'finished',created_at:activeSniper.startedAt,end_time:activeSniper.endedAt,duel_type:'spot_sniper_elite',result:sniperResult,image_url:activeSniper.imageUrl||activeSniper.result?.image_url||activeSniper.result?.sniper_map_image||null,fish_image:null,fish_state:sniperResult?.fish_state,participants:[activeSniper.captainId,activeSniper.opponentId].filter(Boolean).map(id=>({participant_id:id,display_name:participantName(id),score:Number(activeSniper.sniperScore?.[id]||0),bonus_score:0,catches_count:(activeSniper.catches||[]).filter(c=>c.participantId===id).length,is_captain:id===activeSniper.captainId})),tracks:[]}:null;
-    const entries=[...(localEntry?[localEntry]:[]),...(sniperEntry?[sniperEntry]:[]),...leaderboardCache.filter(d=>d.id!==local.duelId&&d.id!==activeSniper?.duelId)];
+    const duelEntrySortMs=d=>{
+      const raw=d?.end_time||d?.endedAt||d?.updated_at||d?.updatedAt||d?.created_at||d?.startedAt||0;
+      const ms=new Date(raw).getTime();
+      return Number.isFinite(ms)?ms:0;
+    };
+    const entries=[...(localEntry?[localEntry]:[]),...(sniperEntry?[sniperEntry]:[]),...leaderboardCache.filter(d=>d.id!==local.duelId&&d.id!==activeSniper?.duelId)]
+      .sort((a,b)=>duelEntrySortMs(b)-duelEntrySortMs(a));
     if(!entries.length){el.innerHTML='<div class="duel-arena-card"><div class="meta">Noch keine Duelle gespeichert.</div></div>';return;}
     const finished=entries.filter(d=>d.status==='finished');
     const live=entries.filter(d=>d.status==='active');
@@ -5882,11 +5888,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function renderActiveDuelSwitcher(){renderParallelDuelsHub(getDuelState());}
   function renderParallelDuelsHub(selectedState){
     const el=document.getElementById('parallelDuelsHub');if(!el)return;
-    const duels=getActiveDuels();
+    const duels=getActiveDuels().filter(isParallelDuelOpen);
     const selected=normalizeParallelDuel(selectedState||getDuelState());
-    const activeCount=duels.filter(isParallelDuelOpen).length;
+    const activeCount=duels.length;
     if(!duels.length){
-      el.innerHTML=`<div class="parallel-duels-empty"><div><b>Keine parallelen Duelle aktiv</b><span>Starte ein Duell – danach bleibt es hier als Live-Challenge sichtbar.</span></div><button type="button" class="pill primary" data-parallel-new-duel>+ Neues Duell</button></div>`;
+      el.innerHTML=`<div class="parallel-duels-empty"><div><b>Keine aktiven Duelle</b><span>Abgeschlossene Duelle findest du in der Historie / Hall of Fame. Starte ein neues Duell, um es hier als Live-Challenge zu sehen.</span></div><button type="button" class="pill primary" data-parallel-new-duel>+ Neues Duell</button></div>`;
       return;
     }
     const cards=duels.map(duel=>{
