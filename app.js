@@ -4014,19 +4014,17 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const card=document.getElementById('feedFishCard'),grid=document.getElementById('feedFishGrid');
     if(!card||!grid)return;
     let s=getDuelState();
-    const modeSelect=document.getElementById('duelModeSelect');
-    const selectedMode=modeSelect?.value||s.mode||'trolling';
-    const isFeed=selectedMode==='feed'||s.mode==='feed';
+    const isFeed=s.mode==='feed';
     card.classList.toggle('is-feed-active',!!isFeed);
+    card.classList.toggle('duel-mode-section-hidden',!isFeed);
     const activateBtn=document.getElementById('feedFishActivateBtn'),startBtn=document.getElementById('feedFishStartBtn');
     if(activateBtn)activateBtn.classList.toggle('hidden',!!isFeed);
     if(startBtn)startBtn.classList.toggle('hidden',!!s.active||!isFeed);
     if(!isFeed){
-      grid.innerHTML='<div class="feed-fish-empty"><b>Feed your Fish ist noch nicht aktiv.</b><br>Tippe auf „Modus aktivieren“ oder wähle oben Feed your Fish. Danach startet das Mini-Game sauber im bestehenden Duell-Modul.</div>';
+      grid.innerHTML='';
       return;
     }
     s=ensureDuelParticipants(s);
-    s.mode='feed';
     ensureFeedFishState(s);
     if(s.active)s=feedFishApplyDecay(s);
     const intervalMin=Math.round(feedFishIntervalMs(s)/60000);
@@ -4050,15 +4048,19 @@ setInterval(injectWeatherIntoCatchCards, 800);
   const SNIPER_ACTIVE_KEY=`${KEY}-sniper-active`;
   let tickTimer=null,gpsTimer=null,talkTimer=null,sniperTickTimer=null,sniperLiveSyncTimer=null,leaderboardCache=[];
   function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null,fishImage:null,startTimestamp:null,sniperSpots:[],sniperConfig:null,sniperScore:{},dartTargets:[],dartConfig:null,dartScore:{},dartEvents:[]};}
-  function getDuelState(){try{return normalizeLegacySpeciesInObject({...defaultDuelState(),...(JSON.parse(localStorage.getItem(KEY)||'{}')||{})});}catch{return defaultDuelState();}}
+  function cloneDuelState(value){
+    if(value==null)return value;
+    try{return structuredClone(value);}catch(e){try{return JSON.parse(JSON.stringify(value));}catch(err){return {...value};}}
+  }
+  function getDuelState(){try{return normalizeLegacySpeciesInObject({...defaultDuelState(),...cloneDuelState(JSON.parse(localStorage.getItem(KEY)||'{}')||{})});}catch{return defaultDuelState();}}
   function saveDuelState(s){
-    s=normalizeLegacySpeciesInObject(s);
+    s=normalizeLegacySpeciesInObject(cloneDuelState(s));
     if(isParallelDuelTrackable(s)){
       ensureParallelDuelId(s);
       upsertParallelDuel(s,{select:true});
     }
-    localStorage.setItem(KEY,JSON.stringify(s));
-    window.duelState=s;
+    localStorage.setItem(KEY,JSON.stringify(cloneDuelState(s)));
+    window.duelState=cloneDuelState(s);
   }
   function participant(id){return (state.participants||[]).find(p=>p.id===id)||null;}
   function participantName(id){return participant(id)?.name||'–';}
@@ -4149,31 +4151,34 @@ setInterval(injectWeatherIntoCatchCards, 800);
     try{
       const pending=JSON.parse(localStorage.getItem(SNIPER_PENDING_KEY)||'null');
       if(!pending||pending.mode!=='sniper')return null;
-      return ensureSniperState({...defaultDuelState(),...pending,mode:'sniper',active:false,startedAt:null,startTimestamp:null,endedAt:null});
+      return ensureSniperState({...defaultDuelState(),...cloneDuelState(pending),mode:'sniper',active:false,startedAt:null,startTimestamp:null,endedAt:null});
     }catch{return null;}
   }
   function savePendingSniperDuel(data){
     if(!data)return;
-    const pending=ensureSniperState({...defaultDuelState(),...data,mode:'sniper',active:false,startedAt:null,startTimestamp:null,endedAt:null,route:[],duelId:null});
+    const pending=ensureSniperState({...defaultDuelState(),...cloneDuelState(data),mode:'sniper',active:false,startedAt:null,startTimestamp:null,endedAt:null,route:[],duelId:null});
     pending.sniperConfig={...(pending.sniperConfig||{}),locked:true,setupDone:true,setupActive:false};
     pending.updatedAt=new Date().toISOString();
     if(!pending.createdAt)pending.createdAt=pending.updatedAt;
-    localStorage.setItem(SNIPER_PENDING_KEY,JSON.stringify(pending));
+    ensureParallelDuelId(pending);
+    upsertParallelDuel(pending,{select:false});
+    localStorage.setItem(SNIPER_PENDING_KEY,JSON.stringify(cloneDuelState(pending)));
+    return cloneDuelState(pending);
   }
   function clearPendingSniperDuel(){localStorage.removeItem(SNIPER_PENDING_KEY);}
   function getActiveSniperDuel(){
     try{
       const active=JSON.parse(localStorage.getItem(SNIPER_ACTIVE_KEY)||'null');
       if(!active||active.mode!=='sniper')return null;
-      return ensureSniperState({...defaultDuelState(),...active,mode:'sniper',route:Array.isArray(active.route)?active.route:[]});
+      return ensureSniperState({...defaultDuelState(),...cloneDuelState(active),mode:'sniper',route:Array.isArray(active.route)?cloneDuelState(active.route):[]});
     }catch{return null;}
   }
   function saveActiveSniperDuel(data){
     if(!data)return;
-    const active=ensureSniperState(normalizeLegacySpeciesInObject({...defaultDuelState(),...data,mode:'sniper',route:[]}));
+    const active=ensureSniperState(normalizeLegacySpeciesInObject({...defaultDuelState(),...cloneDuelState(data),mode:'sniper',route:[]}));
     if(isParallelDuelTrackable(active)){ensureParallelDuelId(active);upsertParallelDuel(active,{select:false});}
-    localStorage.setItem(SNIPER_ACTIVE_KEY,JSON.stringify(active));
-    window.sniperDuelState=active;
+    localStorage.setItem(SNIPER_ACTIVE_KEY,JSON.stringify(cloneDuelState(active)));
+    window.sniperDuelState=cloneDuelState(active);
   }
   function clearActiveSniperDuel(){const active=getActiveSniperDuel();if(active)removeParallelDuel(active);localStorage.removeItem(SNIPER_ACTIVE_KEY);window.sniperDuelState=null;}
   function hasActiveSniperDuel(){const s=getActiveSniperDuel();return !!(s&&s.active);}
@@ -4786,12 +4791,22 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function renderPendingSniperUi(){
     const card=document.getElementById('sniperEliteCard'),grid=document.getElementById('sniperEliteGrid');
     if(!card||!grid)return;
-    const pending=getPendingSniperDuel();
-    const active=getActiveSniperDuel();
+    const selected=ensureSniperState(getDuelState());
+    const show=isSniperMode(selected);
     const startBtn=document.getElementById('sniperPendingStartBtn'),editBtn=document.getElementById('sniperPendingEditBtn'),clearBtn=document.getElementById('sniperPendingClearBtn');
     const endBtn=document.getElementById('sniperActiveEndBtn'),cancelBtn=document.getElementById('sniperActiveCancelBtn');
+    card.classList.toggle('duel-mode-section-hidden',!show);
+    if(!show){
+      [startBtn,editBtn,clearBtn,endBtn,cancelBtn].forEach(btn=>{if(btn)btn.classList.add('hidden');});
+      delete grid.dataset.sniperLiveKey;
+      grid.innerHTML='';
+      destroySniperSectionMap();
+      return;
+    }
+    const active=selected.active?selected:null;
+    const pending=(!selected.active&&selected.sniperSpots?.length&&selected.sniperConfig?.setupDone)?selected:null;
     const hasLive=!!(active&&active.active);
-    const hasFinished=!!(active&&!active.active&&active.endedAt);
+    const hasFinished=!!(selected&&!selected.active&&selected.endedAt);
     const hasPending=!!(!hasLive&&pending&&pending.sniperSpots?.length);
     card.classList.toggle('is-sniper-live',hasLive);
     card.classList.toggle('is-sniper-pending',hasPending);
@@ -4819,7 +4834,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
           <div class="sniper-elite-summary sniper-live-summary">
             <span>🔴 LIVE</span>
             <strong id="sniperLiveTimer">${formatTime(remainingMs(active))} Restzeit</strong>
-            <small>Spot Sniper läuft als Sidecar. Keine Route, keine Start-/Zielpunkte, keine Catch-Marker – Treffer färben Zielscheiben grün.</small>
+            <small>Spot Sniper läuft im selektierten Detailfenster. Keine Route, keine Start-/Zielpunkte, keine Catch-Marker – Treffer färben Zielscheiben grün.</small>
           </div>
           <div id="sniperSectionMap" class="sniper-live-map" aria-label="Spot Sniper Elite Live-Karte"></div>
           <div class="sniper-target-progress" id="sniperTargetProgress">
@@ -4841,7 +4856,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
         const scoreRows=grid.querySelector('#sniperLiveScoreRows');
         if(scoreRows)scoreRows.innerHTML=rows;
       }
-      requestAnimationFrame(()=>renderSniperSectionMap(getActiveSniperDuel()));
+      requestAnimationFrame(()=>renderSniperSectionMap(active));
       return;
     }
     if(hasPending){
@@ -4859,14 +4874,15 @@ setInterval(injectWeatherIntoCatchCards, 800);
       return;
     }
     if(hasFinished){
-      const result=buildDuelResult(active);
-      const total=(active.sniperSpots||[]).length;
-      const hits=(active.sniperSpots||[]).filter(spot=>spot.hit).length;
-      const rows=[active.captainId,active.opponentId].filter(Boolean).map(id=>`<article class="sniper-spot-mini-card"><div><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</strong><small>${sniperSpotsForPlayer(active,id).filter(spot=>spot.hit).length}/${sniperSpotsForPlayer(active,id).length} Treffer</small></div><b>${Number(active.sniperScore?.[id]||0)}P</b></article>`).join('');
+      const finished=selected;
+      const result=buildDuelResult(finished);
+      const total=(finished.sniperSpots||[]).length;
+      const hits=(finished.sniperSpots||[]).filter(spot=>spot.hit).length;
+      const rows=[finished.captainId,finished.opponentId].filter(Boolean).map(id=>`<article class="sniper-spot-mini-card"><div><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</strong><small>${sniperSpotsForPlayer(finished,id).filter(spot=>spot.hit).length}/${sniperSpotsForPlayer(finished,id).length} Treffer</small></div><b>${Number(finished.sniperScore?.[id]||0)}P</b></article>`).join('');
       grid.innerHTML=`<div class="sniper-elite-summary"><span>✅ Beendet</span><strong>${escapeHtml(result.winner_name||'Kein Gewinner')}</strong><small>${hits}/${total} Zielscheiben getroffen · Ergebnis wurde gespeichert. Neues Setup kann oben vorbereitet werden.</small></div>${rows}`;
       return;
     }
-    grid.innerHTML='<div class="sniper-elite-empty"><b>Noch kein Sniper-Setup vorbereitet.</b><br>Wähle oben Spot Sniper Elite, setze die Zielscheiben und locke das Setup. Sniper läuft danach unabhängig in dieser Section.</div>';
+    grid.innerHTML='<div class="sniper-elite-empty"><b>Noch kein Sniper-Setup vorbereitet.</b><br>Wähle oben Spot Sniper Elite, setze die Zielscheiben und locke das Setup. Danach bleibt Sniper als eigene Kachel im gemeinsamen Detailfenster auswählbar.</div>';
   }
   async function startPendingSniperDuel(){
     const pending=getPendingSniperDuel();
@@ -4889,13 +4905,17 @@ setInterval(injectWeatherIntoCatchCards, 800);
       sniperConfig:{...(pending.sniperConfig||{}),locked:true,setupDone:true,setupActive:false},
       catches:[],
       route:[],
-      lastTalk:'🎯 Spot Sniper Elite läuft als Sidecar. Catch im Zielkreis zählt – keine Route, keine Catch-Marker.'
+      lastTalk:'🎯 Spot Sniper Elite läuft im selektierten Detailfenster. Catch im Zielkreis zählt – keine Route, keine Catch-Marker.'
     });
     saveActiveSniperDuel(s);
     s=await createRemoteDuel(s,{persistTarget:'sniper'});
     saveActiveSniperDuel(s);
+    localStorage.setItem(KEY,JSON.stringify(cloneDuelState(s)));
+    window.duelState=cloneDuelState(s);
+    upsertParallelDuel(s,{select:true});
     await syncActiveSniperState(s);
     clearPendingSniperDuel();
+    removeParallelDuel(pending);
     startSniperTimers();
     startSniperLiveSyncLoop();
     updateDuelUi();
@@ -4916,8 +4936,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
     openSniperSetupModal();
   }
   function clearPendingSniperSetup(){
+    const pending=getPendingSniperDuel();
     clearPendingSniperDuel();
-    renderPendingSniperUi();
+    if(pending)removeParallelDuel(pending);
+    startNewParallelDuelDraft();
   }
   function openSniperSetupModal(){
     const s=ensureSniperState(getDuelState());if(!isSniperMode(s)||!s.sniperConfig?.setupActive||s.sniperConfig.locked)return;
@@ -4946,12 +4968,13 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(!complete){openSniperSetupModal();return;}
     s.sniperConfig.locked=true;s.sniperConfig.setupDone=true;s.sniperConfig.setupActive=false;
     s.active=false;s.startedAt=null;s.startTimestamp=null;s.endedAt=null;s.route=[];s.catches=[];s.duelId=null;
-    s.lastTalk='🔒 Spot Sniper Elite Setup ist gespeichert. Starte das Duell später bewusst am Wasser.';
-    savePendingSniperDuel(s);
-    const clean=ensureDuelParticipants({...defaultDuelState(),captainId:s.captainId,opponentId:s.opponentId,durationMin:s.durationMin,mode:'trolling',score:{[s.captainId]:0,[s.opponentId]:0},lastTalk:'🔒 Sniper-Setup wurde in die eigene Section verschoben. Der Duellbereich ist wieder frei.'});
-    saveDuelState(clean);
-    const modeSelect=document.getElementById('duelModeSelect');if(modeSelect)modeSelect.value='trolling';
-    const durationSelect=document.getElementById('duelDurationSelect');if(durationSelect)durationSelect.value=String(clean.durationMin||60);
+    s.lastTalk='🔒 Spot Sniper Elite Setup ist gespeichert. Die Kachel bleibt auswählbar; Start erfolgt bewusst im Detailfenster.';
+    s=savePendingSniperDuel(s)||s;
+    upsertParallelDuel(s,{select:true});
+    localStorage.setItem(KEY,JSON.stringify(cloneDuelState(s)));
+    window.duelState=cloneDuelState(s);
+    const modeSelect=document.getElementById('duelModeSelect');if(modeSelect)modeSelect.value='sniper';
+    const durationSelect=document.getElementById('duelDurationSelect');if(durationSelect)durationSelect.value=String(s.durationMin||60);
     stopTimers();closeSniperSetupModal();document.body.classList.add('sniper-lock-flash');setTimeout(()=>document.body.classList.remove('sniper-lock-flash'),700);
     renderSniperSpots();
     updateDuelUi();
@@ -5754,7 +5777,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   function normalizeParallelDuel(s){
     if(!s)return null;
-    let d=normalizeLegacySpeciesInObject({...defaultDuelState(),...s});
+    let d=normalizeLegacySpeciesInObject({...defaultDuelState(),...cloneDuelState(s)});
     if(isSniperMode(d))d=ensureSniperState(d);
     if(isDartMode(d))d=ensureDartState(d);
     if(d.mode==='feed')ensureFeedFishState(d);
@@ -5779,8 +5802,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
   }
   function writeParallelDuelStore(list){
     const clean=dedupeParallelDuels(list).filter(isParallelDuelTrackable).slice(0,24);
-    localStorage.setItem(PARALLEL_DUELS_KEY,JSON.stringify(clean));
-    return clean;
+    localStorage.setItem(PARALLEL_DUELS_KEY,JSON.stringify(clean.map(cloneDuelState)));
+    return clean.map(cloneDuelState);
   }
   function dedupeParallelDuels(list){
     const out=[];
@@ -5882,14 +5905,13 @@ setInterval(injectWeatherIntoCatchCards, 800);
     el.innerHTML=`<div class="parallel-duels-head"><div><p class="eyebrow">Aktive Duelle</p><h4>${activeCount} Live-Challenge${activeCount===1?'':'s'}</h4></div><button type="button" class="pill secondary" data-parallel-new-duel>+ Neues Duell</button></div><div class="parallel-duels-strip" role="list">${cards}</div>`;
   }
   function switchParallelDuel(key){
-    const duel=getActiveDuels().find(d=>String(d.parallelId||'')===String(key));
+    const duel=cloneDuelState(getActiveDuels().find(d=>String(d.parallelId||'')===String(key)));
     if(!duel)return;
     duel.unreadActivity=false;
     duel.updatedAt=new Date().toISOString();
     upsertParallelDuel(duel,{select:true});
-    localStorage.setItem(KEY,JSON.stringify(duel));
-    window.duelState=duel;
-    updateDuelUi();
+    localStorage.setItem(KEY,JSON.stringify(cloneDuelState(duel)));
+    window.duelState=cloneDuelState(duel);
     renderDuelSection();
     setTimeout(()=>{try{initDuelMap();duelMap?.invalidateSize();}catch(e){}},90);
   }
@@ -5898,24 +5920,23 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(isParallelDuelTrackable(current))upsertParallelDuel(current,{select:false});
     let draft=ensureDuelParticipants({...defaultDuelState(),durationMin:Number(document.getElementById('duelDurationSelect')?.value||current.durationMin||60),mode:'trolling',lastTalk:'Neues Duell vorbereitet. Wähle Modus und Teilnehmer – bestehende Duelle laufen parallel weiter.'});
     localStorage.removeItem(PARALLEL_SELECTED_KEY);
-    localStorage.setItem(KEY,JSON.stringify(draft));
-    window.duelState=draft;
+    localStorage.setItem(KEY,JSON.stringify(cloneDuelState(draft)));
+    window.duelState=cloneDuelState(draft);
     const mode=document.getElementById('duelModeSelect');if(mode)mode.value='trolling';
-    updateDuelUi();
     renderDuelSection();
   }
   window.getActiveDuels=getActiveDuels;
   window.renderParallelDuelsHub=renderParallelDuelsHub;
   function renderDuelMiniGameSummary(s){
     const el=document.getElementById('duelMiniGameSummary');if(!el)return;
-    const pending=getPendingSniperDuel();
-    const activeSniper=getActiveSniperDuel();
-    const cards=[];
     const info=duelModeCopy(s.mode||'trolling');
-    cards.push({icon:info.icon,title:info.name,status:s.active?'Live':duelStatusText(s),meta:info.hint});
-    if(activeSniper?.active)cards.push({icon:'🎯',title:'Sniper Sidecar',status:'Live',meta:`${(activeSniper.sniperSpots||[]).filter(p=>p.hit).length}/${(activeSniper.sniperSpots||[]).length} Treffer`});
-    else if(pending?.sniperSpots?.length)cards.push({icon:'🎯',title:'Sniper vorbereitet',status:'Startbereit',meta:`${pending.sniperSpots.length} Zielscheiben gelockt`});
-    el.innerHTML=cards.map(card=>`<article class="duel-mini-card"><span>${escapeHtml(card.icon)}</span><div><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.status)} · ${escapeHtml(card.meta)}</small></div></article>`).join('');
+    const meta=isSniperMode(s)&&s.sniperSpots?.length
+      ? `${(s.sniperSpots||[]).filter(p=>p.hit).length}/${(s.sniperSpots||[]).length} Treffer`
+      : (isDartMode(s)&&s.dartTargets?.length
+        ? `${(s.dartEvents||[]).filter(ev=>Number(ev.points||0)>0).length} Dart-Treffer · ${(s.dartTargets||[]).length} Boards`
+        : info.hint);
+    const card={icon:info.icon,title:info.name,status:s.active?'Live':duelStatusText(s),meta};
+    el.innerHTML=`<article class="duel-mini-card"><span>${escapeHtml(card.icon)}</span><div><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.status)} · ${escapeHtml(card.meta)}</small></div></article>`;
   }
   function renderDuelHubChrome(s){
     const panel=document.getElementById('duelPanel');if(!panel)return;
@@ -6189,11 +6210,13 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(selectedMode==='sniper'){
       s=ensureSniperState({...s,captainId:cap,opponentId:opp,mode:'sniper'});
       if(s.sniperConfig?.setupDone&&s.sniperConfig?.locked&&!s.active&&Array.isArray(s.sniperSpots)&&s.sniperSpots.length){
-        savePendingSniperDuel({...s,durationMin:Number(document.getElementById('duelDurationSelect')?.value||s.durationMin||60)});
-        const clean=ensureDuelParticipants({...defaultDuelState(),captainId:cap,opponentId:opp,durationMin:Number(document.getElementById('duelDurationSelect')?.value||60),mode:'trolling',score:{[cap]:0,[opp]:0},lastTalk:'🔒 Sniper-Setup wurde in die eigene Section verschoben. Starte es dort bewusst.'});
-        saveDuelState(clean);
-        const modeSelect=document.getElementById('duelModeSelect');if(modeSelect)modeSelect.value='trolling';
-        const durationSelect=document.getElementById('duelDurationSelect');if(durationSelect)durationSelect.value=String(clean.durationMin||60);
+        s={...s,durationMin:Number(document.getElementById('duelDurationSelect')?.value||s.durationMin||60),lastTalk:'🔒 Sniper-Setup ist gespeichert. Starte es bewusst im Detailfenster dieser Kachel.'};
+        s=savePendingSniperDuel(s)||s;
+        upsertParallelDuel(s,{select:true});
+        localStorage.setItem(KEY,JSON.stringify(cloneDuelState(s)));
+        window.duelState=cloneDuelState(s);
+        const modeSelect=document.getElementById('duelModeSelect');if(modeSelect)modeSelect.value='sniper';
+        const durationSelect=document.getElementById('duelDurationSelect');if(durationSelect)durationSelect.value=String(s.durationMin||60);
         updateDuelUi();
         return;
       }
