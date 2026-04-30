@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v26-premium-badges-companion';
+const CACHE_NAME = 'fishtrack-v27-premium-game-layer-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -53,5 +53,3 @@ self.addEventListener('fetch', event => {
     })
   );
 });
-// MATRIX SCALING PATCH
-function scaleWholeMatrix(){const w=document.querySelector('.matrix-wrapper');const c=document.querySelector('.matrix-content');if(!w||!c)return;c.style.transform='translate(-50%,-50%) scale(1)';const s=Math.min(w.clientWidth/c.scrollWidth,w.clientHeight/c.scrollHeight,1);c.style.transform=`translate(-50%,-50%) scale(${s})`;}window.addEventListener('resize',scaleWholeMatrix);requestAnimationFrame(scaleWholeMatrix);
