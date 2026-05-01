@@ -4046,7 +4046,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   let sniperSectionMap=null,sniperSectionLayer=null;
   const SNIPER_PENDING_KEY=`${KEY}-sniper-pending`;
   const SNIPER_ACTIVE_KEY=`${KEY}-sniper-active`;
-  let tickTimer=null,gpsTimer=null,talkTimer=null,sniperTickTimer=null,sniperLiveSyncTimer=null,parallelRemoteSyncTimer=null,leaderboardCache=[];
+  let tickTimer=null,gpsTimer=null,talkTimer=null,sniperTickTimer=null,sniperLiveSyncTimer=null,parallelRemoteSyncTimer=null,leaderboardCache=[],remoteActiveDuelIds=new Set(),lastRemoteActiveDuelSyncAt=0;
   function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null,fishImage:null,startTimestamp:null,sniperSpots:[],sniperConfig:null,sniperScore:{},dartTargets:[],dartConfig:null,dartScore:{},dartEvents:[]};}
   function cloneDuelState(value){
     if(value==null)return value;
@@ -4055,7 +4055,16 @@ setInterval(injectWeatherIntoCatchCards, 800);
   function getDuelState(){try{return normalizeLegacySpeciesInObject({...defaultDuelState(),...cloneDuelState(JSON.parse(localStorage.getItem(KEY)||'{}')||{})});}catch{return defaultDuelState();}}
   function saveDuelState(s){
     s=normalizeLegacySpeciesInObject(cloneDuelState(s));
-    if(isParallelDuelTrackable(s)){
+    const remoteId=remoteDuelIdentity(s);
+    if(remoteId&&s.active&&lastRemoteActiveDuelSyncAt&&!remoteActiveDuelIds.has(String(remoteId))){
+      removeParallelDuel(s);
+      if(String(localStorage.getItem(PARALLEL_SELECTED_KEY)||'')===String(s.parallelId||`remote-${remoteId}`))localStorage.removeItem(PARALLEL_SELECTED_KEY);
+      const draft=ensureDuelParticipants({...defaultDuelState(),durationMin:Number(s.durationMin||60),lastTalk:'Dieses Remote-Duell ist in Supabase nicht mehr aktiv und wurde lokal nicht wiederhergestellt.'});
+      localStorage.setItem(KEY,JSON.stringify(cloneDuelState(draft)));
+      window.duelState=cloneDuelState(draft);
+      return;
+    }
+    if(isParallelDuelAllowedInActiveStore(s)){
       ensureParallelDuelId(s);
       upsertParallelDuel(s,{select:true});
     }
@@ -4130,7 +4139,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       id:d.id||d.duelId,
       mode:'sniper',
       duelType:'spot_sniper_elite',
-      active:d.status?d.status==='active':!d.end_time,
+      active:d.status?isRemoteDuelOpenStatus(d.status)&&!d.end_time:!d.end_time,
       startedAt:d.start_time||d.startedAt||d.created_at||new Date().toISOString(),
       startTimestamp:d.start_time||d.startTimestamp||d.created_at||new Date().toISOString(),
       endedAt:d.end_time||d.endedAt||null,
@@ -5261,6 +5270,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
       const {data,error}=await db.from('duels').insert(payload).select('id').single();
       if(error)throw error;
       s.duelId=data.id;
+      s.id=data.id;
+      s.parallelId=`remote-${data.id}`;
+      markSupabaseHydratedDuel(s,{id:data.id,status:'active',created_at:s.startedAt||new Date().toISOString()});
+      remoteActiveDuelIds.add(String(data.id));
+      lastRemoteActiveDuelSyncAt=Date.now();
       await syncRemoteParticipants(s);
       await addRemoteEvent(s,'system',null,{message:'Duell gestartet',mode:s.mode});
       if(persistTarget==='sniper')saveActiveSniperDuel(s);else if(persistTarget!=='none')saveDuelState(s);
@@ -5568,7 +5582,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(error)console.warn('Duell Abschluss Sync fehlgeschlagen',error);
     await syncRemoteParticipants(s);
     await addRemoteEvent(s,'system',null,{message:'Duell beendet',result:updatePayload.result});
+    remoteActiveDuelIds.delete(String(s.duelId));
+    removeParallelDuel(s);
+    if(String(localStorage.getItem(PARALLEL_SELECTED_KEY)||'')===String(s.parallelId||`remote-${s.duelId}`))localStorage.removeItem(PARALLEL_SELECTED_KEY);
     loadDuelLeaderboard();
+    refreshRemoteActiveParallelDuels({render:true});
     return updatePayload;
   }
   async function cancelRemoteDuel(duelId){
@@ -5576,6 +5594,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
     try{
       const {error}=await db.from('duels').update({status:'cancelled',end_time:new Date().toISOString()}).eq('id',duelId);
       if(error){console.warn('Duell Cancel Sync fehlgeschlagen',error);return false;}
+      remoteActiveDuelIds.delete(String(duelId));
+      refreshRemoteActiveParallelDuels({render:true});
       return true;
     }catch(e){console.warn('Duell Cancel Exception',e);return false;}
   }
@@ -5597,9 +5617,12 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const ok=await deleteRemoteDuelCascadeSafe(duelId);
     const global=getDuelState();
     if(global.duelId===duelId)saveDuelState({...global,duelId:null,active:false,endedAt:global.endedAt||new Date().toISOString()});
+    remoteActiveDuelIds.delete(String(duelId));
+    removeParallelDuel({duelId,id:duelId,parallelId:`remote-${duelId}`});
     const sniper=getActiveSniperDuel();
     if(sniper?.duelId===duelId)clearActiveSniperDuel();
     await loadDuelLeaderboard();
+    await refreshRemoteActiveParallelDuels({render:true});
     updateDuelUi();
     if(!ok&&db)alert('Duell konnte evtl. wegen Berechtigungen/RLS nicht vollständig gelöscht werden. Bitte Supabase-Rechte prüfen.');
   }
@@ -5616,7 +5639,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
         participants=pr.data||[];tracks=tr.data||[];
       }
       leaderboardCache=(duels||[]).map(d=>({...d,participants:participants.filter(p=>p.duel_id===d.id),tracks:tracks.filter(t=>t.duel_id===d.id)}));
-      mergeRemoteActiveParallelDuels(leaderboardCache.filter(d=>d.status==='active'));
+      // Aktive-Duelle-Übersicht wird ausschließlich über refreshRemoteActiveParallelDuels() hydriert,
+      // damit eine paginierte Historie nie aktive Remote-Duelle aus dem Store pruned.
       renderDuelLeaderboard();
       renderParallelDuelsHub(getDuelState());
     }catch(e){console.warn('Duell Rangliste konnte nicht geladen werden',e);renderDuelLeaderboard();}
@@ -5650,10 +5674,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(mode==='sniper'){
       const sniper=hydrateSniperStateFromRemoteDuel({...d,result,fish_state:fishState,participants});
       if(!sniper)return null;
-      sniper.active=d.status==='active';
+      sniper.active=isRemoteDuelOpenStatus(d.status)&&!d.end_time;
       sniper.endedAt=d.end_time||sniper.endedAt||null;
       sniper.updatedAt=d.updated_at||d.end_time||d.start_time||d.created_at||new Date().toISOString();
-      ensureParallelDuelId(sniper);
+      markSupabaseHydratedDuel(sniper,d);
       return normalizeParallelDuel(sniper);
     }
     const score=(result.score&&typeof result.score==='object'?result.score:(fishState.score&&typeof fishState.score==='object'?fishState.score:{}));
@@ -5663,7 +5687,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
       duelId:d.id,
       id:d.id,
       mode,
-      active:d.status==='active',
+      active:isRemoteDuelOpenStatus(d.status)&&!d.end_time,
       startedAt:d.start_time||d.created_at||new Date().toISOString(),
       startTimestamp:d.start_time||d.created_at||new Date().toISOString(),
       endedAt:d.end_time||null,
@@ -5676,6 +5700,8 @@ setInterval(injectWeatherIntoCatchCards, 800);
       result,
       fish_state:fishState,
       updatedAt:d.updated_at||d.end_time||d.start_time||d.created_at||new Date().toISOString(),
+      remoteUpdatedAt:d.updated_at||d.end_time||d.start_time||d.created_at||new Date().toISOString(),
+      remoteStatus:d.status||null,
       lastTalk:result.lastTalk||result.message||`${duelModeInfo({...d,result,fish_state:fishState}).name} aus Supabase synchronisiert.`
     };
     if(mode==='feed'){
@@ -5691,21 +5717,22 @@ setInterval(injectWeatherIntoCatchCards, 800);
       stateFromRemote.dartEvents=fishState.dart_events||result.dart_events||[];
       stateFromRemote=ensureDartState(stateFromRemote);
     }
-    ensureParallelDuelId(stateFromRemote);
+    markSupabaseHydratedDuel(stateFromRemote,d);
     return normalizeParallelDuel(stateFromRemote);
   }
   function mergeRemoteActiveParallelDuels(remoteRows,{selectIfEmpty=false}={}){
-    const remoteDuels=(remoteRows||[]).map(hydrateParallelDuelFromRemoteDuel).filter(isParallelDuelOpen);
-    const activeRemoteIds=new Set(remoteDuels.map(d=>String(d.duelId||d.id)).filter(Boolean));
+    const remoteDuels=(remoteRows||[]).map(hydrateParallelDuelFromRemoteDuel).filter(isParallelDuelOpen).map(d=>markSupabaseHydratedDuel(d,d));
+    remoteActiveDuelIds=new Set(remoteDuels.map(d=>remoteDuelIdentity(d)).filter(Boolean));
+    lastRemoteActiveDuelSyncAt=Date.now();
     const local=readParallelDuelStore().filter(d=>{
-      const id=d.duelId||d.id;
-      if(id&&String(d.parallelId||'').startsWith('remote-'))return activeRemoteIds.has(String(id));
+      const id=remoteDuelIdentity(d);
+      if(id)return remoteActiveDuelIds.has(String(id));
       return isParallelDuelTrackable(d);
     });
     const merged=writeParallelDuelStore([...local,...remoteDuels]);
     const current=getDuelState();
-    const currentRemoteId=current.duelId||current.id;
-    if(currentRemoteId&&current.active&&!activeRemoteIds.has(String(currentRemoteId))){
+    const currentRemoteId=remoteDuelIdentity(current);
+    if(currentRemoteId&&current.active&&!remoteActiveDuelIds.has(String(currentRemoteId))){
       const draft=ensureDuelParticipants({...defaultDuelState(),durationMin:Number(current.durationMin||60),lastTalk:'Remote-Duell ist nicht mehr aktiv. Die aktive Übersicht wurde mit Supabase synchronisiert.'});
       localStorage.removeItem(PARALLEL_SELECTED_KEY);
       localStorage.setItem(KEY,JSON.stringify(cloneDuelState(draft)));
@@ -5714,8 +5741,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const selectedKey=localStorage.getItem(PARALLEL_SELECTED_KEY);
     const selectedRemote=remoteDuels.find(d=>String(d.parallelId||'')===String(selectedKey||'')||sameParallelDuel(d,current));
     if(selectedRemote&&(selectedKey||sameParallelDuel(selectedRemote,current))){
+      localStorage.setItem(PARALLEL_SELECTED_KEY,selectedRemote.parallelId);
       localStorage.setItem(KEY,JSON.stringify(cloneDuelState(selectedRemote)));
       window.duelState=cloneDuelState(selectedRemote);
+    }else if(selectedKey&&!merged.find(d=>String(d.parallelId||'')===String(selectedKey))){
+      localStorage.removeItem(PARALLEL_SELECTED_KEY);
     }else if(selectIfEmpty&&!isParallelDuelOpen(current)&&remoteDuels.length&&!selectedKey){
       localStorage.setItem(PARALLEL_SELECTED_KEY,remoteDuels[0].parallelId);
       localStorage.setItem(KEY,JSON.stringify(cloneDuelState(remoteDuels[0])));
@@ -5726,7 +5756,11 @@ setInterval(injectWeatherIntoCatchCards, 800);
   async function refreshRemoteActiveParallelDuels({render=false,selectIfEmpty=false}={}){
     if(!db)return [];
     try{
-      const {data,error}=await db.from('duels').select('*').eq('status','active').order('created_at',{ascending:false}).limit(30);
+      let {data,error}=await db.from('duels').select('*').in('status',REMOTE_ACTIVE_DUEL_STATUSES).order('created_at',{ascending:false}).limit(30);
+      if(error){
+        const fallback=await db.from('duels').select('*').eq('status','active').order('created_at',{ascending:false}).limit(30);
+        data=fallback.data;error=fallback.error;
+      }
       if(error)throw error;
       const ids=(data||[]).map(d=>d.id);
       let participants=[],tracks=[];
@@ -5746,8 +5780,15 @@ setInterval(injectWeatherIntoCatchCards, 800);
     }catch(e){console.warn('Aktive Duelle konnten nicht aus Supabase synchronisiert werden',e);return [];} 
   }
   function startRemoteParallelDuelSyncLoop(){
-    if(parallelRemoteSyncTimer||!db)return;
-    parallelRemoteSyncTimer=setInterval(()=>refreshRemoteActiveParallelDuels({render:true}),12000);
+    if(!db)return;
+    if(window.__fishTrackActiveDuelSyncStarted&&parallelRemoteSyncTimer)return;
+    window.__fishTrackActiveDuelSyncStarted=true;
+    if(!parallelRemoteSyncTimer)parallelRemoteSyncTimer=setInterval(()=>refreshRemoteActiveParallelDuels({render:true}),12000);
+    if(!window.__fishTrackActiveDuelFocusRefreshBound){
+      window.__fishTrackActiveDuelFocusRefreshBound=true;
+      window.addEventListener('focus',()=>refreshRemoteActiveParallelDuels({render:true,selectIfEmpty:true}));
+      document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshRemoteActiveParallelDuels({render:true,selectIfEmpty:true});});
+    }
   }
 
   function duelFishStageForRank(index,total){if(total<=1)return 1;return Math.max(1,Math.min(7,Math.round(1+(index/(total-1))*6)));}
@@ -5883,10 +5924,36 @@ setInterval(injectWeatherIntoCatchCards, 800);
     return (Array.isArray(s.catches)?s.catches:[]).slice().sort((a,b)=>new Date(catchTimestampValue(b)).getTime()-new Date(catchTimestampValue(a)).getTime())[0]||null;
   }
   function safeParallelJson(key,fallback){try{const parsed=JSON.parse(localStorage.getItem(key)||'null');return parsed??fallback;}catch(e){return fallback;}}
+  const REMOTE_ACTIVE_DUEL_STATUSES=['active','setup','pending','open','ready','started','in_progress'];
+  function isRemoteDuelOpenStatus(status){return REMOTE_ACTIVE_DUEL_STATUSES.includes(String(status||'').toLowerCase());}
+  function remoteDuelIdentity(s){const id=s?.duelId||s?.id||s?.remoteDuelId;return id?String(id):'';}
+  function isSupabaseHydratedDuel(s){return !!(s?.remoteSource==='supabase'||s?.__remoteHydrated);}
+  function markSupabaseHydratedDuel(s,row={}){
+    if(!s)return s;
+    const id=remoteDuelIdentity(s)||row.id;
+    if(id){s.duelId=s.duelId||id;s.id=s.id||id;s.parallelId=`remote-${id}`;}
+    s.remoteSource='supabase';
+    s.__remoteHydrated=true;
+    s.remoteStatus=row.status||s.remoteStatus||null;
+    s.remoteUpdatedAt=row.updated_at||row.end_time||row.start_time||row.created_at||s.updatedAt||new Date().toISOString();
+    return s;
+  }
+  function isParallelDuelAllowedInActiveStore(s){
+    if(!isParallelDuelTrackable(s))return false;
+    const id=remoteDuelIdentity(s);
+    if(id&&lastRemoteActiveDuelSyncAt&&!remoteActiveDuelIds.has(String(id)))return false;
+    return true;
+  }
+  function mergeSupabaseDuelWithLocalUi(remote,local){
+    const merged={...(local||{}),...(remote||{})};
+    if(local?.unreadActivity)merged.unreadActivity=local.unreadActivity;
+    if(local?.localTab&&!merged.localTab)merged.localTab=local.localTab;
+    return markSupabaseHydratedDuel(merged,remote||{});
+  }
   function ensureParallelDuelId(s){
     if(!s)return '';
-    if(s.parallelId)return String(s.parallelId);
     if(s.duelId||s.id){s.parallelId=`remote-${s.duelId||s.id}`;return s.parallelId;}
+    if(s.parallelId)return String(s.parallelId);
     if(s.startedAt||s.startTimestamp){s.parallelId=`local-${s.mode||'duel'}-${s.startedAt||s.startTimestamp}-${s.captainId||'na'}-${s.opponentId||'na'}`;return s.parallelId;}
     s.parallelId=`draft-${s.mode||'duel'}-${crypto.randomUUID()}`;
     return s.parallelId;
@@ -5917,17 +5984,17 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(!s)return false;
     const hasPlayers=!!(s.captainId||s.opponentId);
     if(!hasPlayers)return false;
-    if(isParallelDuelOpen(s)||s.duelId)return true;
-    if(s.endedAt){const endMs=new Date(s.endedAt).getTime();return Number.isFinite(endMs)&&Date.now()-endMs<24*60*60*1000;}
+    if(s.endedAt&&!isParallelDuelOpen(s))return false;
+    if(isParallelDuelOpen(s))return true;
     return false;
   }
   function readParallelDuelStore(){
     const raw=safeParallelJson(PARALLEL_DUELS_KEY,[]);
     const list=Array.isArray(raw)?raw:[];
-    return list.map(normalizeParallelDuel).filter(isParallelDuelTrackable);
+    return list.map(normalizeParallelDuel).filter(Boolean).map(item=>{ensureParallelDuelId(item);return item;}).filter(isParallelDuelAllowedInActiveStore);
   }
   function writeParallelDuelStore(list){
-    const clean=dedupeParallelDuels(list).filter(isParallelDuelTrackable).slice(0,24);
+    const clean=dedupeParallelDuels(list).filter(isParallelDuelAllowedInActiveStore).slice(0,24);
     localStorage.setItem(PARALLEL_DUELS_KEY,JSON.stringify(clean.map(cloneDuelState)));
     return clean.map(cloneDuelState);
   }
@@ -5937,9 +6004,20 @@ setInterval(injectWeatherIntoCatchCards, 800);
       ensureParallelDuelId(item);
       const idx=out.findIndex(existing=>sameParallelDuel(existing,item));
       if(idx<0){out.push(item);return;}
-      const oldMs=new Date(out[idx].updatedAt||out[idx].lastActivityAt||out[idx].startedAt||0).getTime();
+      const existing=out[idx];
+      const existingRemote=isSupabaseHydratedDuel(existing);
+      const itemRemote=isSupabaseHydratedDuel(item);
+      if(itemRemote&&!existingRemote){out[idx]=mergeSupabaseDuelWithLocalUi(item,existing);return;}
+      if(existingRemote&&!itemRemote){out[idx]=mergeSupabaseDuelWithLocalUi(existing,item);return;}
+      if(itemRemote&&existingRemote){
+        const oldMs=new Date(existing.remoteUpdatedAt||existing.updatedAt||existing.startedAt||0).getTime();
+        const newMs=new Date(item.remoteUpdatedAt||item.updatedAt||item.startedAt||0).getTime();
+        out[idx]=Number.isFinite(newMs)&&newMs>=oldMs?mergeSupabaseDuelWithLocalUi(item,existing):mergeSupabaseDuelWithLocalUi(existing,item);
+        return;
+      }
+      const oldMs=new Date(existing.updatedAt||existing.lastActivityAt||existing.startedAt||0).getTime();
       const newMs=new Date(item.updatedAt||item.lastActivityAt||item.startedAt||0).getTime();
-      out[idx]=Number.isFinite(newMs)&&newMs>=oldMs?{...out[idx],...item}:{...item,...out[idx]};
+      out[idx]=Number.isFinite(newMs)&&newMs>=oldMs?{...existing,...item}:{...item,...existing};
     });
     return out;
   }
@@ -5947,6 +6025,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(!isParallelDuelTrackable(s))return;
     const item=normalizeParallelDuel(s);
     ensureParallelDuelId(item);
+    if(isSupabaseHydratedDuel(s))markSupabaseHydratedDuel(item,s);
     item.updatedAt=new Date().toISOString();
     if(unreadActivity)item.unreadActivity=true;
     const next=writeParallelDuelStore([...readParallelDuelStore().filter(d=>!sameParallelDuel(d,item)),item]);
@@ -5971,10 +6050,10 @@ setInterval(injectWeatherIntoCatchCards, 800);
     const activeSniper=normalizeParallelDuel(getActiveSniperDuel());
     const pendingSniper=normalizeParallelDuel(getPendingSniperDuel());
     const combined=[...readParallelDuelStore()];
-    if(isParallelDuelTrackable(current))combined.push(current);
-    if(isParallelDuelTrackable(activeSniper))combined.push(activeSniper);
-    if(isParallelDuelTrackable(pendingSniper))combined.push(pendingSniper);
-    return dedupeParallelDuels(combined).filter(isParallelDuelTrackable).sort(parallelDuelSort);
+    if(isParallelDuelAllowedInActiveStore(current))combined.push(current);
+    if(isParallelDuelAllowedInActiveStore(activeSniper))combined.push(activeSniper);
+    if(isParallelDuelAllowedInActiveStore(pendingSniper))combined.push(pendingSniper);
+    return dedupeParallelDuels(combined).filter(isParallelDuelAllowedInActiveStore).sort(parallelDuelSort);
   }
   function getDuelModeLabel(duel){return duelModeCopy(duel?.mode||'trolling').name;}
   function getDuelModeIcon(duel){return duelModeCopy(duel?.mode||'trolling').icon;}
