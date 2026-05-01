@@ -4820,3 +4820,18 @@ body.light .rules-readme-overlay{
 /* Unified Master-Detail: mode-specific cards stay in the shared detail window, but only render for the selected duel mode. */
 #duelPanel .duel-mode-section-hidden{display:none!important}
 #duelPanel .parallel-duel-card.is-active{box-shadow:0 0 0 1px rgba(143,240,167,.38),0 18px 38px rgba(74,215,209,.12)}
+
+
+/* Parallel Duels v3: unified Master-Detail mini-game detail area */
+#feedFishCard,
+#sniperEliteCard{display:none!important;}
+.duel-mini-detail{border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:14px;background:rgba(255,255,255,.055);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+.duel-mini-detail-head{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px;}
+.duel-mini-detail-head>span{width:48px;height:48px;border-radius:18px;display:grid;place-items:center;background:rgba(255,255,255,.08);font-size:1.35rem;}
+.duel-mini-detail-head>div:nth-child(2){flex:1;min-width:210px;}
+.duel-mini-detail-head strong{display:block;color:#f4fbff;font-size:1rem;}
+.duel-mini-detail-head small{display:block;color:#a9b8c7;font-weight:800;line-height:1.35;}
+.duel-mini-detail-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.feed-fish-grid-inline{margin-top:8px;}
+.duel-mini-detail.is-sniper .sniper-target-progress{margin:8px 0 12px;}
+@media (max-width:720px){.duel-mini-detail-head{align-items:flex-start}.duel-mini-detail-actions{width:100%}.duel-mini-detail-actions .pill{flex:1;min-width:140px}.feed-fish-grid-inline{grid-template-columns:1fr;}}

@@ -479,39 +479,9 @@
               <div id="duelLastCatch" class="duel-last-catch-card">Noch kein synchronisierter Fang in diesem Duell.</div>
             </section>
           </div>
-          <section class="feed-fish-card duel-hub-section" id="feedFishCard" data-duel-section="overview games score" aria-label="Feed your Fish Minigame">
-            <div class="duel-score-head feed-fish-head">
-              <div>
-                <span>Mini-Game</span>
-                <strong>🐟 Feed your Fish</strong>
-              </div>
-              <div class="feed-fish-actions">
-                <button type="button" class="pill secondary" id="feedFishActivateBtn">Modus aktivieren</button>
-                <button type="button" class="pill primary" id="feedFishStartBtn">Feed starten</button>
-                <button type="button" class="pill secondary" id="feedFishResetBtn">Fische resetten</button>
-              </div>
-            </div>
-            <div class="feed-fish-help">Jeder Spieler besitzt einen Fisch. Ohne Fang verkümmert er Stufe für Stufe – ein normaler Fang im Register „Fänge“ füttert automatisch nur den eigenen Fisch.</div>
-            <div id="feedFishGrid" class="feed-fish-grid"></div>
-          </section>
-
-          <section class="sniper-elite-card duel-hub-section" id="sniperEliteCard" data-duel-section="overview games" aria-label="Spot Sniper Elite Setup">
-            <div class="duel-score-head sniper-elite-head">
-              <div>
-                <span>Mini-Game</span>
-                <strong>🎯 Spot Sniper Elite</strong>
-              </div>
-              <div class="sniper-elite-actions">
-                <button type="button" class="pill primary hidden" id="sniperPendingStartBtn">Sniper-Duell starten</button>
-                <button type="button" class="pill secondary hidden" id="sniperPendingEditBtn">Setup bearbeiten</button>
-                <button type="button" class="pill secondary hidden" id="sniperPendingClearBtn">Setup verwerfen</button>
-                <button type="button" class="pill primary hidden" id="sniperActiveEndBtn">Sniper beenden</button>
-                <button type="button" class="pill danger hidden" id="sniperActiveCancelBtn">Mini-Game abbrechen</button>
-              </div>
-            </div>
-            <div class="sniper-elite-help">Spots zuerst setzen, später unabhängig starten. Punkte gibt es nur für Catches innerhalb der Zielscheiben.</div>
-            <div id="sniperEliteGrid" class="sniper-elite-grid"></div>
-          </section>
+          <!-- Mini-game details are now rendered inside #duelMiniGameSummary (unified Master-Detail).
+               The former global Feed-your-Fish and Spot-Sniper sidecar sections were removed
+               to avoid duplicate sections and cross-duel UI state leaks. -->
 
           <section class="duel-history-card duel-hub-section" data-duel-section="overview history">
             <div class="duel-score-head"><span>Duell-Rangliste</span><strong>Historie</strong></div>

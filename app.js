@@ -1175,7 +1175,7 @@ function tournamentMiniGameSnapshots(){
       players:[s.captainId,s.opponentId].filter(Boolean).map(tournamentParticipantLabel).join(' vs ')||'Teilnehmer offen',
       meta:mode==='sniper'&&spots.length?`${hits}/${spots.length} Treffer · ${scoreText||'Score offen'}`:(mode==='dart'&&dartTargets.length?`${dartHits} Dart-Treffer · ${scoreText||'Score offen'}`:(scoreText||info.hint)),
       hint:info.hint,
-      target:mode==='sniper'?'#sniperEliteCard':(mode==='dart'?'#duelPanel':'#duelPanel')
+      target:'#duelPanel'
     });
   };
   if(local?.active)add(local,'Aktiv','local');
@@ -4046,7 +4046,7 @@ setInterval(injectWeatherIntoCatchCards, 800);
   let sniperSectionMap=null,sniperSectionLayer=null;
   const SNIPER_PENDING_KEY=`${KEY}-sniper-pending`;
   const SNIPER_ACTIVE_KEY=`${KEY}-sniper-active`;
-  let tickTimer=null,gpsTimer=null,talkTimer=null,sniperTickTimer=null,sniperLiveSyncTimer=null,leaderboardCache=[];
+  let tickTimer=null,gpsTimer=null,talkTimer=null,sniperTickTimer=null,sniperLiveSyncTimer=null,parallelRemoteSyncTimer=null,leaderboardCache=[];
   function defaultDuelState(){return {duelId:null,active:false,startedAt:null,durationMin:60,captainId:'',opponentId:'',mode:'trolling',score:{},catches:[],route:[],weather:null,lastTalk:roasts[0],endedAt:null,routeSnapshotSvg:null,feedFish:null,fishImage:null,startTimestamp:null,sniperSpots:[],sniperConfig:null,sniperScore:{},dartTargets:[],dartConfig:null,dartScore:{},dartEvents:[]};}
   function cloneDuelState(value){
     if(value==null)return value;
@@ -5616,7 +5616,9 @@ setInterval(injectWeatherIntoCatchCards, 800);
         participants=pr.data||[];tracks=tr.data||[];
       }
       leaderboardCache=(duels||[]).map(d=>({...d,participants:participants.filter(p=>p.duel_id===d.id),tracks:tracks.filter(t=>t.duel_id===d.id)}));
+      mergeRemoteActiveParallelDuels(leaderboardCache.filter(d=>d.status==='active'));
       renderDuelLeaderboard();
+      renderParallelDuelsHub(getDuelState());
     }catch(e){console.warn('Duell Rangliste konnte nicht geladen werden',e);renderDuelLeaderboard();}
   }
   function duelModeInfo(d){
@@ -5630,6 +5632,124 @@ setInterval(injectWeatherIntoCatchCards, 800);
     if(isBlitz)return {key:'blitz',label:'⚡ Blitz',name:'Blitz-Battle'};
     return {key:'trolling',label:'🚤 Schleppmeister',name:'Schleppmeister'};
   }
+  function normalizeRemoteJson(value){
+    if(!value)return null;
+    if(typeof value==='string'){
+      try{return JSON.parse(value);}catch(e){return null;}
+    }
+    return value&&typeof value==='object'?value:null;
+  }
+  function hydrateParallelDuelFromRemoteDuel(d){
+    if(!d?.id)return null;
+    const result=normalizeRemoteJson(d.result)||{};
+    const fishState=mergeDuelFishState(d.fish_state,result.fish_state);
+    const participants=Array.isArray(d.participants)?d.participants:[];
+    const captainFromParticipants=participants.find(p=>p.is_captain)?.participant_id||participants[0]?.participant_id||'';
+    const opponentFromParticipants=participants.find(p=>p.participant_id&&p.participant_id!==captainFromParticipants)?.participant_id||'';
+    const mode=duelModeInfo({...d,result,fish_state:fishState}).key||'trolling';
+    if(mode==='sniper'){
+      const sniper=hydrateSniperStateFromRemoteDuel({...d,result,fish_state:fishState,participants});
+      if(!sniper)return null;
+      sniper.active=d.status==='active';
+      sniper.endedAt=d.end_time||sniper.endedAt||null;
+      sniper.updatedAt=d.updated_at||d.end_time||d.start_time||d.created_at||new Date().toISOString();
+      ensureParallelDuelId(sniper);
+      return normalizeParallelDuel(sniper);
+    }
+    const score=(result.score&&typeof result.score==='object'?result.score:(fishState.score&&typeof fishState.score==='object'?fishState.score:{}));
+    participants.forEach(p=>{if(p?.participant_id&&score[p.participant_id]==null)score[p.participant_id]=Number(p.score||0)+Number(p.bonus_score||0);});
+    let stateFromRemote={
+      ...defaultDuelState(),
+      duelId:d.id,
+      id:d.id,
+      mode,
+      active:d.status==='active',
+      startedAt:d.start_time||d.created_at||new Date().toISOString(),
+      startTimestamp:d.start_time||d.created_at||new Date().toISOString(),
+      endedAt:d.end_time||null,
+      durationMin:Number(d.duration_minutes||result.durationMin||60),
+      captainId:d.captain_id||result.captain_id||captainFromParticipants||'',
+      opponentId:result.opponent_id||opponentFromParticipants||'',
+      score,
+      catches:Array.isArray(fishState.catches)?fishState.catches:(Array.isArray(result.catches)?result.catches:[]),
+      route:extractDuelRoute({...d,result,fish_state:fishState}),
+      result,
+      fish_state:fishState,
+      updatedAt:d.updated_at||d.end_time||d.start_time||d.created_at||new Date().toISOString(),
+      lastTalk:result.lastTalk||result.message||`${duelModeInfo({...d,result,fish_state:fishState}).name} aus Supabase synchronisiert.`
+    };
+    if(mode==='feed'){
+      const feedSnapshot=normalizeRemoteJson(d.feed_snapshot)||normalizeRemoteJson(result.feed_snapshot)||{};
+      stateFromRemote.feedFish=feedSnapshot.players?feedSnapshot:{players:fishState.players||feedSnapshot||{},nextTwistAt:Date.now()+90000,events:Array.isArray(feedSnapshot.events)?feedSnapshot.events:[]};
+      stateFromRemote.fishImage=d.fish_image||result.fish_image||null;
+      ensureFeedFishState(stateFromRemote);
+    }
+    if(mode==='dart'){
+      stateFromRemote.dartTargets=fishState.dart_targets||result.dart_targets||d.settings?.dart?.targets||[];
+      stateFromRemote.dartConfig=fishState.dart_config||result.dart_config||d.settings?.dart?.config||null;
+      stateFromRemote.dartScore=fishState.dart_score||result.dart_score||score||{};
+      stateFromRemote.dartEvents=fishState.dart_events||result.dart_events||[];
+      stateFromRemote=ensureDartState(stateFromRemote);
+    }
+    ensureParallelDuelId(stateFromRemote);
+    return normalizeParallelDuel(stateFromRemote);
+  }
+  function mergeRemoteActiveParallelDuels(remoteRows,{selectIfEmpty=false}={}){
+    const remoteDuels=(remoteRows||[]).map(hydrateParallelDuelFromRemoteDuel).filter(isParallelDuelOpen);
+    const activeRemoteIds=new Set(remoteDuels.map(d=>String(d.duelId||d.id)).filter(Boolean));
+    const local=readParallelDuelStore().filter(d=>{
+      const id=d.duelId||d.id;
+      if(id&&String(d.parallelId||'').startsWith('remote-'))return activeRemoteIds.has(String(id));
+      return isParallelDuelTrackable(d);
+    });
+    const merged=writeParallelDuelStore([...local,...remoteDuels]);
+    const current=getDuelState();
+    const currentRemoteId=current.duelId||current.id;
+    if(currentRemoteId&&current.active&&!activeRemoteIds.has(String(currentRemoteId))){
+      const draft=ensureDuelParticipants({...defaultDuelState(),durationMin:Number(current.durationMin||60),lastTalk:'Remote-Duell ist nicht mehr aktiv. Die aktive Übersicht wurde mit Supabase synchronisiert.'});
+      localStorage.removeItem(PARALLEL_SELECTED_KEY);
+      localStorage.setItem(KEY,JSON.stringify(cloneDuelState(draft)));
+      window.duelState=cloneDuelState(draft);
+    }
+    const selectedKey=localStorage.getItem(PARALLEL_SELECTED_KEY);
+    const selectedRemote=remoteDuels.find(d=>String(d.parallelId||'')===String(selectedKey||'')||sameParallelDuel(d,current));
+    if(selectedRemote&&(selectedKey||sameParallelDuel(selectedRemote,current))){
+      localStorage.setItem(KEY,JSON.stringify(cloneDuelState(selectedRemote)));
+      window.duelState=cloneDuelState(selectedRemote);
+    }else if(selectIfEmpty&&!isParallelDuelOpen(current)&&remoteDuels.length&&!selectedKey){
+      localStorage.setItem(PARALLEL_SELECTED_KEY,remoteDuels[0].parallelId);
+      localStorage.setItem(KEY,JSON.stringify(cloneDuelState(remoteDuels[0])));
+      window.duelState=cloneDuelState(remoteDuels[0]);
+    }
+    return merged;
+  }
+  async function refreshRemoteActiveParallelDuels({render=false,selectIfEmpty=false}={}){
+    if(!db)return [];
+    try{
+      const {data,error}=await db.from('duels').select('*').eq('status','active').order('created_at',{ascending:false}).limit(30);
+      if(error)throw error;
+      const ids=(data||[]).map(d=>d.id);
+      let participants=[],tracks=[];
+      if(ids.length){
+        const pr=await db.from('duel_participants').select('*').in('duel_id',ids);
+        const tr=await db.from('duel_tracks').select('*').in('duel_id',ids).order('created_at',{ascending:true});
+        participants=pr.data||[];
+        tracks=tr.data||[];
+      }
+      const rows=(data||[]).map(d=>({...d,participants:participants.filter(p=>p.duel_id===d.id),tracks:tracks.filter(t=>t.duel_id===d.id)}));
+      mergeRemoteActiveParallelDuels(rows,{selectIfEmpty});
+      if(render){
+        renderParallelDuelsHub(getDuelState());
+        renderDuelHubChrome(getDuelState());
+      }
+      return rows;
+    }catch(e){console.warn('Aktive Duelle konnten nicht aus Supabase synchronisiert werden',e);return [];} 
+  }
+  function startRemoteParallelDuelSyncLoop(){
+    if(parallelRemoteSyncTimer||!db)return;
+    parallelRemoteSyncTimer=setInterval(()=>refreshRemoteActiveParallelDuels({render:true}),12000);
+  }
+
   function duelFishStageForRank(index,total){if(total<=1)return 1;return Math.max(1,Math.min(7,Math.round(1+(index/(total-1))*6)));}
   function participantRowsForDuel(d){return (d.participants||[]).slice().sort((a,b)=>(Number(b.score||0)+Number(b.bonus_score||0))-(Number(a.score||0)+Number(a.bonus_score||0)));}
   function buildDuelArenaStats(entries){
@@ -5934,16 +6054,66 @@ setInterval(injectWeatherIntoCatchCards, 800);
   window.getActiveDuels=getActiveDuels;
   window.renderParallelDuelsHub=renderParallelDuelsHub;
   function renderDuelMiniGameSummary(s){
-    const el=document.getElementById('duelMiniGameSummary');if(!el)return;
-    const info=duelModeCopy(s.mode||'trolling');
-    const meta=isSniperMode(s)&&s.sniperSpots?.length
-      ? `${(s.sniperSpots||[]).filter(p=>p.hit).length}/${(s.sniperSpots||[]).length} Treffer`
-      : (isDartMode(s)&&s.dartTargets?.length
-        ? `${(s.dartEvents||[]).filter(ev=>Number(ev.points||0)>0).length} Dart-Treffer · ${(s.dartTargets||[]).length} Boards`
-        : info.hint);
-    const card={icon:info.icon,title:info.name,status:s.active?'Live':duelStatusText(s),meta};
-    el.innerHTML=`<article class="duel-mini-card"><span>${escapeHtml(card.icon)}</span><div><strong>${escapeHtml(card.title)}</strong><small>${escapeHtml(card.status)} · ${escapeHtml(card.meta)}</small></div></article>`;
-  }
+      const el=document.getElementById('duelMiniGameSummary');if(!el)return;
+      const info=duelModeCopy(s.mode||'trolling');
+      const status=s.active?'Live':duelStatusText(s);
+
+      if(s.mode==='feed'){
+        s=ensureDuelParticipants(s);
+        ensureFeedFishState(s);
+        if(s.active)s=feedFishApplyDecay(s);
+        const intervalMin=Math.round(feedFishIntervalMs(s)/60000);
+        const ids=feedFishOwnerIds(s);
+        const feed=s.feedFish||{players:{}};
+        const playerCards=ids.map(id=>{
+          const p=feed.players[id]||feedFishDefaultPlayer();
+          feed.players[id]=p;
+          const stage=feedFishStage(p.level);
+          const progress=s.active?feedFishProgress(p,s):0;
+          const remainMs=Math.max(0,feedFishIntervalMs(s)-(Date.now()-Number(p.lastStageAt||Date.now())));
+          const toNext=Number(p.level||1)>=7?'Endstation':(s.active?`${Math.ceil(remainMs/60000)} min bis Stufe ${Number(p.level||1)+1}`:'Startet beim Duell-Start');
+          return `<article class="feed-fish-player ${stage.tone}"><div class="feed-fish-img-wrap"><img src="Transformation/Stufe_${stage.level}.png" alt="${escapeHtml(stage.title)}" loading="lazy"></div><div class="feed-fish-copy"><div class="feed-fish-player-head"><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</strong><span>Stufe ${stage.level}/7</span></div><h4>${escapeHtml(stage.title)}</h4><p>${escapeHtml(stage.caption)}</p><div class="feed-fish-progress"><i style="width:${progress}%"></i></div><small>${escapeHtml(toNext)} · Verfall-Zyklus ${intervalMin} min${p.twist?` · ${escapeHtml(p.twist)}`:''}</small></div></article>`;
+        }).join('')||'<div class="feed-fish-empty">Wähle zwei Teilnehmer, damit jeder einen Fisch bekommt.</div>';
+        el.innerHTML=`<article class="duel-mini-detail is-feed"><div class="duel-mini-detail-head"><span>${escapeHtml(info.icon)}</span><div><strong>${escapeHtml(info.name)}</strong><small>${escapeHtml(status)} · normale Fänge füttern automatisch nur den richtigen Fisch.</small></div><div class="duel-mini-detail-actions"><button type="button" class="pill primary ${s.active?'hidden':''}" id="feedFishStartBtn">Feed starten</button><button type="button" class="pill secondary" id="feedFishResetBtn">Fische resetten</button></div></div><div class="feed-fish-grid feed-fish-grid-inline">${playerCards}</div></article>`;
+        saveDuelState(s);
+        return;
+      }
+
+      if(isSniperMode(s)){
+        s=ensureSniperState(s);
+        const cfg=s.sniperConfig||{};
+        const hasLive=!!s.active;
+        const hasPending=!!(!s.active&&s.sniperSpots?.length&&cfg.setupDone&&!s.endedAt);
+        const hasSetup=!!(cfg.setupActive&&!cfg.locked);
+        const total=(s.sniperSpots||[]).length;
+        const hits=(s.sniperSpots||[]).filter(spot=>spot.hit).length;
+        const rows=(cfg.players||[s.captainId,s.opponentId]).filter(Boolean).map(id=>{
+          const spots=sniperSpotsForPlayer(s,id);
+          const hitCount=spots.filter(spot=>spot.hit).length;
+          return `<article class="sniper-spot-mini-card"><div><strong>${escapeHtml(participantAvatar(id))} ${escapeHtml(participantName(id))}</strong><small>${hitCount}/${spots.length} Treffer · ${spots.length}/${Number(cfg.spotsPerPlayer||2)} Spots</small></div><b>${Number(s.sniperScore?.[id]||0)}P</b></article>`;
+        }).join('')||'<div class="sniper-elite-empty">Wähle zwei Teilnehmer und setze Ziele auf der Hauptkarte.</div>';
+        const actions=hasLive
+          ? '<button type="button" class="pill primary" id="sniperActiveEndBtnInline">Sniper beenden</button><button type="button" class="pill danger" id="sniperActiveCancelBtnInline">Mini-Game abbrechen</button>'
+          : (hasPending
+            ? '<button type="button" class="pill primary" id="sniperPendingStartBtn">Sniper-Duell starten</button><button type="button" class="pill secondary" id="sniperPendingEditBtn">Setup bearbeiten</button><button type="button" class="pill secondary" id="sniperPendingClearBtn">Setup verwerfen</button>'
+            : '');
+        const meta=hasLive?'LIVE · Treffer färben Zielscheiben grün.':(hasPending?'Setup gelockt · Start erfolgt im selektierten Detailfenster.':(hasSetup?'Setup offen · Tippe auf die Hauptkarte, um Ziele zu setzen.':'Spot Sniper nutzt die gemeinsame Hauptkarte – keine separate Section.'));
+        el.innerHTML=`<article class="duel-mini-detail is-sniper"><div class="duel-mini-detail-head"><span>${escapeHtml(info.icon)}</span><div><strong>${escapeHtml(info.name)}</strong><small>${escapeHtml(meta)}</small></div><div class="duel-mini-detail-actions">${actions}</div></div><div class="sniper-target-progress"><div><b>${hits}/${total}</b><span>Ziele getroffen</span></div><i style="width:${total?Math.round((hits/total)*100):0}%"></i></div><div class="sniper-live-score-grid">${rows}</div></article>`;
+        return;
+      }
+
+      if(isDartMode(s)){
+        const targets=Array.isArray(s.dartTargets)?s.dartTargets:[];
+        const hits=(s.dartEvents||[]).filter(ev=>Number(ev.points||0)>0).length;
+        el.innerHTML=`<article class="duel-mini-detail is-dart"><div class="duel-mini-detail-head"><span>${escapeHtml(info.icon)}</span><div><strong>${escapeHtml(info.name)}</strong><small>${escapeHtml(status)} · ${hits} Treffer · ${targets.length} Boards · normale Fänge werden per GPS gewertet.</small></div></div></article>`;
+        return;
+      }
+
+      const meta=isSniperMode(s)&&s.sniperSpots?.length
+        ? `${(s.sniperSpots||[]).filter(p=>p.hit).length}/${(s.sniperSpots||[]).length} Treffer`
+        : info.hint;
+      el.innerHTML=`<article class="duel-mini-card"><span>${escapeHtml(info.icon)}</span><div><strong>${escapeHtml(info.name)}</strong><small>${escapeHtml(status)} · ${escapeHtml(meta)}</small></div></article>`;
+    }
   function renderDuelHubChrome(s){
     const panel=document.getElementById('duelPanel');if(!panel)return;
     const info=duelModeCopy(s.mode||'trolling');
@@ -6561,7 +6731,7 @@ async function forceCurrentDuelLocation(){
     renderTournaments=function(...args){const res=originalRenderTournaments.apply(this,args);try{renderDuelSection();}catch(e){console.warn('Duel render failed',e)}return res;};
     window.renderTournaments=renderTournaments;
   }
-  document.addEventListener('DOMContentLoaded',()=>{bindDuel();renderDuelSection();loadDuelLeaderboard();const s=getDuelState();if(s.active)startTimers();if(getActiveSniperDuel()?.active)startSniperTimers();else restoreActiveRemoteSniperDuel();});
+  document.addEventListener('DOMContentLoaded',()=>{bindDuel();renderDuelSection();loadDuelLeaderboard();refreshRemoteActiveParallelDuels({render:true,selectIfEmpty:true});startRemoteParallelDuelSyncLoop();const s=getDuelState();if(s.active)startTimers();if(getActiveSniperDuel()?.active)startSniperTimers();else restoreActiveRemoteSniperDuel();});
   window.renderDuelSection=renderDuelSection;
 })();
 
