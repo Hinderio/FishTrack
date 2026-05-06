@@ -4835,3 +4835,11 @@ body.light .rules-readme-overlay{
 .feed-fish-grid-inline{margin-top:8px;}
 .duel-mini-detail.is-sniper .sniper-target-progress{margin:8px 0 12px;}
 @media (max-width:720px){.duel-mini-detail-head{align-items:flex-start}.duel-mini-detail-actions{width:100%}.duel-mini-detail-actions .pill{flex:1;min-width:140px}.feed-fish-grid-inline{grid-template-columns:1fr;}}
+
+/* Companion SVG Evolution phases: additive visual depth, no external assets. */
+.fish-companion-svg__phase-aura{fill:var(--fish-theme);filter:drop-shadow(0 0 18px var(--fish-theme));}
+.fish-companion-svg__accent{fill:none;stroke:var(--fish-accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.78;filter:drop-shadow(0 0 10px var(--fish-accent));}
+.fish-companion-svg--baby .fish-companion-svg__halo{opacity:.78;}
+.fish-companion-svg--strong .fish-companion-svg__fish{filter:drop-shadow(0 0 16px var(--fish-theme));}
+.fish-companion-svg--alpha .fish-companion-svg__fish,.fish-companion-svg--monster .fish-companion-svg__fish{filter:drop-shadow(0 0 20px var(--fish-theme));}
+.fish-companion-svg--monster .fish-companion-svg__halo{filter:drop-shadow(0 0 18px var(--fish-theme));}

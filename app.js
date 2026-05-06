@@ -642,6 +642,15 @@ function getCurrentCompanionStage(xp,speciesKey){
 }
 function getNextCompanionStage(stageIndex,speciesKey){return getCompanionEvolutionStages(speciesKey)[Math.min(stageIndex+1,FISH_GAME_EVOLUTION_THRESHOLDS.length-1)]||null;}
 
+function getCompanionVisualPhase(stage){
+  const safeStage=Math.max(1,Math.min(10,Number(stage||1)));
+  if(safeStage>=9)return{key:'monster',label:'Monster-Form',scale:1.22,strokeWidth:6.4,fishTransform:'translate(20 30) scale(1.22)',auraOpacity:0.18,sparkCount:5};
+  if(safeStage>=7)return{key:'alpha',label:'Alpha-Form',scale:1.14,strokeWidth:6.1,fishTransform:'translate(24 33) scale(1.14)',auraOpacity:0.15,sparkCount:4};
+  if(safeStage>=5)return{key:'strong',label:'Starke Form',scale:1.07,strokeWidth:5.8,fishTransform:'translate(27 35) scale(1.07)',auraOpacity:0.12,sparkCount:3};
+  if(safeStage>=3)return{key:'young',label:'Jungform',scale:1,strokeWidth:5.5,fishTransform:'translate(30 37) scale(1)',auraOpacity:0.10,sparkCount:3};
+  return{key:'baby',label:'Baby-Form',scale:0.82,strokeWidth:5.1,fishTransform:'translate(40 45) scale(0.82)',auraOpacity:0.08,sparkCount:2};
+}
+
 function fishGameCatchId(c,index=0){return String(c?.id||c?.catchId||c?.catch_id||c?.localId||`${c?.participantId||'p'}-${c?.timestamp||index}-${index}`)}
 function fishGameSpeciesLabelFromCatch(c){return speciesName(c)||c?.species||'Andere'}
 function computeSpeciesProgress(catches=[]){
@@ -711,17 +720,29 @@ function computeParticipantPremiumBadges(profile,data,allStats=[],allCatches=[])
   const catches=Array.isArray(profile?.catches)?profile.catches:[];
   const species=profile?.speciesProgress?.list||[];
   const participantId=profile?.participant?.id;
-  const days=new Set(catches.map(c=>new Date(c.timestamp||c.createdAt||0).toISOString().slice(0,10)).filter(Boolean));
+  const catchDayKey=c=>{const d=new Date(c?.timestamp||c?.createdAt||0);return Number.isNaN(d.getTime())?'':d.toISOString().slice(0,10);};
+  const days=new Set(catches.map(catchDayKey).filter(Boolean));
+  const dayCounts=catches.reduce((map,c)=>{const key=catchDayKey(c);if(!key)return map;map.set(key,(map.get(key)||0)+1);return map;},new Map());
+  const bestDayCount=Math.max(0,...dayCounts.values());
   const longestOwn=profile?.longest;
   const globalLongest=(Array.isArray(allCatches)?allCatches:[]).reduce((m,c)=>!m||Number(c.lengthCm||0)>Number(m.lengthCm||0)?c:m,null);
   const speciesCount=(keys=[])=>species.filter(s=>keys.includes(s.key)).reduce((sum,s)=>sum+s.count,0);
   const add=(key,title,detail,rarity='common',icon='fish',score=0)=>{if(!badges.some(b=>b.key===key))badges.push({key,title,detail,rarity,icon,score});};
   if(catches.length>=1)add('first-catch','Erster Fang','Sammlung gestartet','common','fish',10);
   if(days.size>=4)add('streak-days','Fangserie',`${days.size} aktive Fangtage`,'rare','wave',42);
+  if(bestDayCount>=3)add('day-hero','Tagesheld',`${bestDayCount} Fänge an einem Tag`,'rare','sun',52);
   if(profile.uniqueSpecies>=4)add('species-collector','Arten-Sammler',`${profile.uniqueSpecies} Fischarten entdeckt`,'rare','compass',48);
+  const carp=speciesCount(['carp']);if(carp>=1)add('carp-king','Karpfenkönig',`${carp} Karpfen/Karpfe`,'rare','carp',47);
+  const hasBigFive=['pike','perch','zander','trout','carp'].every(key=>speciesCount([key])>0);
+  if(hasBigFive)add('big-five','Big Five','Hecht, Barsch, Zander, Forelle und Karpfen gefangen','legendary','compass',125);
   const trophyLen=Math.max(Number(longestOwn?.lengthCm||0),globalLongest?.participantId===participantId?Number(globalLongest.lengthCm||0):0);
+  const personalRecordLength=Number(profile?.longest?.lengthCm||0);
+  if(personalRecordLength>0)add('personal-record','Persönlicher Rekord',`${Math.round(personalRecordLength)} cm persönlicher Bestfang`,'common','trophy',35);
   if(trophyLen>=90||(globalLongest?.participantId===participantId&&trophyLen>=75))add('trophy-touch','Trophy Touch',`${Math.round(trophyLen)} cm Highlight`,'epic','trophy',75);
   if(trophyLen>=100)add('meter-legend','Meter-Legende',`${Math.round(trophyLen)} cm Monsterfang`,'legendary','crown',120);
+  const biggestCarp=catches.filter(c=>normalizeFishGameSpecies(fishGameSpeciesLabelFromCatch(c))==='carp').reduce((m,c)=>!m||Number(c.lengthCm||0)>Number(m.lengthCm||0)?c:m,null);
+  const biggestCarpLength=Number(biggestCarp?.lengthCm||0);
+  if(biggestCarpLength>=70)add('scale-giant','Schuppen-Gigant',`${Math.round(biggestCarpLength)} cm Karpfen-Power`,'epic','carp',78);
   const pike=speciesCount(['pike']);if(pike>=4)add('pike-hunter','Hechtjäger',`${pike} Hechte`,'rare','pike',45);
   const perch=speciesCount(['perch']);if(perch>=6)add('perch-king','Barschkönig',`${perch} Barsche/Egli`,'rare','perch',50);
   const zander=speciesCount(['zander']);if(zander>=4)add('zander-eye','Zanderblick',`${zander} Zander`,'rare','zander',45);
@@ -738,7 +759,7 @@ function computeParticipantPremiumBadges(profile,data,allStats=[],allCatches=[])
 }
 function renderFishIconMarkup(type='fish'){
   const fish='<path d="M14 34c12-15 35-18 53-5 9-7 18-10 26-9-4 8-4 17 0 25-8 1-17-2-26-9-18 13-41 10-53-5 4-2 4-3 0-6z"/><circle cx="36" cy="31" r="2.3"/><path d="M54 24c-2 5-2 11 0 16"/>';
-  const icons={fish,pike:'<path d="M9 33c18-12 45-14 70-4 7-5 13-7 21-7-4 7-4 15 0 22-8 0-14-2-21-7-25 10-52 8-70-4z"/><circle cx="33" cy="31" r="2.2"/><path d="M56 24l8 5-9 3 9 4-9 4"/>',perch:'<path d="M18 36c12-15 34-18 50-4 8-6 15-8 23-7-4 7-4 14 0 21-8 1-15-1-23-7-16 14-38 11-50-3z"/><path d="M42 19l5 11 5-12 5 12 5-10"/><circle cx="37" cy="32" r="2.2"/>',zander:'<path d="M13 34c16-10 41-13 63-5 7-5 14-7 22-6-4 7-4 15 0 22-8 0-15-2-22-7-22 9-47 6-63-4z"/><path d="M49 22l4 9 5-10 4 10"/><circle cx="34" cy="31" r="2.1"/>',trout:'<path d="M14 35c13-13 36-20 58-5 8-6 16-9 24-8-4 8-4 16 0 24-8 0-16-3-24-9-22 15-45 8-58-2z"/><path d="M39 25c6 5 13 5 20 0"/><circle cx="35" cy="31" r="2.1"/>',carp:'<path d="M16 36c8-18 37-24 57-5 8-6 16-8 24-7-4 7-4 15 0 22-8 1-16-2-24-8-20 19-49 13-57-2z"/><path d="M33 38c9 5 20 4 32-1"/><circle cx="37" cy="31" r="2.4"/>',catfish:'<path d="M14 36c14-14 42-18 64-5 7-4 14-5 21-4-4 6-4 12 0 18-7 1-14 0-21-4-22 13-50 9-64-5z"/><circle cx="34" cy="32" r="2.1"/><path d="M29 36c-9 1-14 5-18 10M30 31c-10-3-16-1-22 2"/>',trophy:'<path d="M35 23h30v12c0 12-7 20-15 20s-15-8-15-20z"/><path d="M35 28H22c1 10 6 16 15 18M65 28h13c-1 10-6 16-15 18M50 55v12M38 67h24"/>',crown:'<path d="M22 60h56l-5-34-15 17-8-22-8 22-15-17z"/><path d="M27 68h46"/>',target:'<circle cx="50" cy="46" r="25"/><circle cx="50" cy="46" r="14"/><circle cx="50" cy="46" r="4"/><path d="M50 13v13M50 66v13M17 46h13M70 46h13"/>',wave:'<path d="M16 39c8-8 16-8 24 0s16 8 24 0 16-8 24 0M16 55c8-8 16-8 24 0s16 8 24 0 16-8 24 0"/>',route:'<path d="M22 64c10-23 47 1 56-30"/><circle cx="22" cy="64" r="6"/><circle cx="78" cy="34" r="6"/><path d="M50 48l6-7 4 8"/>',moon:'<path d="M61 21c-14 4-23 16-22 29 1 14 12 25 27 27-6 5-14 8-23 7-18-2-31-17-29-35 2-19 19-32 37-30 4 0 7 1 10 2z"/>',compass:'<circle cx="50" cy="48" r="28"/><path d="M61 35L53 59 29 67l8-24z"/><circle cx="50" cy="48" r="3"/>'};
+  const icons={fish,pike:'<path d="M9 33c18-12 45-14 70-4 7-5 13-7 21-7-4 7-4 15 0 22-8 0-14-2-21-7-25 10-52 8-70-4z"/><circle cx="33" cy="31" r="2.2"/><path d="M56 24l8 5-9 3 9 4-9 4"/>',perch:'<path d="M18 36c12-15 34-18 50-4 8-6 15-8 23-7-4 7-4 14 0 21-8 1-15-1-23-7-16 14-38 11-50-3z"/><path d="M42 19l5 11 5-12 5 12 5-10"/><circle cx="37" cy="32" r="2.2"/>',zander:'<path d="M13 34c16-10 41-13 63-5 7-5 14-7 22-6-4 7-4 15 0 22-8 0-15-2-22-7-22 9-47 6-63-4z"/><path d="M49 22l4 9 5-10 4 10"/><circle cx="34" cy="31" r="2.1"/>',trout:'<path d="M14 35c13-13 36-20 58-5 8-6 16-9 24-8-4 8-4 16 0 24-8 0-16-3-24-9-22 15-45 8-58-2z"/><path d="M39 25c6 5 13 5 20 0"/><circle cx="35" cy="31" r="2.1"/>',carp:'<path d="M16 36c8-18 37-24 57-5 8-6 16-8 24-7-4 7-4 15 0 22-8 1-16-2-24-8-20 19-49 13-57-2z"/><path d="M33 38c9 5 20 4 32-1"/><circle cx="37" cy="31" r="2.4"/>',catfish:'<path d="M14 36c14-14 42-18 64-5 7-4 14-5 21-4-4 6-4 12 0 18-7 1-14 0-21-4-22 13-50 9-64-5z"/><circle cx="34" cy="32" r="2.1"/><path d="M29 36c-9 1-14 5-18 10M30 31c-10-3-16-1-22 2"/>',trophy:'<path d="M35 23h30v12c0 12-7 20-15 20s-15-8-15-20z"/><path d="M35 28H22c1 10 6 16 15 18M65 28h13c-1 10-6 16-15 18M50 55v12M38 67h24"/>',crown:'<path d="M22 60h56l-5-34-15 17-8-22-8 22-15-17z"/><path d="M27 68h46"/>',target:'<circle cx="50" cy="46" r="25"/><circle cx="50" cy="46" r="14"/><circle cx="50" cy="46" r="4"/><path d="M50 13v13M50 66v13M17 46h13M70 46h13"/>',wave:'<path d="M16 39c8-8 16-8 24 0s16 8 24 0 16-8 24 0M16 55c8-8 16-8 24 0s16 8 24 0 16-8 24 0"/>',route:'<path d="M22 64c10-23 47 1 56-30"/><circle cx="22" cy="64" r="6"/><circle cx="78" cy="34" r="6"/><path d="M50 48l6-7 4 8"/>',moon:'<path d="M61 21c-14 4-23 16-22 29 1 14 12 25 27 27-6 5-14 8-23 7-18-2-31-17-29-35 2-19 19-32 37-30 4 0 7 1 10 2z"/>',compass:'<circle cx="50" cy="48" r="28"/><path d="M61 35L53 59 29 67l8-24z"/><circle cx="50" cy="48" r="3"/>',sun:'<circle cx="50" cy="46" r="16"/><path d="M50 14v10M50 68v10M18 46h10M72 46h10M28 24l7 7M65 61l7 7M72 24l-7 7M35 61l-7 7"/>'};
   return icons[type]||icons.fish;
 }
 function renderFishBadgeSvg(badge,size=64){
@@ -746,10 +767,13 @@ function renderFishBadgeSvg(badge,size=64){
   return `<svg class="fish-badge-svg fish-badge-svg--${rarity}" width="${size}" height="${size}" viewBox="0 0 100 100" role="img" aria-label="${title}"><title>${title}</title><circle class="fish-badge-svg__aura" cx="50" cy="50" r="45"/><path class="fish-badge-svg__shield" d="M50 6l34 13v25c0 22-13 40-34 50-21-10-34-28-34-50V19z"/><circle class="fish-badge-svg__inner" cx="50" cy="47" r="30"/><g class="fish-badge-svg__icon" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">${renderFishIconMarkup(icon)}</g></svg>`;
 }
 function renderCompanionSvg(profile,size=150){
-  const speciesKey=profile?.speciesKey||'default',theme=getFishGameSpeciesTheme(speciesKey);
+  const speciesKey=profile?.speciesKey||'default',theme=getFishGameSpeciesTheme(speciesKey),visual=getCompanionVisualPhase(profile?.evolution?.stage);
   const iconType=speciesKey==='default'?'fish':(speciesKey==='pike'?'pike':speciesKey==='perch'?'perch':speciesKey==='trout'?'trout':speciesKey==='carp'?'carp':speciesKey==='catfish'?'catfish':speciesKey);
-  const name=escapeHtml(profile?.evolution?.name||theme.base);
-  return `<svg class="fish-companion-svg" width="${size}" height="${size}" viewBox="0 0 160 160" role="img" aria-label="Companion ${name}" style="--fish-theme:${theme.theme};--fish-accent:${theme.accent}"><title>${name}</title><circle class="fish-companion-svg__halo" cx="80" cy="80" r="68"/><circle class="fish-companion-svg__ring" cx="80" cy="80" r="56"/><path class="fish-companion-svg__wave" d="M25 107c12-10 24-10 36 0s24 10 36 0 24-10 38 0"/><g class="fish-companion-svg__fish" transform="translate(29 36) scale(1.03)" fill="none" stroke="currentColor" stroke-width="5.6" stroke-linecap="round" stroke-linejoin="round">${renderFishIconMarkup(iconType)}</g><circle class="fish-companion-svg__spark fish-companion-svg__spark--a" cx="42" cy="45" r="3"/><circle class="fish-companion-svg__spark fish-companion-svg__spark--b" cx="124" cy="58" r="2.5"/><circle class="fish-companion-svg__spark fish-companion-svg__spark--c" cx="116" cy="119" r="2"/></svg>`;
+  const name=escapeHtml(profile?.evolution?.name||theme.base),phaseLabel=escapeHtml(visual.label);
+  const sparks=[['a',42,45,3],['b',124,58,2.5],['c',116,119,2],['d',35,118,2.2],['e',128,96,2.8]].slice(0,visual.sparkCount).map(([key,cx,cy,r])=>`<circle class="fish-companion-svg__spark fish-companion-svg__spark--${key}" cx="${cx}" cy="${cy}" r="${r}"/>`).join('');
+  const alphaAccents=visual.key==='alpha'||visual.key==='monster'?'<path class="fish-companion-svg__accent fish-companion-svg__accent--top" d="M46 23c18-12 48-12 68 0"/><path class="fish-companion-svg__accent fish-companion-svg__accent--side" d="M124 74l14-10M125 87l16 1"/>':'';
+  const monsterAccents=visual.key==='monster'?'<path class="fish-companion-svg__accent fish-companion-svg__accent--monster" d="M34 132c18 9 72 9 92-1M31 32l10 11M129 32l-10 11"/>':'';
+  return `<svg class="fish-companion-svg fish-companion-svg--${visual.key}" width="${size}" height="${size}" viewBox="0 0 160 160" role="img" aria-label="Companion ${name} · ${phaseLabel}" style="--fish-theme:${theme.theme};--fish-accent:${theme.accent}"><title>${name} · ${phaseLabel}</title><circle class="fish-companion-svg__phase-aura" cx="80" cy="80" r="${visual.key==='monster'?78:visual.key==='alpha'?74:70}" opacity="${visual.auraOpacity}"/><circle class="fish-companion-svg__halo" cx="80" cy="80" r="68"/><circle class="fish-companion-svg__ring" cx="80" cy="80" r="56"/><path class="fish-companion-svg__wave" d="M25 107c12-10 24-10 36 0s24 10 36 0 24-10 38 0"/>${alphaAccents}${monsterAccents}<g class="fish-companion-svg__fish" transform="${visual.fishTransform}" fill="none" stroke="currentColor" stroke-width="${visual.strokeWidth}" stroke-linecap="round" stroke-linejoin="round">${renderFishIconMarkup(iconType)}</g>${sparks}</svg>`;
 }
 function renderPremiumBadgeCard(badge){return `<article class="fish-badge-card fish-badge-card--${escapeHtml(badge.rarity)}" title="${escapeHtml(badge.detail)}">${renderFishBadgeSvg(badge,58)}<div><strong>${escapeHtml(badge.title)}</strong><span>${escapeHtml(badge.detail)}</span><small>${escapeHtml(FISH_GAME_RARITIES[badge.rarity]?.label||badge.rarity)}</small></div></article>`;}
 function renderCompanionJourney(profile){
