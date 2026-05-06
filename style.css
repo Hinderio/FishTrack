@@ -4859,65 +4859,61 @@ body.light .rules-readme-overlay{
   @page{size:A4;margin:12mm;}
   body.is-printing-tournament-memory > *:not(#tournamentMemoryPrintRoot){display:none!important;}
   body.is-printing-tournament-memory #tournamentMemoryPrintRoot{display:block!important;}
-  body.is-printing-tournament-memory{background:#fff!important;color:#172230!important;}
+  body.is-printing-tournament-memory{background:#071119!important;color:#e9f7f7!important;}
   body.is-printing-tournament-memory *{box-shadow:none!important;text-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 
-  .tournament-memory-report{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172230;background:#fff;line-height:1.35;font-size:10.5pt;}
-  .tournament-memory-card{border:1px solid #d9e2ea;border-radius:16px;background:#fff;padding:14px;margin:0 0 10px;break-inside:avoid;page-break-inside:avoid;}
-  .tournament-memory-eyebrow{margin:0 0 4px;color:#247b7b;text-transform:uppercase;letter-spacing:.12em;font-size:7.5pt;font-weight:900;}
-  .tournament-memory-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(210px,.85fr);gap:14px;align-items:stretch;background:linear-gradient(135deg,#f1fbfb,#ffffff 58%,#f2fff7);border-color:#b8dede;}
-  .tournament-memory-hero h1{margin:0;font-size:24pt;line-height:1.02;letter-spacing:-.04em;color:#0d1b26;}
-  .tournament-memory-hero p:not(.tournament-memory-eyebrow){margin:6px 0 0;color:#607080;font-weight:700;}
+  .tournament-memory-report{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#e9f7f7;background:radial-gradient(circle at 12% 0%,rgba(74,215,209,.16),transparent 30%),linear-gradient(180deg,#0b1822 0%,#071119 100%);line-height:1.35;font-size:10.5pt;padding:0 0 14mm;}
+  .tournament-memory-card{border:1px solid rgba(127,241,235,.22);border-radius:16px;background:linear-gradient(180deg,rgba(18,34,47,.98),rgba(10,22,32,.98));padding:14px;margin:0 0 10px;break-inside:avoid;page-break-inside:avoid;}
+  .tournament-memory-eyebrow{margin:0 0 4px;color:#74f1ea;text-transform:uppercase;letter-spacing:.12em;font-size:7.5pt;font-weight:900;}
+  .tournament-memory-hero{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(210px,.85fr);gap:14px;align-items:stretch;background:radial-gradient(circle at 16% 0%,rgba(120,255,248,.22),transparent 34%),linear-gradient(135deg,#102838,#08141d 62%,#0d261f);border-color:rgba(116,241,234,.42);}
+  .tournament-memory-hero h1{margin:0;font-size:24pt;line-height:1.02;letter-spacing:-.04em;color:#f7ffff;}
+  .tournament-memory-hero p:not(.tournament-memory-eyebrow){margin:6px 0 0;color:#a9c0cd;font-weight:700;}
   .tournament-memory-meta{display:flex;gap:6px;align-content:flex-start;align-items:flex-start;justify-content:flex-end;flex-wrap:wrap;}
-  .tournament-memory-meta span{border:1px solid #cfe3e7;border-radius:999px;background:#f5fbfd;padding:6px 8px;font-size:8.2pt;font-weight:800;color:#314657;}
-  .tournament-memory-champion{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:#101b25;color:#fff;border-color:#101b25;}
-  .tournament-memory-champion h2{margin:0;font-size:18pt;color:#fff;}
-  .tournament-memory-champion span{display:block;color:#b7c4cf;font-weight:700;}
+  .tournament-memory-meta span{border:1px solid rgba(116,241,234,.26);border-radius:999px;background:rgba(9,25,36,.82);padding:6px 8px;font-size:8.2pt;font-weight:800;color:#d9f5f3;}
+  .tournament-memory-champion{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;background:linear-gradient(135deg,#0e2534,#091823 65%,#0c2e28);color:#fff;border-color:rgba(121,238,232,.45);}
+  .tournament-memory-champion h2{margin:0;font-size:18pt;color:#ffffff;}
+  .tournament-memory-champion span{display:block;color:#b8ccd8;font-weight:700;}
   .tournament-memory-champion>strong{font-size:18pt;color:#79eee8;white-space:nowrap;}
   .tournament-memory-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 10px;}
-  .tournament-memory-kpi-grid article{border:1px solid #d9e2ea;border-radius:14px;padding:10px;background:#f8fbfc;break-inside:avoid;}
-  .tournament-memory-kpi-grid span,.tournament-memory-highlight-grid span{display:block;text-transform:uppercase;letter-spacing:.09em;color:#667584;font-size:7.4pt;font-weight:900;margin-bottom:4px;}
-  .tournament-memory-kpi-grid strong{display:block;font-size:13pt;color:#13202c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .tournament-memory-kpi-grid small,.tournament-memory-highlight-grid small{display:block;color:#617180;font-weight:700;margin-top:3px;}
+  .tournament-memory-kpi-grid article{border:1px solid rgba(127,241,235,.18);border-radius:14px;padding:10px;background:rgba(14,30,43,.94);break-inside:avoid;}
+  .tournament-memory-kpi-grid span,.tournament-memory-highlight-grid span{display:block;text-transform:uppercase;letter-spacing:.09em;color:#8fdedb;font-size:7.4pt;font-weight:900;margin-bottom:4px;}
+  .tournament-memory-kpi-grid strong{display:block;font-size:13pt;color:#f4ffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tournament-memory-kpi-grid small,.tournament-memory-highlight-grid small{display:block;color:#abc1cf;font-weight:700;margin-top:3px;}
   .tournament-memory-section-head{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:10px;}
-  .tournament-memory-section-head h2{margin:0;font-size:15pt;color:#13202c;}
+  .tournament-memory-section-head h2{margin:0;font-size:15pt;color:#f0ffff;}
   .tournament-memory-leader-list,.tournament-memory-timeline-list,.tournament-memory-game-list{display:flex;flex-direction:column;gap:7px;}
-  .tournament-memory-leader-row{display:grid;grid-template-columns:28px 34px minmax(0,1fr) 72px;gap:9px;align-items:center;border:1px solid #e2e8ee;border-radius:13px;padding:8px;break-inside:avoid;page-break-inside:avoid;}
-  .tournament-memory-rank{font-weight:900;text-align:center;color:#1f313e;}
-  .tournament-memory-avatar{width:32px;height:32px;border-radius:12px;display:grid;place-items:center;background:var(--memory-color,#4ad7d1);color:#08161e;font-weight:900;}
-  .tournament-memory-leader-main strong{display:block;color:#13202c;font-size:10.6pt;}
-  .tournament-memory-leader-main small,.tournament-memory-points small{display:block;color:#667584;font-weight:700;}
+  .tournament-memory-leader-row{display:grid;grid-template-columns:28px 34px minmax(0,1fr) 72px;gap:9px;align-items:center;border:1px solid rgba(127,241,235,.16);border-radius:13px;padding:8px;background:rgba(6,18,27,.52);break-inside:avoid;page-break-inside:avoid;}
+  .tournament-memory-rank{font-weight:900;text-align:center;color:#bdeeed;}
+  .tournament-memory-avatar{width:32px;height:32px;border-radius:12px;display:grid;place-items:center;background:var(--memory-color,#4ad7d1);color:#061015;font-weight:900;}
+  .tournament-memory-leader-main strong{display:block;color:#f2ffff;font-size:10.6pt;}
+  .tournament-memory-leader-main small,.tournament-memory-points small{display:block;color:#a7bac7;font-weight:700;}
   .tournament-memory-bonuses{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
-  .tournament-memory-bonuses span{border-radius:999px;background:#eef7f7;color:#247b7b;padding:3px 6px;font-size:7pt;font-weight:900;}
+  .tournament-memory-bonuses span{border-radius:999px;background:rgba(74,215,209,.12);color:#8ff5ef;padding:3px 6px;font-size:7pt;font-weight:900;border:1px solid rgba(143,245,239,.18);}
   .tournament-memory-points{text-align:right;}
-  .tournament-memory-points strong{display:block;color:#111d28;font-size:13pt;}
+  .tournament-memory-points strong{display:block;color:#ffffff;font-size:13pt;}
   .tournament-memory-highlight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-  .tournament-memory-highlight-grid article{border:1px solid #e2e8ee;border-radius:14px;background:#fbfcfd;padding:10px;break-inside:avoid;}
-  .tournament-memory-highlight-grid strong{display:block;color:#13202c;font-size:10.5pt;}
-  .tournament-memory-story-text p{margin:0 0 8px;color:#243444;font-weight:600;}
+  .tournament-memory-highlight-grid article{border:1px solid rgba(127,241,235,.16);border-radius:14px;background:rgba(7,20,30,.58);padding:10px;break-inside:avoid;}
+  .tournament-memory-highlight-grid strong{display:block;color:#f4ffff;font-size:10.5pt;}
+  .tournament-memory-story-text p{margin:0 0 8px;color:#d7e7ef;font-weight:600;}
   .tournament-memory-story{break-inside:avoid;page-break-inside:avoid;}
   .tournament-memory-route{break-inside:avoid;page-break-inside:avoid;}
-  .tournament-memory-route-wrap{border:1px solid #e2e8ee;border-radius:16px;background:#f7fbfc;padding:8px;break-inside:avoid;}
+  .tournament-memory-route-wrap{border:1px solid rgba(127,241,235,.18);border-radius:16px;background:rgba(5,15,23,.72);padding:8px;break-inside:avoid;}
   .tournament-memory-route-wrap svg{display:block;width:100%;height:auto;}
-  .tournament-memory-route-bg{fill:#eef8fa;stroke:#d8e8ed;stroke-width:1;}
-  .tournament-memory-route-line{fill:none;stroke:#3f5362;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:7 8;}
-  .tournament-memory-route-point circle{stroke:#fff;stroke-width:2.4;}
-  .tournament-memory-route-point text{font-size:9px;font-weight:900;text-anchor:middle;fill:#07141b;}
-  .tournament-memory-route-label{font-size:9px;font-weight:900;fill:#516575;}
+  .tournament-memory-route-bg{fill:#091925;stroke:#244758;stroke-width:1;}
+  .tournament-memory-route-line{fill:none;stroke:#9bdad9;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:7 8;}
+  .tournament-memory-route-point circle{stroke:#071119;stroke-width:2.4;}
+  .tournament-memory-route-point text{font-size:9px;font-weight:900;text-anchor:middle;fill:#061015;}
+  .tournament-memory-route-label{font-size:9px;font-weight:900;fill:#bfeeed;}
   .tournament-memory-route-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
-  .tournament-memory-route-legend span{display:inline-flex;gap:5px;align-items:center;font-weight:800;color:#46596a;font-size:8pt;}
+  .tournament-memory-route-legend span{display:inline-flex;gap:5px;align-items:center;font-weight:800;color:#b4cbd7;font-size:8pt;}
   .tournament-memory-route-legend i{width:10px;height:10px;border-radius:999px;background:#4ad7d1;display:inline-block;}
-  .tournament-memory-game-row,.tournament-memory-timeline-row{display:grid;grid-template-columns:30px minmax(0,1fr);gap:9px;align-items:start;border:1px solid #e2e8ee;border-radius:13px;padding:8px;break-inside:avoid;page-break-inside:avoid;}
-  .tournament-memory-game-row>span,.tournament-memory-timeline-row>span{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:var(--memory-color,#4ad7d1);color:#08161e;font-weight:900;}
-  .tournament-memory-game-row strong,.tournament-memory-timeline-row strong{display:block;color:#13202c;}
-  .tournament-memory-game-row small,.tournament-memory-timeline-row small,.tournament-memory-game-row em,.tournament-memory-timeline-row em{display:block;color:#647486;font-style:normal;font-weight:700;margin-top:2px;}
-  .tournament-memory-empty{border:1px dashed #c9d6df;border-radius:14px;padding:12px;background:#f8fbfc;color:#607080;break-inside:avoid;}
-  .tournament-memory-empty strong{display:block;color:#1d2e3c;margin-bottom:3px;}
-  .tournament-memory-footer{display:flex;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid #dfe7ee;margin-top:12px;padding-top:8px;color:#617180;font-size:8pt;font-weight:800;break-inside:avoid;}
-}
-
-@media print{
-  .tournament-memory-report{padding-bottom:14mm;}
+  .tournament-memory-game-row,.tournament-memory-timeline-row{display:grid;grid-template-columns:30px minmax(0,1fr);gap:9px;align-items:start;border:1px solid rgba(127,241,235,.16);border-radius:13px;padding:8px;background:rgba(6,18,27,.52);break-inside:avoid;page-break-inside:avoid;}
+  .tournament-memory-game-row>span,.tournament-memory-timeline-row>span{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:var(--memory-color,#4ad7d1);color:#061015;font-weight:900;}
+  .tournament-memory-game-row strong,.tournament-memory-timeline-row strong{display:block;color:#f1ffff;}
+  .tournament-memory-game-row small,.tournament-memory-timeline-row small,.tournament-memory-game-row em,.tournament-memory-timeline-row em{display:block;color:#a9bdca;font-style:normal;font-weight:700;margin-top:2px;}
+  .tournament-memory-empty{border:1px dashed rgba(127,241,235,.26);border-radius:14px;padding:12px;background:rgba(8,22,33,.72);color:#a9bdca;break-inside:avoid;}
+  .tournament-memory-empty strong{display:block;color:#efffff;margin-bottom:3px;}
+  .tournament-memory-footer{display:flex;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid rgba(127,241,235,.18);margin-top:12px;padding-top:8px;color:#a9bdca;font-size:8pt;font-weight:800;break-inside:avoid;}
   .tournament-memory-timeline.tournament-memory-card{break-inside:auto;page-break-inside:auto;}
-  .tournament-memory-footer{position:fixed;left:0;right:0;bottom:0;background:#fff;}
+  .tournament-memory-footer{position:fixed;left:0;right:0;bottom:0;background:#071119;}
 }
