@@ -1,5 +1,5 @@
 // Bump the cache name to invalidate old caches when deploying new features (grid overlay etc.)
-const CACHE_NAME = 'fishtrack-v38-companion-svg-badges';
+const CACHE_NAME = 'fishtrack-v39-tournament-memory-pdf';
 const ASSETS = [
   './',
   './index.html',

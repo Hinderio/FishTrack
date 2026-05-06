@@ -1284,6 +1284,160 @@ function renderTournamentDuelSummary(){
     <button type="button" class="pill secondary" data-tournament-scroll="${escapeHtml(g.target)}">Ansehen</button>
   </article>`).join('');
 }
+
+function getActiveTournamentForMemoryExport(){return tournamentById(activeTournamentId);}
+function tournamentMemoryDash(value){return value===undefined||value===null||value===''?'–':value;}
+function tournamentMemoryLength(c){const n=Number(c?.lengthCm||0);return Number.isFinite(n)&&n>0?`${Math.round(n)} cm`:'–';}
+function tournamentMemoryWeight(c){const n=Number(c?.weightKg||0);return Number.isFinite(n)&&n>0?fmtKg(n):'–';}
+function tournamentMemorySpot(c){return c?.spotLabel||c?.location?.label||'–';}
+function tournamentMemoryBait(c){return c?.bait||'–';}
+function tournamentMemoryParticipant(c){return participantById(c?.participantId)||{name:'Unbekannt',avatar:'🎣',color:'#4ad7d1'};}
+function tournamentMemorySafeColor(color,fallback='#4ad7d1'){
+  const value=String(color||'').trim();
+  if(/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value))return value;
+  if(/^rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(\s*,\s*(0|1|0?\.\d+))?\s*\)$/i.test(value))return value;
+  return fallback;
+}
+function tournamentMemoryWinnerLabel(tournament,result){
+  const leader=result?.rows?.[0]||null;
+  if(tournament?.finished&&tournament?.winner){
+    const names=Array.isArray(tournament.winner.names)?tournament.winner.names.join(' & '):(tournament.winner.name||'');
+    return names||leader?.participant?.name||'–';
+  }
+  return leader?.participant?.name||'–';
+}
+function buildTournamentMemoryReportData(tournament){
+  if(!tournament)return null;
+  const result=computeTournamentScores(tournament);
+  const catches=Array.isArray(result?.catches)?result.catches:[];
+  const first=catches[0]||null;
+  const last=catches[catches.length-1]||null;
+  const biggest=catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);
+  const speciesWins={};
+  catches.forEach(c=>{
+    const s=speciesName(c);
+    if(!speciesWins[s]||Number(c.weightKg||0)>Number(speciesWins[s].weightKg||0))speciesWins[s]=c;
+  });
+  const areaCounts=new Map();
+  catches.forEach(c=>{
+    const grid=gridIdFromCatch(c);
+    if(grid&&grid!=='unknown')areaCounts.set(grid,(areaCounts.get(grid)||0)+1);
+  });
+  const topAreas=[...areaCounts.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const route=typeof buildTournamentCatchMapData==='function'?buildTournamentCatchMapData(catches):[];
+  const miniGames=typeof tournamentMiniGameSnapshots==='function'?tournamentMiniGameSnapshots():[];
+  const totalWeight=catches.reduce((sum,c)=>sum+Number(c.weightKg||0),0);
+  return{tournament,result,first,last,biggest,speciesWins,topAreas,route,miniGames,totalWeight,exportedAt:new Date()};
+}
+function renderTournamentMemoryRouteSvg(route,width=720,height=260){
+  if(!Array.isArray(route)||!route.length){
+    return `<div class="tournament-memory-empty"><strong>Keine verortbaren Fänge für die Erinnerung vorhanden.</strong><span>Report bleibt ohne Kartenpunkte vollständig nutzbar.</span></div>`;
+  }
+  const pad={left:34,right:34,top:26,bottom:34};
+  const points=route.map((item,index)=>({
+    item,index,
+    lat:Number(item.latlng?.[0]),
+    lng:Number(item.latlng?.[1]),
+    color:tournamentMemorySafeColor(item.color||item.participant?.color),
+    participant:item.participant||tournamentMemoryParticipant(item.catch)
+  })).filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng));
+  if(!points.length)return `<div class="tournament-memory-empty"><strong>Keine verortbaren Fänge für die Erinnerung vorhanden.</strong><span>Report bleibt ohne Kartenpunkte vollständig nutzbar.</span></div>`;
+  const lats=points.map(p=>p.lat),lngs=points.map(p=>p.lng);
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats),minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  const latSpan=Math.max(0.000001,maxLat-minLat),lngSpan=Math.max(0.000001,maxLng-minLng);
+  const sameLat=maxLat===minLat,sameLng=maxLng===minLng;
+  const mapPoint=p=>{
+    const x=sameLng?width/2:pad.left+((p.lng-minLng)/lngSpan)*(width-pad.left-pad.right);
+    const y=sameLat?height/2:height-pad.bottom-((p.lat-minLat)/latSpan)*(height-pad.top-pad.bottom);
+    return{x,y};
+  };
+  const plotted=points.map(p=>({...p,...mapPoint(p)}));
+  const polyline=plotted.map(p=>`${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const path=plotted.length>1?`<polyline class="tournament-memory-route-line" points="${polyline}"/>`:'';
+  const dots=plotted.map((p,i)=>{
+    const isFirst=i===0,isLast=i===plotted.length-1;
+    const r=isLast?9:(isFirst?8:7);
+    return `<g class="tournament-memory-route-point"><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${escapeHtml(p.color)}"/><text x="${p.x.toFixed(1)}" y="${(p.y+3.5).toFixed(1)}">${i+1}</text></g>`;
+  }).join('');
+  const seen=new Set();
+  const legend=plotted.filter(p=>{const key=p.participant?.id||p.participant?.name||'unknown';if(seen.has(key))return false;seen.add(key);return true;}).map(p=>`<span><i style="background:${escapeHtml(p.color)}"></i>${escapeHtml(p.participant?.name||'Unbekannt')}</span>`).join('');
+  const start=plotted[0],finish=plotted[plotted.length-1];
+  return `<div class="tournament-memory-route-wrap"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Chronologische Fangroute"><rect class="tournament-memory-route-bg" x="1" y="1" width="${width-2}" height="${height-2}" rx="22"/>${path}${dots}<text class="tournament-memory-route-label" x="${Math.min(width-92,Math.max(12,start.x+10)).toFixed(1)}" y="${Math.max(22,start.y-12).toFixed(1)}">Start</text><text class="tournament-memory-route-label" x="${Math.min(width-98,Math.max(12,finish.x+10)).toFixed(1)}" y="${Math.min(height-14,finish.y+22).toFixed(1)}">Finish</text></svg><div class="tournament-memory-route-legend">${legend || '<span><i></i>Keine Teilnehmerfarben</span>'}</div></div>`;
+}
+function renderTournamentMemoryKpi(label,value,sub){return `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(tournamentMemoryDash(value))}</strong><small>${escapeHtml(tournamentMemoryDash(sub))}</small></article>`;}
+function renderTournamentMemoryLeaderboard(result){
+  const rows=result?.rows||[];
+  if(!rows.length)return `<div class="tournament-memory-empty"><strong>Noch keine Teilnehmer in der Wertung.</strong><span>Das Regelwerk ist vorhanden, aber die Rangliste hat noch keine Daten.</span></div>`;
+  const leaderPoints=Number(rows[0]?.points||0);
+  return rows.map((row,i)=>{
+    const p=row.participant||{name:'Unbekannt',avatar:'🎣',color:'#4ad7d1'};
+    const bonuses=(row.bonuses||[]).slice(0,3);
+    const gap=i===0?'Leader':(Number(row.points||0)===leaderPoints?'Gleichstand':`${Math.max(0,leaderPoints-Number(row.points||0))} zurück`);
+    return `<article class="tournament-memory-leader-row"><div class="tournament-memory-rank">${i+1}</div><div class="tournament-memory-avatar" style="--memory-color:${escapeHtml(tournamentMemorySafeColor(p.color))}">${escapeHtml(p.avatar||'🎣')}</div><div class="tournament-memory-leader-main"><strong>${escapeHtml(p.name||'Unbekannt')}</strong><small>${Number(row.catches||0)} Fänge · ${escapeHtml(fmtKg(row.totalWeight||0))}</small>${bonuses.length?`<div class="tournament-memory-bonuses">${bonuses.map(b=>`<span>${escapeHtml(b)}</span>`).join('')}</div>`:''}</div><div class="tournament-memory-points"><strong>${Number(row.points||0)}</strong><small>${escapeHtml(gap)}</small></div></article>`;
+  }).join('');
+}
+function renderTournamentMemoryHighlights(data){
+  const {first,biggest,last,speciesWins,topAreas,result}=data;
+  const cards=[];
+  if(first){const p=tournamentMemoryParticipant(first);cards.push(`<article><span>Erster Fisch</span><strong>${escapeHtml(speciesName(first))}</strong><small>${escapeHtml(p.name||'Unbekannt')} · ${escapeHtml(fmtDateTime(first.timestamp))}</small></article>`);}
+  if(biggest){const p=tournamentMemoryParticipant(biggest);cards.push(`<article><span>Größter Fisch</span><strong>${escapeHtml(speciesName(biggest))} · ${escapeHtml(tournamentMemoryWeight(biggest))}</strong><small>${escapeHtml(p.name||'Unbekannt')} · ${escapeHtml(tournamentMemoryLength(biggest))}</small></article>`);}
+  Object.values(speciesWins||{}).slice(0,4).forEach(c=>{const p=tournamentMemoryParticipant(c);cards.push(`<article><span>Artensieger ${escapeHtml(speciesName(c))}</span><strong>${escapeHtml(p.name||'Unbekannt')}</strong><small>${escapeHtml(tournamentMemoryWeight(c))} · ${escapeHtml(tournamentMemoryLength(c))}</small></article>`);});
+  if(topAreas?.length)cards.push(`<article><span>Beste Raster / Hotspots</span><strong>${topAreas.map(([id,count])=>`${escapeHtml(String(id).replace('grid_',''))}: ${Number(count)}`).join(' · ')}</strong><small>aus vorhandenen Fangkoordinaten</small></article>`);
+  if(last){const p=tournamentMemoryParticipant(last);cards.push(`<article><span>Letzter Fang</span><strong>${escapeHtml(speciesName(last))}</strong><small>${escapeHtml(p.name||'Unbekannt')} · ${escapeHtml(fmtDateTime(last.timestamp))}</small></article>`);}
+  if(result?.rows?.length)cards.push(`<article><span>Leader-Gap</span><strong>${escapeHtml(tournamentLeaderGap(result.rows))}</strong><small>${result.rows.length>1?'knappster Blick auf die Spitze':'Solo-Wertung'}</small></article>`);
+  if(!cards.length)return `<div class="tournament-memory-empty"><strong>Noch keine Turnierdaten vorhanden.</strong><span>Die Erinnerung startet sauber, sobald Fänge zugeordnet werden.</span></div>`;
+  return cards.join('');
+}
+function renderTournamentMemoryTimeline(catches){
+  if(!catches?.length)return `<div class="tournament-memory-empty"><strong>Noch keine Fänge zugeordnet.</strong><span>Leaderboard, Story und Route füllen sich automatisch mit den gespeicherten FishTrack-Daten.</span></div>`;
+  return catches.map((c,i)=>{const p=tournamentMemoryParticipant(c);const color=tournamentMemorySafeColor(p.color);return `<article class="tournament-memory-timeline-row"><span style="--memory-color:${escapeHtml(color)}">${i+1}</span><div><strong>${escapeHtml(speciesName(c))}</strong><small>${escapeHtml(tournamentMemoryLength(c))} · ${escapeHtml(tournamentMemoryWeight(c))} · ${escapeHtml(p.name||'Unbekannt')} · ${escapeHtml(fmtDateTime(c.timestamp))}</small><em>${escapeHtml(tournamentMemorySpot(c))}${c?.bait?` · Köder: ${escapeHtml(tournamentMemoryBait(c))}`:''}</em></div></article>`;}).join('');
+}
+function renderTournamentMemoryMiniGames(games){
+  if(!games?.length)return `<div class="tournament-memory-empty"><strong>Keine Duelle oder Challenges gespeichert.</strong><span>Der Report blendet diese Sektion bewusst ruhig aus, sobald keine vorhandenen Mini-Game-Daten da sind.</span></div>`;
+  return games.map(g=>`<article class="tournament-memory-game-row"><span>${escapeHtml(g.icon||'🎮')}</span><div><strong>${escapeHtml(g.title||'Challenge')}</strong><small>${escapeHtml(g.status||'Status offen')} · ${escapeHtml(g.players||'Teilnehmer offen')}</small><em>${escapeHtml(g.meta||g.hint||'Score offen')}</em></div></article>`).join('');
+}
+function sanitizeTournamentMemoryStoryHtml(html){
+  if(typeof document==='undefined')return escapeHtml(html||'');
+  const root=document.createElement('div');
+  root.innerHTML=String(html||'');
+  root.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach(el=>el.remove());
+  const allowed=new Set(['P','STRONG','SPAN','BR','EM','B','I']);
+  root.querySelectorAll('*').forEach(el=>{
+    if(!allowed.has(el.tagName)){el.replaceWith(document.createTextNode(el.textContent||''));return;}
+    [...el.attributes].forEach(attr=>{
+      if(attr.name==='class'&&attr.value==='t-subtitle')return;
+      el.removeAttribute(attr.name);
+    });
+  });
+  return root.innerHTML;
+}
+function renderTournamentMemoryReportHtml(data){
+  if(!data)return '';
+  const {tournament,result,first,last,biggest,totalWeight,exportedAt}=data;
+  const rules=getTournamentRules(tournament);
+  const status=tournamentStatusBadge(tournament);
+  const exportedLabel=exportedAt.toLocaleString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const champion=tournamentMemoryWinnerLabel(tournament,result);
+  const championPoints=tournament?.finished?Number(tournament.winnerPoints||result?.rows?.[0]?.points||0):Number(result?.rows?.[0]?.points||0);
+  const championTitle=tournament?.finished?'Champion Moment':'Zwischenstand';
+  const championSub=tournament?.finished?'Gewinner laut gespeicherter Turnierwertung':'Aktueller Leader aus computeTournamentScores';
+  const storyHtml=sanitizeTournamentMemoryStoryHtml(buildTournamentStory(tournament,result,data.first,data.biggest,data.speciesWins,data.topAreas));
+  return `<article class="tournament-memory-report"><section class="tournament-memory-hero tournament-memory-card"><div><p class="tournament-memory-eyebrow">FishTrack Turnier-Erinnerung</p><h1>${escapeHtml(tournament.name||'Unbenanntes Turnier')}</h1><p>${escapeHtml(tournamentDateRange(tournament))}</p></div><div class="tournament-memory-meta"><span>${escapeHtml(status)}</span><span>${escapeHtml(rules.name)}</span><span>${tournamentParticipantCount(tournament)} Teilnehmer</span><span>${Number(result?.catches?.length||0)} Fänge</span><span>Export ${escapeHtml(exportedLabel)}</span></div></section><section class="tournament-memory-champion tournament-memory-card"><div><p class="tournament-memory-eyebrow">${escapeHtml(championTitle)}</p><h2>${escapeHtml(champion)}</h2><span>${escapeHtml(championSub)}</span></div><strong>${championPoints} Punkte</strong></section><section class="tournament-memory-kpis"><div class="tournament-memory-kpi-grid">${renderTournamentMemoryKpi(tournament?.finished?'Gewinner':'Leader',champion,tournamentLeaderGap(result.rows))}${renderTournamentMemoryKpi('Fänge gesamt',Number(result?.catches?.length||0),fmtKg(totalWeight||0))}${renderTournamentMemoryKpi('Größter Fisch',biggest?speciesName(biggest):'–',biggest?`${tournamentMemoryWeight(biggest)} · ${tournamentMemoryLength(biggest)}`:'Noch offen')}${renderTournamentMemoryKpi('Letzter Fang',last?speciesName(last):'–',last?`${fmtDateTime(last.timestamp)} · ${tournamentMemoryParticipant(last).name}`:'Noch offen')}</div></section><section class="tournament-memory-section tournament-memory-leaderboard tournament-memory-card"><div class="tournament-memory-section-head"><p class="tournament-memory-eyebrow">Leaderboard</p><h2>Rangliste</h2></div><div class="tournament-memory-leader-list">${renderTournamentMemoryLeaderboard(result)}</div></section><section class="tournament-memory-section tournament-memory-card"><div class="tournament-memory-section-head"><p class="tournament-memory-eyebrow">Highlights</p><h2>Momente & Rekorde</h2></div><div class="tournament-memory-highlight-grid">${renderTournamentMemoryHighlights(data)}</div></section><section class="tournament-memory-section tournament-memory-story tournament-memory-card"><div class="tournament-memory-section-head"><p class="tournament-memory-eyebrow">Turnier-Story</p><h2>Die Geschichte</h2></div><div class="tournament-memory-story-text">${storyHtml}</div></section><section class="tournament-memory-section tournament-memory-route tournament-memory-card"><div class="tournament-memory-section-head"><p class="tournament-memory-eyebrow">Fangroute</p><h2>Chronologische Karten-Erinnerung</h2></div>${renderTournamentMemoryRouteSvg(data.route)}</section><section class="tournament-memory-section tournament-memory-games tournament-memory-card"><div class="tournament-memory-section-head"><p class="tournament-memory-eyebrow">Duelle & Challenges</p><h2>Mini-Game-Momente</h2></div><div class="tournament-memory-game-list">${renderTournamentMemoryMiniGames(data.miniGames)}</div></section><section class="tournament-memory-section tournament-memory-timeline tournament-memory-card"><div class="tournament-memory-section-head"><p class="tournament-memory-eyebrow">Chronologie</p><h2>Alle Turnierfänge</h2></div><div class="tournament-memory-timeline-list">${renderTournamentMemoryTimeline(result.catches)}</div></section><footer class="tournament-memory-footer"><span>FishTrack</span><span>${escapeHtml(tournament.name||'Turnier')}</span><span>${escapeHtml(exportedLabel)}</span><span>Erstellt aus den gespeicherten FishTrack-Daten</span></footer></article>`;
+}
+function ensureTournamentMemoryPrintRoot(){let root=document.getElementById('tournamentMemoryPrintRoot');if(!root){root=document.createElement('div');root.id='tournamentMemoryPrintRoot';root.setAttribute('aria-hidden','true');document.body.appendChild(root);}return root;}
+let tournamentMemoryPrintLifecycleBound=false;
+function bindTournamentMemoryPrintLifecycle(){if(tournamentMemoryPrintLifecycleBound)return;tournamentMemoryPrintLifecycleBound=true;window.addEventListener('afterprint',()=>{document.body.classList.remove('is-printing-tournament-memory');});}
+function exportActiveTournamentMemoryPdf(){
+  const tournament=getActiveTournamentForMemoryExport();
+  if(!tournament){alert('Bitte zuerst ein Turnier auswählen.');return;}
+  const data=buildTournamentMemoryReportData(tournament);
+  const root=ensureTournamentMemoryPrintRoot();
+  root.innerHTML=renderTournamentMemoryReportHtml(data);
+  document.body.classList.add('is-printing-tournament-memory');
+  requestAnimationFrame(()=>{window.print();});
+}
+function syncTournamentMemoryExportButton(tournament){const btn=document.getElementById('exportTournamentMemoryPdf');if(!btn)return;const disabled=!tournament;btn.disabled=disabled;btn.setAttribute('aria-disabled',disabled?'true':'false');btn.title=disabled?'Bitte zuerst ein Turnier auswählen.':'Aktives Turnier als A4-Erinnerung drucken / als PDF speichern';}
+function bindTournamentMemoryExport(){bindTournamentMemoryPrintLifecycle();const btn=document.getElementById('exportTournamentMemoryPdf');if(!btn)return;if(btn.dataset.bound!=='true'){btn.dataset.bound='true';btn.addEventListener('click',exportActiveTournamentMemoryPdf);}syncTournamentMemoryExportButton(getActiveTournamentForMemoryExport());}
 function setTournamentActiveTab(tab='overview'){
   const hub=document.getElementById('tournamentHubPanel');if(!hub)return;
   hub.dataset.activeTournamentTab=tab;
@@ -1324,7 +1478,7 @@ function bindTournamentHubInteractions(){
   });
   window.addEventListener('resize',()=>{syncTournamentMobileSections();if(typeof refreshTournamentCatchMap==='function')refreshTournamentCatchMap();});
 }
-function renderTournaments(){const list=document.getElementById('tournamentList');const title=document.getElementById('activeTournamentTitle');const meta=document.getElementById('activeTournamentMeta');const leaderboard=document.getElementById('tournamentLeaderboard');const highlights=document.getElementById('tournamentHighlights');const story=document.getElementById('tournamentStory');if(!list||!title||!meta||!leaderboard||!highlights||!story)return;bindTournamentHubInteractions();updateTournamentKpis();list.innerHTML='';
+function renderTournaments(){const list=document.getElementById('tournamentList');const title=document.getElementById('activeTournamentTitle');const meta=document.getElementById('activeTournamentMeta');const leaderboard=document.getElementById('tournamentLeaderboard');const highlights=document.getElementById('tournamentHighlights');const story=document.getElementById('tournamentStory');if(!list||!title||!meta||!leaderboard||!highlights||!story)return;bindTournamentHubInteractions();bindTournamentMemoryExport();updateTournamentKpis();list.innerHTML='';
 
 const openWrap=document.createElement('div');
 const closedWrap=document.createElement('div');
@@ -1342,7 +1496,7 @@ const closedContainer=closedWrap.querySelector('#closedT');
 
 document.querySelectorAll('#tournamentHubPanel [data-tournament-section]').forEach(el=>{el.hidden=false;});
 
-if(!state.tournaments.length){list.innerHTML='<div class="meta">Noch keine Turniere angelegt.</div>';title.textContent='Turnierauswertung';meta.textContent='Noch kein Turnier ausgewählt';leaderboard.innerHTML='';story.innerHTML='<div class="meta">Sobald ein Turnier aktiv ist, erzähle ich hier die Story dazu.</div>';highlights.innerHTML='<div class="meta">Lege zuerst ein Turnier an.</div>';renderTournamentHeroKpis(null,{rows:[],catches:[]});renderTournamentDuelSummary();renderTournamentLastCatch({catches:[]});renderTournamentCatchTimeline({catches:[]});if(typeof renderTournamentCatchMap==='function')renderTournamentCatchMap(null,{catches:[]});syncTournamentMobileSections();return}if(!activeTournamentId||!tournamentById(activeTournamentId))activeTournamentId=state.tournaments[0].id;state.tournaments.forEach(t=>{const rules=getTournamentRules(t);const article=document.createElement('article');article.className='list-card tournament-card'+(t.id===activeTournamentId?' active':'');article.dataset.tournamentId=t.id;article.setAttribute('role','button');article.setAttribute('tabindex','0');article.setAttribute('aria-label',`Turnier ${t.name} auswählen`);article.innerHTML=`<div><div class="list-title-row"><strong>${escapeHtml(t.name)}</strong><span class="badge">${escapeHtml(rules.name)}</span></div><div class="meta">${escapeHtml(tournamentDateRange(t))} · ${tournamentParticipantCount(t)} Teilnehmer</div><div class="tournament-rule">${t.finished&&t.winner?`🏆 Gewinner: ${escapeHtml(Array.isArray(t.winner.names)?t.winner.names.join(' & '):(t.winner.name||'–'))} · +${Number(t.winnerPoints||0)} Punkte`:'Fänge müssen beim Eintragen dem Turnier zugeordnet werden.'}</div></div><div class="list-actions"><button class="icon-btn finish-btn" title="Turnier abschliessen">${t.finished?'🏆':'🏁'}</button><button class="icon-btn reopen-btn" title="Wieder öffnen">↺</button><button class="icon-btn edit-btn">✎</button><button class="icon-btn delete-btn">✕</button></div>`;article.addEventListener('click',()=>selectTournamentCard(t.id,{scroll:true}));article.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectTournamentCard(t.id,{scroll:true})}});article.querySelector('.finish-btn').addEventListener('click',e=>{e.stopPropagation();finishTournament(t.id)});
+if(!state.tournaments.length){list.innerHTML='<div class="meta">Noch keine Turniere angelegt.</div>';title.textContent='Turnierauswertung';meta.textContent='Noch kein Turnier ausgewählt';leaderboard.innerHTML='';story.innerHTML='<div class="meta">Sobald ein Turnier aktiv ist, erzähle ich hier die Story dazu.</div>';highlights.innerHTML='<div class="meta">Lege zuerst ein Turnier an.</div>';renderTournamentHeroKpis(null,{rows:[],catches:[]});syncTournamentMemoryExportButton(null);renderTournamentDuelSummary();renderTournamentLastCatch({catches:[]});renderTournamentCatchTimeline({catches:[]});if(typeof renderTournamentCatchMap==='function')renderTournamentCatchMap(null,{catches:[]});syncTournamentMobileSections();return}if(!activeTournamentId||!tournamentById(activeTournamentId))activeTournamentId=state.tournaments[0].id;state.tournaments.forEach(t=>{const rules=getTournamentRules(t);const article=document.createElement('article');article.className='list-card tournament-card'+(t.id===activeTournamentId?' active':'');article.dataset.tournamentId=t.id;article.setAttribute('role','button');article.setAttribute('tabindex','0');article.setAttribute('aria-label',`Turnier ${t.name} auswählen`);article.innerHTML=`<div><div class="list-title-row"><strong>${escapeHtml(t.name)}</strong><span class="badge">${escapeHtml(rules.name)}</span></div><div class="meta">${escapeHtml(tournamentDateRange(t))} · ${tournamentParticipantCount(t)} Teilnehmer</div><div class="tournament-rule">${t.finished&&t.winner?`🏆 Gewinner: ${escapeHtml(Array.isArray(t.winner.names)?t.winner.names.join(' & '):(t.winner.name||'–'))} · +${Number(t.winnerPoints||0)} Punkte`:'Fänge müssen beim Eintragen dem Turnier zugeordnet werden.'}</div></div><div class="list-actions"><button class="icon-btn finish-btn" title="Turnier abschliessen">${t.finished?'🏆':'🏁'}</button><button class="icon-btn reopen-btn" title="Wieder öffnen">↺</button><button class="icon-btn edit-btn">✎</button><button class="icon-btn delete-btn">✕</button></div>`;article.addEventListener('click',()=>selectTournamentCard(t.id,{scroll:true}));article.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectTournamentCard(t.id,{scroll:true})}});article.querySelector('.finish-btn').addEventListener('click',e=>{e.stopPropagation();finishTournament(t.id)});
 article.querySelector('.reopen-btn').addEventListener('click',e=>{e.stopPropagation();reopenTournament(t.id)});
 article.querySelector('.edit-btn').addEventListener('click',e=>{e.stopPropagation();loadTournamentIntoForm(t)});article.querySelector('.delete-btn').addEventListener('click',async e=>{e.stopPropagation();if(!confirm('Dieses Turnier löschen? Zugeordnete Fänge bleiben bestehen, verlieren aber die Zuordnung.'))return;const deleteBtn=e.currentTarget;const nextCatches=state.catches.map(c=>c.tournamentId===t.id?{...c,tournamentId:''}:c);const nextTournaments=state.tournaments.filter(x=>x.id!==t.id);if(deleteBtn){deleteBtn.disabled=true;deleteBtn.setAttribute('aria-busy','true')}try{await deleteTournamentFromSupabase(t.id)}catch(err){if(deleteBtn){deleteBtn.disabled=false;deleteBtn.removeAttribute('aria-busy')}alert('Turnier konnte nicht aus der Datenbank gelöscht werden. Bitte Verbindung und Berechtigungen prüfen und erneut versuchen.');return}state.catches=nextCatches;state.tournaments=nextTournaments;
 window.state.tournaments = state.tournaments;if(activeTournamentId===t.id)activeTournamentId=state.tournaments[0]?.id||null;await persist();rerender()});
@@ -1351,7 +1505,7 @@ if(t.finished){
 }else{
   openContainer.appendChild(article);
 }
-});if(!openContainer.children.length)openContainer.innerHTML='<div class="meta t-empty">Keine offenen Turniere.</div>';if(!closedContainer.children.length)closedContainer.innerHTML='<div class="meta t-empty">Keine abgeschlossenen Turniere.</div>';const tournament=tournamentById(activeTournamentId);const result=computeTournamentScores(tournament);title.textContent=tournament.name;meta.textContent=tournament.finished&&tournament.winner?`${getTournamentRules(tournament).name} · abgeschlossen · 🏆 ${Array.isArray(tournament.winner.names)?tournament.winner.names.join(' & '):(tournament.winner.name||'–')} · +${tournament.winnerPoints||0} Punkte`:`${getTournamentRules(tournament).name} · ${result.catches.length} zugeordnete Fänge · ${tournamentDateRange(tournament)}`;renderTournamentHeroKpis(tournament,result);renderTournamentLeaderboardRows(result);const biggest=result.catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);const first=result.catches[0]||null;const speciesWins={};result.catches.forEach(c=>{const s=speciesName(c);if(!speciesWins[s]||Number(c.weightKg||0)>Number(speciesWins[s].weightKg||0))speciesWins[s]=c});const topAreas=[...new Map(result.catches.map(c=>[gridIdFromCatch(c), (result.catches.filter(x=>gridIdFromCatch(x)===gridIdFromCatch(c)).length)])).entries()].filter(x=>x[0]!=='unknown').sort((a,b)=>b[1]-a[1]).slice(0,3);story.innerHTML=buildTournamentStory(tournament,result,first,biggest,speciesWins,topAreas);story.classList.toggle('is-expanded',!!window.tournamentStoryExpanded);story.classList.toggle('is-collapsed',!window.tournamentStoryExpanded);highlights.innerHTML='';const cards=[];if(first)cards.push(`<article class="tournament-highlight"><strong>Erster Fisch</strong><div class="meta">${escapeHtml(speciesName(first))} von ${escapeHtml(participantById(first.participantId)?.name||'–')} um ${escapeHtml(fmtDateTime(first.timestamp))}</div></article>`);if(biggest)cards.push(`<article class="tournament-highlight"><strong>Größter Fisch</strong><div class="meta">${escapeHtml(speciesName(biggest))} · ${escapeHtml(fmtKg(biggest.weightKg))} · ${escapeHtml(biggest.lengthCm)} cm</div></article>`);Object.values(speciesWins).slice(0,4).forEach(c=>cards.push(`<article class="tournament-highlight"><strong>Artensieger ${escapeHtml(speciesName(c))}</strong><div class="meta">${escapeHtml(participantById(c.participantId)?.name||'–')} · ${escapeHtml(fmtKg(c.weightKg))}</div></article>`));if(topAreas.length)cards.push(`<article class="tournament-highlight"><strong>Beste Raster</strong><div class="meta">${topAreas.map(([id,count])=>`${escapeHtml(id.replace('grid_',''))}: ${count}`).join(' · ')}</div></article>`);if(!cards.length)cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');highlights.innerHTML=cards.join('');renderTournamentLastCatch(result);renderTournamentCatchTimeline(result);renderTournamentDuelSummary();if(typeof renderTournamentCatchMap==='function')renderTournamentCatchMap(tournament,result);const legend=document.getElementById('tournamentCatchMapLegend');if(legend){legend.classList.toggle('is-expanded',!!window.tournamentLegendExpanded);legend.classList.toggle('is-collapsed',!window.tournamentLegendExpanded);}const storyBtn=document.querySelector('[data-tournament-collapse="tournamentStory"]');if(storyBtn)storyBtn.textContent=window.tournamentStoryExpanded?'Weniger':'Mehr';const legendBtn=document.querySelector('[data-tournament-collapse="tournamentCatchMapLegend"]');if(legendBtn)legendBtn.textContent=window.tournamentLegendExpanded?'Legende aus':'Legende';syncTournamentMobileSections();}
+});if(!openContainer.children.length)openContainer.innerHTML='<div class="meta t-empty">Keine offenen Turniere.</div>';if(!closedContainer.children.length)closedContainer.innerHTML='<div class="meta t-empty">Keine abgeschlossenen Turniere.</div>';const tournament=tournamentById(activeTournamentId);syncTournamentMemoryExportButton(tournament);const result=computeTournamentScores(tournament);title.textContent=tournament.name;meta.textContent=tournament.finished&&tournament.winner?`${getTournamentRules(tournament).name} · abgeschlossen · 🏆 ${Array.isArray(tournament.winner.names)?tournament.winner.names.join(' & '):(tournament.winner.name||'–')} · +${tournament.winnerPoints||0} Punkte`:`${getTournamentRules(tournament).name} · ${result.catches.length} zugeordnete Fänge · ${tournamentDateRange(tournament)}`;renderTournamentHeroKpis(tournament,result);renderTournamentLeaderboardRows(result);const biggest=result.catches.reduce((m,c)=>!m||Number(c.weightKg||0)>Number(m.weightKg||0)?c:m,null);const first=result.catches[0]||null;const speciesWins={};result.catches.forEach(c=>{const s=speciesName(c);if(!speciesWins[s]||Number(c.weightKg||0)>Number(speciesWins[s].weightKg||0))speciesWins[s]=c});const topAreas=[...new Map(result.catches.map(c=>[gridIdFromCatch(c), (result.catches.filter(x=>gridIdFromCatch(x)===gridIdFromCatch(c)).length)])).entries()].filter(x=>x[0]!=='unknown').sort((a,b)=>b[1]-a[1]).slice(0,3);story.innerHTML=buildTournamentStory(tournament,result,first,biggest,speciesWins,topAreas);story.classList.toggle('is-expanded',!!window.tournamentStoryExpanded);story.classList.toggle('is-collapsed',!window.tournamentStoryExpanded);highlights.innerHTML='';const cards=[];if(first)cards.push(`<article class="tournament-highlight"><strong>Erster Fisch</strong><div class="meta">${escapeHtml(speciesName(first))} von ${escapeHtml(participantById(first.participantId)?.name||'–')} um ${escapeHtml(fmtDateTime(first.timestamp))}</div></article>`);if(biggest)cards.push(`<article class="tournament-highlight"><strong>Größter Fisch</strong><div class="meta">${escapeHtml(speciesName(biggest))} · ${escapeHtml(fmtKg(biggest.weightKg))} · ${escapeHtml(biggest.lengthCm)} cm</div></article>`);Object.values(speciesWins).slice(0,4).forEach(c=>cards.push(`<article class="tournament-highlight"><strong>Artensieger ${escapeHtml(speciesName(c))}</strong><div class="meta">${escapeHtml(participantById(c.participantId)?.name||'–')} · ${escapeHtml(fmtKg(c.weightKg))}</div></article>`));if(topAreas.length)cards.push(`<article class="tournament-highlight"><strong>Beste Raster</strong><div class="meta">${topAreas.map(([id,count])=>`${escapeHtml(id.replace('grid_',''))}: ${count}`).join(' · ')}</div></article>`);if(!cards.length)cards.push('<div class="meta">Noch keine Turnierdaten vorhanden.</div>');highlights.innerHTML=cards.join('');renderTournamentLastCatch(result);renderTournamentCatchTimeline(result);renderTournamentDuelSummary();if(typeof renderTournamentCatchMap==='function')renderTournamentCatchMap(tournament,result);const legend=document.getElementById('tournamentCatchMapLegend');if(legend){legend.classList.toggle('is-expanded',!!window.tournamentLegendExpanded);legend.classList.toggle('is-collapsed',!window.tournamentLegendExpanded);}const storyBtn=document.querySelector('[data-tournament-collapse="tournamentStory"]');if(storyBtn)storyBtn.textContent=window.tournamentStoryExpanded?'Weniger':'Mehr';const legendBtn=document.querySelector('[data-tournament-collapse="tournamentCatchMapLegend"]');if(legendBtn)legendBtn.textContent=window.tournamentLegendExpanded?'Legende aus':'Legende';syncTournamentMobileSections();}
 function initLocationPicker(){const previewEl=document.getElementById('locationPreviewMap');const modal=document.getElementById('mapPickerModal');const openBtn=document.getElementById('pickOnMap');const closeBtn=document.getElementById('closeMapPicker');const confirmBtn=document.getElementById('confirmMapLocation');const latInput=document.querySelector('[name="lat"]');const lngInput=document.querySelector('[name="lng"]');if(!previewEl||!modal||!openBtn||!closeBtn||!confirmBtn||!latInput||!lngInput||typeof L==='undefined')return;let previewMap = L.map(previewEl,{zoomControl:false,attributionControl:false}).setView([59.442773,11.654906],8);
 window._mapRef = previewMap;L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(previewMap);let previewMarker=null;window.updateCatchLocationPreview=(lat,lng)=>{previewMap.invalidateSize();previewMap.setView([lat,lng],11);if(previewMarker)previewMarker.setLatLng([lat,lng]);else previewMarker=L.marker([lat,lng]).addTo(previewMap)};let pickerMap=null;let pickerMarker=null;let selected=null;const syncFromInputs=()=>{const lat=parseFloat(latInput.value),lng=parseFloat(lngInput.value);if(!isNaN(lat)&&!isNaN(lng))window.updateCatchLocationPreview(lat,lng)};latInput.addEventListener('input',syncFromInputs);lngInput.addEventListener('input',syncFromInputs);syncFromInputs();openBtn.addEventListener('click',()=>{modal.classList.remove('hidden');modal.setAttribute('aria-hidden','false');setTimeout(()=>{if(!pickerMap){pickerMap=L.map('mapPicker').setView([59.442773,11.654906],9);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(pickerMap);pickerMap.on('click',e=>{selected=e.latlng;if(pickerMarker){pickerMarker.setLatLng(selected)}else{pickerMarker=L.marker(selected,{draggable:true}).addTo(pickerMap);pickerMarker.on('dragend',()=>{selected=pickerMarker.getLatLng()})}})}const lat=parseFloat(latInput.value),lng=parseFloat(lngInput.value);if(!isNaN(lat)&&!isNaN(lng)){selected={lat,lng};pickerMap.setView([lat,lng],11);if(pickerMarker){pickerMarker.setLatLng([lat,lng])}else{pickerMarker=L.marker([lat,lng],{draggable:true}).addTo(pickerMap);pickerMarker.on('dragend',()=>{selected=pickerMarker.getLatLng()})}}pickerMap.invalidateSize()},80)});const closeModal=()=>{modal.classList.add('hidden');modal.setAttribute('aria-hidden','true')};closeBtn.addEventListener('click',closeModal);modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});confirmBtn.addEventListener('click',()=>{if(!selected)return;latInput.value=Number(selected.lat).toFixed(6);lngInput.value=Number(selected.lng).toFixed(6);window.updateCatchLocationPreview(selected.lat,selected.lng);closeModal()})}
 async function init(){

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://unpkg.com" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-  <link rel="stylesheet" href="style.css?v=127" />
+  <link rel="stylesheet" href="style.css?v=128" />
 </head>
 <body>
 <div id="tournamentSaveToast" class="save-toast hidden" role="status" aria-live="polite">Erfolgreich Turnier gespeichert</div>
@@ -341,6 +341,9 @@
               <p class="eyebrow">Tournament Hub</p>
               <h3 id="activeTournamentTitle">Turnierauswertung</h3>
               <span id="activeTournamentMeta" class="subtle">Noch kein Turnier ausgewählt</span>
+              <div class="tournament-hub-actions">
+                <button type="button" class="pill secondary tournament-memory-export-btn" id="exportTournamentMemoryPdf" disabled>PDF-Erinnerung</button>
+              </div>
             </div>
             <div id="tournamentHeroKpis" class="tournament-hero-kpis" aria-label="Turnier Kennzahlen"></div>
           </div>
@@ -606,7 +609,7 @@
   console.log('Supabase erfolgreich verbunden');
 </script>
 
-<script src="app.js?v=129"></script>
+<script src="app.js?v=130"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
 </body>
